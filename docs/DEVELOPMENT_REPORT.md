@@ -67,6 +67,15 @@ APK details from run #2 (`aapt2 dump badging`, `sha256sum`):
 
 Every later run rebuilds the APKs, so checksums change per commit; each run's `SHA256SUMS.txt` is inside its artifact. Package `com.gamebox.console`, version 0.1.0, compileSdk/targetSdk 36, label GAMEBOX. Both `launchable-activity` and `leanback-launchable-activity` (with banner) are present. Touchscreen, leanback and gamepad are declared not required. Release APKs are signed with the debug key.
 
+## Phase 2 — Game Library
+
+Completed: ROM manager service, native SAF scanning/hashing/header reads/artwork import/pickers/deletion, console detector, title normaliser, header validator, scan planner, schema v2 + migration test, My Games (search, filters, sorting, scan status), game page (verify, artwork, edit info, remove, delete), storage page (scan, GAMEBOX folder paths), auto-scan setting. Tests: 80 total (37 new).
+
+Issues found by tests and fixed in Phase 2:
+* STORAGE page header: three action buttons left the title ~0 px wide, so its subtitle wrapped one letter per line (408 px overflow). Page headers now reserve 40% for the title and wrap actions.
+* Game cards overflowed the grid cell by 4–19 px (fixed 4:3 artwork). Artwork now takes the remaining height.
+* `.chd`/`.pbp` signature checks were unreachable for PSP/PS2/GameCube/Wii. Moved before the console switch.
+
 ## Pending features
 
 Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.

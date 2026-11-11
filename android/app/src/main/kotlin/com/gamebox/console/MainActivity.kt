@@ -13,6 +13,7 @@ import com.gamebox.console.launcher.LauncherBridge
 import com.gamebox.console.services.Background
 import com.gamebox.console.services.ConnectivityMonitor
 import com.gamebox.console.services.StorageEvents
+import com.gamebox.console.storage.RomFiles
 import com.gamebox.console.storage.StorageScanner
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -27,6 +28,8 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val REQUEST_PICK_DIRECTORY = 4102
+        private const val REQUEST_PICK_FILES = 4103
+        private const val REQUEST_PICK_IMAGE = 4104
     }
 
     private lateinit var launcher: LauncherBridge
@@ -34,6 +37,7 @@ class MainActivity : FlutterActivity() {
     private val rawInput = RawInputStream()
     private var launcherChannel: MethodChannel? = null
     private var pendingDirectoryResult: MethodChannel.Result? = null
+    private var pendingFilesResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -87,6 +91,43 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, "gamebox/storage").setMethodCallHandler { call, result ->
             when (call.method) {
                 "volumes" -> Background.run(result) { StorageScanner(applicationContext).volumes() }
+                "scanTree" -> Background.run(result) {
+                    RomFiles(applicationContext).scanTree(
+                        call.argument<String>("uri")!!,
+                        (call.argument<List<String>>("extensions") ?: emptyList()).toSet(),
+                        call.argument<Int>("maxDepth") ?: 8,
+                        call.argument<Int>("maxFiles") ?: 20000,
+                    )
+                }
+                "treeAccessible" -> Background.run(result) {
+                    RomFiles(applicationContext).treeAccessible(call.argument<String>("uri")!!)
+                }
+                "existsMany" -> Background.run(result) {
+                    val files = RomFiles(applicationContext)
+                    (call.argument<List<String>>("uris") ?: emptyList()).map { files.exists(it) }
+                }
+                "hash" -> Background.run(result) { RomFiles(applicationContext).hash(call.argument<String>("uri")!!) }
+                "readBytes" -> Background.run(result) {
+                    RomFiles(applicationContext).readBytes(
+                        call.argument<String>("uri")!!,
+                        (call.argument<Number>("offset") ?: 0).toLong(),
+                        call.argument<Int>("length") ?: 0,
+                    )
+                }
+                "importImage" -> Background.run(result) {
+                    RomFiles(applicationContext).importImage(
+                        call.argument<String>("uri")!!,
+                        call.argument<String>("dest")!!,
+                        call.argument<Int>("maxDim") ?: 600,
+                    )
+                }
+                "describe" -> Background.run(result) {
+                    val files = RomFiles(applicationContext)
+                    (call.argument<List<String>>("uris") ?: emptyList()).map { files.describe(it) }
+                }
+                "deleteFile" -> Background.run(result) { RomFiles(applicationContext).delete(call.argument<String>("uri")!!) }
+                "pickFiles" -> pickDocuments(result, arrayOf("*/*"), multiple = true, REQUEST_PICK_FILES)
+                "pickImage" -> pickDocuments(result, arrayOf("image/*"), multiple = false, REQUEST_PICK_IMAGE)
                 "pickDirectory" -> pickDirectory(result)
                 "persistedDirectories" -> result.success(
                     contentResolver.persistedUriPermissions.map {
@@ -135,8 +176,48 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /** ACTION_OPEN_DOCUMENT picker; selected files get a persisted read grant. */
+    private fun pickDocuments(result: MethodChannel.Result, mimeTypes: Array<String>, multiple: Boolean, request: Int) {
+        if (pendingFilesResult != null) {
+            result.error("busy", "A file picker is already open", null)
+            return
+        }
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(if (mimeTypes.size == 1) mimeTypes[0] else "*/*")
+            .putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        try {
+            pendingFilesResult = result
+            startActivityForResult(intent, request)
+        } catch (e: ActivityNotFoundException) {
+            pendingFilesResult = null
+            result.error("saf_unavailable", "This device has no system file picker", null)
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_PICK_FILES || requestCode == REQUEST_PICK_IMAGE) {
+            val pending = pendingFilesResult ?: return
+            pendingFilesResult = null
+            if (resultCode != Activity.RESULT_OK || data == null) {
+                pending.success(emptyList<String>())
+                return
+            }
+            val uris = ArrayList<Uri>()
+            data.clipData?.let { clip -> for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri) }
+            if (uris.isEmpty()) data.data?.let { uris.add(it) }
+            for (u in uris) {
+                try {
+                    contentResolver.takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: SecurityException) {
+                }
+            }
+            pending.success(uris.map { it.toString() })
+            return
+        }
         if (requestCode == REQUEST_PICK_DIRECTORY) {
             val pending = pendingDirectoryResult ?: return
             pendingDirectoryResult = null

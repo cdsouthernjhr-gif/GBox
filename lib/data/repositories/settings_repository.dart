@@ -33,7 +33,11 @@ class SettingsState {
     this.gameSort = GameSort.title,
     this.defaultConsoleId,
     this.romFolders = const [],
+    this.autoScan = true,
   });
+
+  /// Rescan game folders at startup and when storage is connected.
+  final bool autoScan;
 
   final AppThemeId theme;
   final int wallpaperPreset;
@@ -74,6 +78,7 @@ class SettingsState {
           ? null
           : m[SettingsKeys.defaultConsole],
       romFolders: folders,
+      autoScan: (m[SettingsKeys.autoScan] ?? 'true') == 'true',
     );
   }
 }
@@ -89,6 +94,7 @@ abstract final class SettingsKeys {
   static const gameSort = 'gaming.sort';
   static const defaultConsole = 'gaming.default_console';
   static const romFolders = 'storage.rom_folders';
+  static const autoScan = 'gaming.auto_scan';
 }
 
 class SettingsRepository {

@@ -3843,6 +3843,17 @@ class $GamesTable extends Games with TableInfo<$GamesTable, GameRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _regionsMeta = const VerificationMeta(
+    'regions',
+  );
+  @override
+  late final GeneratedColumn<String> regions = GeneratedColumn<String>(
+    'regions',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3854,6 +3865,7 @@ class $GamesTable extends Games with TableInfo<$GamesTable, GameRow> {
     lastPlayedAt,
     playCount,
     isMissing,
+    regions,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3932,6 +3944,12 @@ class $GamesTable extends Games with TableInfo<$GamesTable, GameRow> {
         isMissing.isAcceptableOrUnknown(data['is_missing']!, _isMissingMeta),
       );
     }
+    if (data.containsKey('regions')) {
+      context.handle(
+        _regionsMeta,
+        regions.isAcceptableOrUnknown(data['regions']!, _regionsMeta),
+      );
+    }
     return context;
   }
 
@@ -3977,6 +3995,10 @@ class $GamesTable extends Games with TableInfo<$GamesTable, GameRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_missing'],
       )!,
+      regions: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}regions'],
+      ),
     );
   }
 
@@ -3996,6 +4018,9 @@ class GameRow extends DataClass implements Insertable<GameRow> {
   final DateTime? lastPlayedAt;
   final int playCount;
   final bool isMissing;
+
+  /// Comma-separated regions parsed from the file name (schema v2).
+  final String? regions;
   const GameRow({
     required this.id,
     required this.title,
@@ -4006,6 +4031,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
     this.lastPlayedAt,
     required this.playCount,
     required this.isMissing,
+    this.regions,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4023,6 +4049,9 @@ class GameRow extends DataClass implements Insertable<GameRow> {
     }
     map['play_count'] = Variable<int>(playCount);
     map['is_missing'] = Variable<bool>(isMissing);
+    if (!nullToAbsent || regions != null) {
+      map['regions'] = Variable<String>(regions);
+    }
     return map;
   }
 
@@ -4041,6 +4070,9 @@ class GameRow extends DataClass implements Insertable<GameRow> {
           : Value(lastPlayedAt),
       playCount: Value(playCount),
       isMissing: Value(isMissing),
+      regions: regions == null && nullToAbsent
+          ? const Value.absent()
+          : Value(regions),
     );
   }
 
@@ -4061,6 +4093,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
       lastPlayedAt: serializer.fromJson<DateTime?>(json['lastPlayedAt']),
       playCount: serializer.fromJson<int>(json['playCount']),
       isMissing: serializer.fromJson<bool>(json['isMissing']),
+      regions: serializer.fromJson<String?>(json['regions']),
     );
   }
   @override
@@ -4076,6 +4109,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
       'lastPlayedAt': serializer.toJson<DateTime?>(lastPlayedAt),
       'playCount': serializer.toJson<int>(playCount),
       'isMissing': serializer.toJson<bool>(isMissing),
+      'regions': serializer.toJson<String?>(regions),
     };
   }
 
@@ -4089,6 +4123,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
     Value<DateTime?> lastPlayedAt = const Value.absent(),
     int? playCount,
     bool? isMissing,
+    Value<String?> regions = const Value.absent(),
   }) => GameRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -4101,6 +4136,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
     lastPlayedAt: lastPlayedAt.present ? lastPlayedAt.value : this.lastPlayedAt,
     playCount: playCount ?? this.playCount,
     isMissing: isMissing ?? this.isMissing,
+    regions: regions.present ? regions.value : this.regions,
   );
   GameRow copyWithCompanion(GamesCompanion data) {
     return GameRow(
@@ -4117,6 +4153,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
           : this.lastPlayedAt,
       playCount: data.playCount.present ? data.playCount.value : this.playCount,
       isMissing: data.isMissing.present ? data.isMissing.value : this.isMissing,
+      regions: data.regions.present ? data.regions.value : this.regions,
     );
   }
 
@@ -4131,7 +4168,8 @@ class GameRow extends DataClass implements Insertable<GameRow> {
           ..write('addedAt: $addedAt, ')
           ..write('lastPlayedAt: $lastPlayedAt, ')
           ..write('playCount: $playCount, ')
-          ..write('isMissing: $isMissing')
+          ..write('isMissing: $isMissing, ')
+          ..write('regions: $regions')
           ..write(')'))
         .toString();
   }
@@ -4147,6 +4185,7 @@ class GameRow extends DataClass implements Insertable<GameRow> {
     lastPlayedAt,
     playCount,
     isMissing,
+    regions,
   );
   @override
   bool operator ==(Object other) =>
@@ -4160,7 +4199,8 @@ class GameRow extends DataClass implements Insertable<GameRow> {
           other.addedAt == this.addedAt &&
           other.lastPlayedAt == this.lastPlayedAt &&
           other.playCount == this.playCount &&
-          other.isMissing == this.isMissing);
+          other.isMissing == this.isMissing &&
+          other.regions == this.regions);
 }
 
 class GamesCompanion extends UpdateCompanion<GameRow> {
@@ -4173,6 +4213,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
   final Value<DateTime?> lastPlayedAt;
   final Value<int> playCount;
   final Value<bool> isMissing;
+  final Value<String?> regions;
   const GamesCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -4183,6 +4224,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
     this.lastPlayedAt = const Value.absent(),
     this.playCount = const Value.absent(),
     this.isMissing = const Value.absent(),
+    this.regions = const Value.absent(),
   });
   GamesCompanion.insert({
     this.id = const Value.absent(),
@@ -4194,6 +4236,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
     this.lastPlayedAt = const Value.absent(),
     this.playCount = const Value.absent(),
     this.isMissing = const Value.absent(),
+    this.regions = const Value.absent(),
   }) : title = Value(title),
        sortTitle = Value(sortTitle),
        consoleId = Value(consoleId),
@@ -4208,6 +4251,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
     Expression<DateTime>? lastPlayedAt,
     Expression<int>? playCount,
     Expression<bool>? isMissing,
+    Expression<String>? regions,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4220,6 +4264,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
       if (lastPlayedAt != null) 'last_played_at': lastPlayedAt,
       if (playCount != null) 'play_count': playCount,
       if (isMissing != null) 'is_missing': isMissing,
+      if (regions != null) 'regions': regions,
     });
   }
 
@@ -4233,6 +4278,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
     Value<DateTime?>? lastPlayedAt,
     Value<int>? playCount,
     Value<bool>? isMissing,
+    Value<String?>? regions,
   }) {
     return GamesCompanion(
       id: id ?? this.id,
@@ -4244,6 +4290,7 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
       playCount: playCount ?? this.playCount,
       isMissing: isMissing ?? this.isMissing,
+      regions: regions ?? this.regions,
     );
   }
 
@@ -4279,6 +4326,9 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
     if (isMissing.present) {
       map['is_missing'] = Variable<bool>(isMissing.value);
     }
+    if (regions.present) {
+      map['regions'] = Variable<String>(regions.value);
+    }
     return map;
   }
 
@@ -4293,7 +4343,8 @@ class GamesCompanion extends UpdateCompanion<GameRow> {
           ..write('addedAt: $addedAt, ')
           ..write('lastPlayedAt: $lastPlayedAt, ')
           ..write('playCount: $playCount, ')
-          ..write('isMissing: $isMissing')
+          ..write('isMissing: $isMissing, ')
+          ..write('regions: $regions')
           ..write(')'))
         .toString();
   }
@@ -6749,6 +6800,76 @@ class $GameFilesTable extends GameFiles
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _rootUriMeta = const VerificationMeta(
+    'rootUri',
+  );
+  @override
+  late final GeneratedColumn<String> rootUri = GeneratedColumn<String>(
+    'root_uri',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastModifiedMeta = const VerificationMeta(
+    'lastModified',
+  );
+  @override
+  late final GeneratedColumn<int> lastModified = GeneratedColumn<int>(
+    'last_modified',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isPrimaryMeta = const VerificationMeta(
+    'isPrimary',
+  );
+  @override
+  late final GeneratedColumn<bool> isPrimary = GeneratedColumn<bool>(
+    'is_primary',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_primary" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _discNumberMeta = const VerificationMeta(
+    'discNumber',
+  );
+  @override
+  late final GeneratedColumn<int> discNumber = GeneratedColumn<int>(
+    'disc_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _headerStatusMeta = const VerificationMeta(
+    'headerStatus',
+  );
+  @override
+  late final GeneratedColumn<String> headerStatus = GeneratedColumn<String>(
+    'header_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _headerDetailMeta = const VerificationMeta(
+    'headerDetail',
+  );
+  @override
+  late final GeneratedColumn<String> headerDetail = GeneratedColumn<String>(
+    'header_detail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6762,6 +6883,12 @@ class $GameFilesTable extends GameFiles
     storageDeviceId,
     fileExists,
     lastVerifiedAt,
+    rootUri,
+    lastModified,
+    isPrimary,
+    discNumber,
+    headerStatus,
+    headerDetail,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6855,6 +6982,51 @@ class $GameFilesTable extends GameFiles
         ),
       );
     }
+    if (data.containsKey('root_uri')) {
+      context.handle(
+        _rootUriMeta,
+        rootUri.isAcceptableOrUnknown(data['root_uri']!, _rootUriMeta),
+      );
+    }
+    if (data.containsKey('last_modified')) {
+      context.handle(
+        _lastModifiedMeta,
+        lastModified.isAcceptableOrUnknown(
+          data['last_modified']!,
+          _lastModifiedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_primary')) {
+      context.handle(
+        _isPrimaryMeta,
+        isPrimary.isAcceptableOrUnknown(data['is_primary']!, _isPrimaryMeta),
+      );
+    }
+    if (data.containsKey('disc_number')) {
+      context.handle(
+        _discNumberMeta,
+        discNumber.isAcceptableOrUnknown(data['disc_number']!, _discNumberMeta),
+      );
+    }
+    if (data.containsKey('header_status')) {
+      context.handle(
+        _headerStatusMeta,
+        headerStatus.isAcceptableOrUnknown(
+          data['header_status']!,
+          _headerStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('header_detail')) {
+      context.handle(
+        _headerDetailMeta,
+        headerDetail.isAcceptableOrUnknown(
+          data['header_detail']!,
+          _headerDetailMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6908,6 +7080,30 @@ class $GameFilesTable extends GameFiles
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_verified_at'],
       ),
+      rootUri: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}root_uri'],
+      ),
+      lastModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_modified'],
+      ),
+      isPrimary: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_primary'],
+      )!,
+      discNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}disc_number'],
+      ),
+      headerStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}header_status'],
+      ),
+      headerDetail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}header_detail'],
+      ),
     );
   }
 
@@ -6931,6 +7127,17 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
   final int? storageDeviceId;
   final bool fileExists;
   final DateTime? lastVerifiedAt;
+
+  /// Scan root (SAF tree URI or directory path) the file was found under;
+  /// null for manually imported files.
+  final String? rootUri;
+  final int? lastModified;
+  final bool isPrimary;
+  final int? discNumber;
+
+  /// valid | invalid | notChecked (see rom_header_validator.dart).
+  final String? headerStatus;
+  final String? headerDetail;
   const GameFileRow({
     required this.id,
     required this.gameId,
@@ -6943,6 +7150,12 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
     this.storageDeviceId,
     required this.fileExists,
     this.lastVerifiedAt,
+    this.rootUri,
+    this.lastModified,
+    required this.isPrimary,
+    this.discNumber,
+    this.headerStatus,
+    this.headerDetail,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6968,6 +7181,22 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
     if (!nullToAbsent || lastVerifiedAt != null) {
       map['last_verified_at'] = Variable<DateTime>(lastVerifiedAt);
     }
+    if (!nullToAbsent || rootUri != null) {
+      map['root_uri'] = Variable<String>(rootUri);
+    }
+    if (!nullToAbsent || lastModified != null) {
+      map['last_modified'] = Variable<int>(lastModified);
+    }
+    map['is_primary'] = Variable<bool>(isPrimary);
+    if (!nullToAbsent || discNumber != null) {
+      map['disc_number'] = Variable<int>(discNumber);
+    }
+    if (!nullToAbsent || headerStatus != null) {
+      map['header_status'] = Variable<String>(headerStatus);
+    }
+    if (!nullToAbsent || headerDetail != null) {
+      map['header_detail'] = Variable<String>(headerDetail);
+    }
     return map;
   }
 
@@ -6992,6 +7221,22 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
       lastVerifiedAt: lastVerifiedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastVerifiedAt),
+      rootUri: rootUri == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rootUri),
+      lastModified: lastModified == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastModified),
+      isPrimary: Value(isPrimary),
+      discNumber: discNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(discNumber),
+      headerStatus: headerStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(headerStatus),
+      headerDetail: headerDetail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(headerDetail),
     );
   }
 
@@ -7012,6 +7257,12 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
       storageDeviceId: serializer.fromJson<int?>(json['storageDeviceId']),
       fileExists: serializer.fromJson<bool>(json['fileExists']),
       lastVerifiedAt: serializer.fromJson<DateTime?>(json['lastVerifiedAt']),
+      rootUri: serializer.fromJson<String?>(json['rootUri']),
+      lastModified: serializer.fromJson<int?>(json['lastModified']),
+      isPrimary: serializer.fromJson<bool>(json['isPrimary']),
+      discNumber: serializer.fromJson<int?>(json['discNumber']),
+      headerStatus: serializer.fromJson<String?>(json['headerStatus']),
+      headerDetail: serializer.fromJson<String?>(json['headerDetail']),
     );
   }
   @override
@@ -7029,6 +7280,12 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
       'storageDeviceId': serializer.toJson<int?>(storageDeviceId),
       'fileExists': serializer.toJson<bool>(fileExists),
       'lastVerifiedAt': serializer.toJson<DateTime?>(lastVerifiedAt),
+      'rootUri': serializer.toJson<String?>(rootUri),
+      'lastModified': serializer.toJson<int?>(lastModified),
+      'isPrimary': serializer.toJson<bool>(isPrimary),
+      'discNumber': serializer.toJson<int?>(discNumber),
+      'headerStatus': serializer.toJson<String?>(headerStatus),
+      'headerDetail': serializer.toJson<String?>(headerDetail),
     };
   }
 
@@ -7044,6 +7301,12 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
     Value<int?> storageDeviceId = const Value.absent(),
     bool? fileExists,
     Value<DateTime?> lastVerifiedAt = const Value.absent(),
+    Value<String?> rootUri = const Value.absent(),
+    Value<int?> lastModified = const Value.absent(),
+    bool? isPrimary,
+    Value<int?> discNumber = const Value.absent(),
+    Value<String?> headerStatus = const Value.absent(),
+    Value<String?> headerDetail = const Value.absent(),
   }) => GameFileRow(
     id: id ?? this.id,
     gameId: gameId ?? this.gameId,
@@ -7060,6 +7323,12 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
     lastVerifiedAt: lastVerifiedAt.present
         ? lastVerifiedAt.value
         : this.lastVerifiedAt,
+    rootUri: rootUri.present ? rootUri.value : this.rootUri,
+    lastModified: lastModified.present ? lastModified.value : this.lastModified,
+    isPrimary: isPrimary ?? this.isPrimary,
+    discNumber: discNumber.present ? discNumber.value : this.discNumber,
+    headerStatus: headerStatus.present ? headerStatus.value : this.headerStatus,
+    headerDetail: headerDetail.present ? headerDetail.value : this.headerDetail,
   );
   GameFileRow copyWithCompanion(GameFilesCompanion data) {
     return GameFileRow(
@@ -7082,6 +7351,20 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
       lastVerifiedAt: data.lastVerifiedAt.present
           ? data.lastVerifiedAt.value
           : this.lastVerifiedAt,
+      rootUri: data.rootUri.present ? data.rootUri.value : this.rootUri,
+      lastModified: data.lastModified.present
+          ? data.lastModified.value
+          : this.lastModified,
+      isPrimary: data.isPrimary.present ? data.isPrimary.value : this.isPrimary,
+      discNumber: data.discNumber.present
+          ? data.discNumber.value
+          : this.discNumber,
+      headerStatus: data.headerStatus.present
+          ? data.headerStatus.value
+          : this.headerStatus,
+      headerDetail: data.headerDetail.present
+          ? data.headerDetail.value
+          : this.headerDetail,
     );
   }
 
@@ -7098,7 +7381,13 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
           ..write('crc32: $crc32, ')
           ..write('storageDeviceId: $storageDeviceId, ')
           ..write('fileExists: $fileExists, ')
-          ..write('lastVerifiedAt: $lastVerifiedAt')
+          ..write('lastVerifiedAt: $lastVerifiedAt, ')
+          ..write('rootUri: $rootUri, ')
+          ..write('lastModified: $lastModified, ')
+          ..write('isPrimary: $isPrimary, ')
+          ..write('discNumber: $discNumber, ')
+          ..write('headerStatus: $headerStatus, ')
+          ..write('headerDetail: $headerDetail')
           ..write(')'))
         .toString();
   }
@@ -7116,6 +7405,12 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
     storageDeviceId,
     fileExists,
     lastVerifiedAt,
+    rootUri,
+    lastModified,
+    isPrimary,
+    discNumber,
+    headerStatus,
+    headerDetail,
   );
   @override
   bool operator ==(Object other) =>
@@ -7131,7 +7426,13 @@ class GameFileRow extends DataClass implements Insertable<GameFileRow> {
           other.crc32 == this.crc32 &&
           other.storageDeviceId == this.storageDeviceId &&
           other.fileExists == this.fileExists &&
-          other.lastVerifiedAt == this.lastVerifiedAt);
+          other.lastVerifiedAt == this.lastVerifiedAt &&
+          other.rootUri == this.rootUri &&
+          other.lastModified == this.lastModified &&
+          other.isPrimary == this.isPrimary &&
+          other.discNumber == this.discNumber &&
+          other.headerStatus == this.headerStatus &&
+          other.headerDetail == this.headerDetail);
 }
 
 class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
@@ -7146,6 +7447,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
   final Value<int?> storageDeviceId;
   final Value<bool> fileExists;
   final Value<DateTime?> lastVerifiedAt;
+  final Value<String?> rootUri;
+  final Value<int?> lastModified;
+  final Value<bool> isPrimary;
+  final Value<int?> discNumber;
+  final Value<String?> headerStatus;
+  final Value<String?> headerDetail;
   const GameFilesCompanion({
     this.id = const Value.absent(),
     this.gameId = const Value.absent(),
@@ -7158,6 +7465,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
     this.storageDeviceId = const Value.absent(),
     this.fileExists = const Value.absent(),
     this.lastVerifiedAt = const Value.absent(),
+    this.rootUri = const Value.absent(),
+    this.lastModified = const Value.absent(),
+    this.isPrimary = const Value.absent(),
+    this.discNumber = const Value.absent(),
+    this.headerStatus = const Value.absent(),
+    this.headerDetail = const Value.absent(),
   });
   GameFilesCompanion.insert({
     this.id = const Value.absent(),
@@ -7171,6 +7484,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
     this.storageDeviceId = const Value.absent(),
     this.fileExists = const Value.absent(),
     this.lastVerifiedAt = const Value.absent(),
+    this.rootUri = const Value.absent(),
+    this.lastModified = const Value.absent(),
+    this.isPrimary = const Value.absent(),
+    this.discNumber = const Value.absent(),
+    this.headerStatus = const Value.absent(),
+    this.headerDetail = const Value.absent(),
   }) : gameId = Value(gameId),
        uri = Value(uri),
        displayPath = Value(displayPath),
@@ -7187,6 +7506,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
     Expression<int>? storageDeviceId,
     Expression<bool>? fileExists,
     Expression<DateTime>? lastVerifiedAt,
+    Expression<String>? rootUri,
+    Expression<int>? lastModified,
+    Expression<bool>? isPrimary,
+    Expression<int>? discNumber,
+    Expression<String>? headerStatus,
+    Expression<String>? headerDetail,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -7200,6 +7525,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
       if (storageDeviceId != null) 'storage_device_id': storageDeviceId,
       if (fileExists != null) 'file_exists': fileExists,
       if (lastVerifiedAt != null) 'last_verified_at': lastVerifiedAt,
+      if (rootUri != null) 'root_uri': rootUri,
+      if (lastModified != null) 'last_modified': lastModified,
+      if (isPrimary != null) 'is_primary': isPrimary,
+      if (discNumber != null) 'disc_number': discNumber,
+      if (headerStatus != null) 'header_status': headerStatus,
+      if (headerDetail != null) 'header_detail': headerDetail,
     });
   }
 
@@ -7215,6 +7546,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
     Value<int?>? storageDeviceId,
     Value<bool>? fileExists,
     Value<DateTime?>? lastVerifiedAt,
+    Value<String?>? rootUri,
+    Value<int?>? lastModified,
+    Value<bool>? isPrimary,
+    Value<int?>? discNumber,
+    Value<String?>? headerStatus,
+    Value<String?>? headerDetail,
   }) {
     return GameFilesCompanion(
       id: id ?? this.id,
@@ -7228,6 +7565,12 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
       storageDeviceId: storageDeviceId ?? this.storageDeviceId,
       fileExists: fileExists ?? this.fileExists,
       lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
+      rootUri: rootUri ?? this.rootUri,
+      lastModified: lastModified ?? this.lastModified,
+      isPrimary: isPrimary ?? this.isPrimary,
+      discNumber: discNumber ?? this.discNumber,
+      headerStatus: headerStatus ?? this.headerStatus,
+      headerDetail: headerDetail ?? this.headerDetail,
     );
   }
 
@@ -7267,6 +7610,24 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
     if (lastVerifiedAt.present) {
       map['last_verified_at'] = Variable<DateTime>(lastVerifiedAt.value);
     }
+    if (rootUri.present) {
+      map['root_uri'] = Variable<String>(rootUri.value);
+    }
+    if (lastModified.present) {
+      map['last_modified'] = Variable<int>(lastModified.value);
+    }
+    if (isPrimary.present) {
+      map['is_primary'] = Variable<bool>(isPrimary.value);
+    }
+    if (discNumber.present) {
+      map['disc_number'] = Variable<int>(discNumber.value);
+    }
+    if (headerStatus.present) {
+      map['header_status'] = Variable<String>(headerStatus.value);
+    }
+    if (headerDetail.present) {
+      map['header_detail'] = Variable<String>(headerDetail.value);
+    }
     return map;
   }
 
@@ -7283,7 +7644,13 @@ class GameFilesCompanion extends UpdateCompanion<GameFileRow> {
           ..write('crc32: $crc32, ')
           ..write('storageDeviceId: $storageDeviceId, ')
           ..write('fileExists: $fileExists, ')
-          ..write('lastVerifiedAt: $lastVerifiedAt')
+          ..write('lastVerifiedAt: $lastVerifiedAt, ')
+          ..write('rootUri: $rootUri, ')
+          ..write('lastModified: $lastModified, ')
+          ..write('isPrimary: $isPrimary, ')
+          ..write('discNumber: $discNumber, ')
+          ..write('headerStatus: $headerStatus, ')
+          ..write('headerDetail: $headerDetail')
           ..write(')'))
         .toString();
   }
@@ -15226,6 +15593,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_game_files_hash',
     'CREATE INDEX idx_game_files_hash ON game_files (sha1)',
   );
+  late final Index idxGameFilesRoot = Index(
+    'idx_game_files_root',
+    'CREATE INDEX idx_game_files_root ON game_files (root_uri)',
+  );
+  late final Index idxGameFilesGame = Index(
+    'idx_game_files_game',
+    'CREATE INDEX idx_game_files_game ON game_files (game_id)',
+  );
   late final Index idxHistoryStarted = Index(
     'idx_history_started',
     'CREATE INDEX idx_history_started ON game_history (started_at)',
@@ -15270,6 +15645,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxGamesConsole,
     idxGamesLastPlayed,
     idxGameFilesHash,
+    idxGameFilesRoot,
+    idxGameFilesGame,
     idxHistoryStarted,
     idxDownloadStatus,
   ];
@@ -18445,6 +18822,7 @@ typedef $$GamesTableCreateCompanionBuilder = GamesCompanion Function({
   Value<DateTime?> lastPlayedAt,
   Value<int> playCount,
   Value<bool> isMissing,
+  Value<String?> regions,
 });
 typedef $$GamesTableUpdateCompanionBuilder = GamesCompanion Function({
   Value<int> id,
@@ -18456,6 +18834,7 @@ typedef $$GamesTableUpdateCompanionBuilder = GamesCompanion Function({
   Value<DateTime?> lastPlayedAt,
   Value<int> playCount,
   Value<bool> isMissing,
+  Value<String?> regions,
 });
 
 final class $$GamesTableReferences
@@ -18706,6 +19085,11 @@ class $$GamesTableFilterComposer extends Composer<_$AppDatabase, $GamesTable> {
 
   ColumnFilters<bool> get isMissing => $composableBuilder(
     column: $table.isMissing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get regions => $composableBuilder(
+    column: $table.regions,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19027,6 +19411,11 @@ class $$GamesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get regions => $composableBuilder(
+    column: $table.regions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ConsolesTableOrderingComposer get consoleId {
     final $$ConsolesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -19105,6 +19494,9 @@ class $$GamesTableAnnotationComposer
 
   GeneratedColumn<bool> get isMissing =>
       $composableBuilder(column: $table.isMissing, builder: (column) => column);
+
+  GeneratedColumn<String> get regions =>
+      $composableBuilder(column: $table.regions, builder: (column) => column);
 
   $$ConsolesTableAnnotationComposer get consoleId {
     final $$ConsolesTableAnnotationComposer composer = $composerBuilder(
@@ -19429,6 +19821,7 @@ class $$GamesTableTableManager
                 Value<DateTime?> lastPlayedAt = const Value.absent(),
                 Value<int> playCount = const Value.absent(),
                 Value<bool> isMissing = const Value.absent(),
+                Value<String?> regions = const Value.absent(),
               }) => GamesCompanion(
                 id: id,
                 title: title,
@@ -19439,6 +19832,7 @@ class $$GamesTableTableManager
                 lastPlayedAt: lastPlayedAt,
                 playCount: playCount,
                 isMissing: isMissing,
+                regions: regions,
               ),
           createCompanionCallback:
               ({
@@ -19451,6 +19845,7 @@ class $$GamesTableTableManager
                 Value<DateTime?> lastPlayedAt = const Value.absent(),
                 Value<int> playCount = const Value.absent(),
                 Value<bool> isMissing = const Value.absent(),
+                Value<String?> regions = const Value.absent(),
               }) => GamesCompanion.insert(
                 id: id,
                 title: title,
@@ -19461,6 +19856,7 @@ class $$GamesTableTableManager
                 lastPlayedAt: lastPlayedAt,
                 playCount: playCount,
                 isMissing: isMissing,
+                regions: regions,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -21737,6 +22133,12 @@ typedef $$GameFilesTableCreateCompanionBuilder = GameFilesCompanion Function({
   Value<int?> storageDeviceId,
   Value<bool> fileExists,
   Value<DateTime?> lastVerifiedAt,
+  Value<String?> rootUri,
+  Value<int?> lastModified,
+  Value<bool> isPrimary,
+  Value<int?> discNumber,
+  Value<String?> headerStatus,
+  Value<String?> headerDetail,
 });
 typedef $$GameFilesTableUpdateCompanionBuilder = GameFilesCompanion Function({
   Value<int> id,
@@ -21750,6 +22152,12 @@ typedef $$GameFilesTableUpdateCompanionBuilder = GameFilesCompanion Function({
   Value<int?> storageDeviceId,
   Value<bool> fileExists,
   Value<DateTime?> lastVerifiedAt,
+  Value<String?> rootUri,
+  Value<int?> lastModified,
+  Value<bool> isPrimary,
+  Value<int?> discNumber,
+  Value<String?> headerStatus,
+  Value<String?> headerDetail,
 });
 
 final class $$GameFilesTableReferences
@@ -21843,6 +22251,36 @@ class $$GameFilesTableFilterComposer
 
   ColumnFilters<DateTime> get lastVerifiedAt => $composableBuilder(
     column: $table.lastVerifiedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rootUri => $composableBuilder(
+    column: $table.rootUri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPrimary => $composableBuilder(
+    column: $table.isPrimary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get discNumber => $composableBuilder(
+    column: $table.discNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get headerStatus => $composableBuilder(
+    column: $table.headerStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get headerDetail => $composableBuilder(
+    column: $table.headerDetail,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21947,6 +22385,36 @@ class $$GameFilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get rootUri => $composableBuilder(
+    column: $table.rootUri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPrimary => $composableBuilder(
+    column: $table.isPrimary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get discNumber => $composableBuilder(
+    column: $table.discNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get headerStatus => $composableBuilder(
+    column: $table.headerStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get headerDetail => $composableBuilder(
+    column: $table.headerDetail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$GamesTableOrderingComposer get gameId {
     final $$GamesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -22036,6 +22504,32 @@ class $$GameFilesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get rootUri =>
+      $composableBuilder(column: $table.rootUri, builder: (column) => column);
+
+  GeneratedColumn<int> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isPrimary =>
+      $composableBuilder(column: $table.isPrimary, builder: (column) => column);
+
+  GeneratedColumn<int> get discNumber => $composableBuilder(
+    column: $table.discNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get headerStatus => $composableBuilder(
+    column: $table.headerStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get headerDetail => $composableBuilder(
+    column: $table.headerDetail,
+    builder: (column) => column,
+  );
+
   $$GamesTableAnnotationComposer get gameId {
     final $$GamesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -22122,6 +22616,12 @@ class $$GameFilesTableTableManager
                 Value<int?> storageDeviceId = const Value.absent(),
                 Value<bool> fileExists = const Value.absent(),
                 Value<DateTime?> lastVerifiedAt = const Value.absent(),
+                Value<String?> rootUri = const Value.absent(),
+                Value<int?> lastModified = const Value.absent(),
+                Value<bool> isPrimary = const Value.absent(),
+                Value<int?> discNumber = const Value.absent(),
+                Value<String?> headerStatus = const Value.absent(),
+                Value<String?> headerDetail = const Value.absent(),
               }) => GameFilesCompanion(
                 id: id,
                 gameId: gameId,
@@ -22134,6 +22634,12 @@ class $$GameFilesTableTableManager
                 storageDeviceId: storageDeviceId,
                 fileExists: fileExists,
                 lastVerifiedAt: lastVerifiedAt,
+                rootUri: rootUri,
+                lastModified: lastModified,
+                isPrimary: isPrimary,
+                discNumber: discNumber,
+                headerStatus: headerStatus,
+                headerDetail: headerDetail,
               ),
           createCompanionCallback:
               ({
@@ -22148,6 +22654,12 @@ class $$GameFilesTableTableManager
                 Value<int?> storageDeviceId = const Value.absent(),
                 Value<bool> fileExists = const Value.absent(),
                 Value<DateTime?> lastVerifiedAt = const Value.absent(),
+                Value<String?> rootUri = const Value.absent(),
+                Value<int?> lastModified = const Value.absent(),
+                Value<bool> isPrimary = const Value.absent(),
+                Value<int?> discNumber = const Value.absent(),
+                Value<String?> headerStatus = const Value.absent(),
+                Value<String?> headerDetail = const Value.absent(),
               }) => GameFilesCompanion.insert(
                 id: id,
                 gameId: gameId,
@@ -22160,6 +22672,12 @@ class $$GameFilesTableTableManager
                 storageDeviceId: storageDeviceId,
                 fileExists: fileExists,
                 lastVerifiedAt: lastVerifiedAt,
+                rootUri: rootUri,
+                lastModified: lastModified,
+                isPrimary: isPrimary,
+                discNumber: discNumber,
+                headerStatus: headerStatus,
+                headerDetail: headerDetail,
               ),
           withReferenceMapper: (p0) => p0
               .map(

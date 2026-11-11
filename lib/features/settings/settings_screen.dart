@@ -130,6 +130,12 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             },
             onChanged: (v) => s.settings.set(SettingsKeys.gameSort, v.name),
           ),
+          _Toggle(
+            title: 'Auto scan',
+            subtitle: 'Scan game folders at startup and when USB/SD storage is connected',
+            value: st.autoScan,
+            onChanged: (v) => s.settings.set(SettingsKeys.autoScan, v),
+          ),
           _Choice<String>(
             title: 'Default console',
             value: st.defaultConsoleId ?? 'none',
@@ -173,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 .push(MaterialPageRoute(builder: (_) => const LogsScreen())),
             action: 'View',
           ),
-          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 1 foundation)'),
+          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 2 game library)'),
           const _Row(
               title: 'Backup & restore',
               value: 'Library and save backup are part of the Save Manager (Phase 7).'),

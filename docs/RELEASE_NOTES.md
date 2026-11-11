@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.2.0+2 — Phase 2 Game Library (pre-release, not for distribution)
+
+**New:** ROM manager (see ROM_MANAGER.md): auto-created GAMEBOX folders on every volume, SAF folder scanning (auto at startup and on storage changes), manual import with console chooser, extension/folder console detection, multi-disc grouping, missing vs. disconnected storage, header verification and SHA-1/CRC32 hashing, duplicate detection, local cover artwork, search/filters/sorting, manual metadata editing, remove-from-library and double-confirmed file deletion. Database schema v2 with a verified migration from v1.
+
+**Fixed:** page headers squeezed their title to nothing when there were several action buttons (STORAGE on 1080p TVs); game cards overflowed their grid cell.
+
+**Still not included:** game launching (Phase 3), downloads, online metadata, save management. **No on-device testing yet.**
+
 ## 0.1.0+1 — Phase 1 Foundation (pre-release, not for distribution)
 
 **Scope:** launcher, Device Intelligence Engine, adaptive compatibility estimates, local database, controller/storage detection, basic settings. See README for the feature table.

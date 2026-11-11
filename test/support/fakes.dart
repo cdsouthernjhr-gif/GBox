@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:gamebox/core/services/platform_gateway.dart';
@@ -170,6 +171,96 @@ class FakeGateway implements PlatformGateway {
 
   @override
   Future<bool> releaseDirectory(String uri) async => true;
+
+  // ---- ROM manager fakes ----
+  /// Simulated SAF trees: tree URI → files (`{uri,name,dir,size}`).
+  final trees = <String, List<Map<String, dynamic>>>{};
+  final inaccessibleTrees = <String>{};
+
+  /// Contents of simulated `content://` documents.
+  final documents = <String, Uint8List>{};
+  final deleted = <String>[];
+  List<String> nextPickedFiles = const [];
+  String? nextPickedImage;
+
+  Uint8List _bytesOf(String uri) {
+    if (uri.startsWith('content://')) {
+      final b = documents[uri];
+      if (b == null) throw StateError('No such document $uri');
+      return b;
+    }
+    return File(uri).readAsBytesSync();
+  }
+
+  @override
+  Future<Map<String, dynamic>> scanTree(String treeUri, Set<String> extensions,
+          {int maxDepth = 8, int maxFiles = 20000}) async =>
+      {
+        'files': [
+          for (final f in trees[treeUri] ?? const <Map<String, dynamic>>[])
+            if (extensions.contains((f['name'] as String).split('.').last.toLowerCase())) f,
+        ],
+        'folders': 1,
+        'truncated': false,
+      };
+
+  @override
+  Future<bool> treeAccessible(String treeUri) async =>
+      trees.containsKey(treeUri) && !inaccessibleTrees.contains(treeUri);
+
+  @override
+  Future<List<bool>> existsMany(List<String> uris) async => [
+        for (final u in uris) u.startsWith('content://') ? documents.containsKey(u) : File(u).existsSync(),
+      ];
+
+  @override
+  Future<Map<String, dynamic>> hashFile(String uri) async {
+    final b = _bytesOf(uri);
+    // Deterministic stand-in for SHA-1 (FNV-1a 64-bit); equality is all the
+    // tests need.
+    var h = 0xcbf29ce484222325;
+    for (final x in b) {
+      h = ((h ^ x) * 0x100000001b3) & 0x7fffffffffffffff;
+    }
+    return {'sha1': h.toRadixString(16).padLeft(40, '0'), 'crc32': '00000000', 'size': b.length};
+  }
+
+  @override
+  Future<Uint8List> readBytes(String uri, {int offset = 0, required int length}) async {
+    final b = _bytesOf(uri);
+    final end = (offset + length).clamp(0, b.length);
+    return Uint8List.fromList(b.sublist(offset.clamp(0, b.length), end));
+  }
+
+  @override
+  Future<String?> importImage(String uri, String destPath, {int maxDim = 600}) async {
+    final b = _bytesOf(uri);
+    final f = File(destPath)..createSync(recursive: true);
+    f.writeAsBytesSync(b);
+    return destPath;
+  }
+
+  @override
+  Future<bool> deleteFile(String uri) async {
+    deleted.add(uri);
+    if (uri.startsWith('content://')) return documents.remove(uri) != null;
+    final f = File(uri);
+    if (!f.existsSync()) return false;
+    f.deleteSync();
+    return true;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> describeFiles(List<String> uris) async => [
+        for (final u in uris)
+          {'uri': u, 'name': Uri.decodeComponent(u).split(RegExp('[/:]')).last, 'size': documents[u]?.length},
+      ];
+
+  @override
+  Future<List<String>> pickFiles() async => nextPickedFiles;
+
+  @override
+  Future<String?> pickImage() async => nextPickedImage;
 
   @override
   Future<bool> isDefaultLauncher() async => false;

@@ -29,6 +29,16 @@
 
 * Firmwares without DocumentsUI can't register folders through SAF. Planned alternatives: the app-specific folder `Android/data/com.gamebox.console/files/` (always accessible), or a guided `adb` setup.
 
+## Game library (Phase 2)
+
+* Scan limits: 8 folder levels, 20,000 matching files per registered folder (the scan reports when it stops at the limit).
+* Files with shared extensions outside a recognisable console folder aren't imported automatically (no guessing). Use console folders, or Import files and choose the console.
+* Archive contents (`.zip`, `.7z`) aren't inspected. Whether an emulator can open an archive depends on the emulator.
+* Header checks cover the formats in ROM_MANAGER.md. PS1/Saturn/Dreamcast BIN/CUE/GDI have no reliable signature and are reported as "not checkable".
+* Large disc images are only hashed on demand (Verify file), so duplicate detection for them uses name and size until verified.
+* On Android 11+, some file managers can't open `Android/data/…`, where the GAMEBOX folders live. Copy games over USB from a PC (MTP shows the folder), or register your own folder instead.
+* Metadata and artwork are local/manual only until Phase 5.
+
 ## Not yet implemented (by phase)
 
-ROM import/scanning, artwork, search (Phase 2) · game launching (Phase 3) · button mapping, profiles, calibration (Phase 4) · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.
+Game launching (Phase 3) · button mapping, profiles, calibration (Phase 4) · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.

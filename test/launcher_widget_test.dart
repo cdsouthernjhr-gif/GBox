@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,8 @@ import 'package:gamebox/app/gamebox_app.dart';
 import 'package:gamebox/core/database/app_database.dart';
 import 'package:gamebox/data/repositories/settings_repository.dart';
 import 'package:gamebox/features/compatibility/device_report_screen.dart';
+
+import 'rom_logic_test.dart' show gbaRom, nesRom;
 
 import 'support/fakes.dart';
 
@@ -24,7 +28,7 @@ void main() {
   late FakeGateway gateway;
   late AppServices services;
 
-  Future<void> boot(WidgetTester tester, {Map<String, dynamic>? scan}) async {
+  Future<void> boot(WidgetTester tester, {Map<String, dynamic>? scan, void Function(String appRoot)? prepare}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
     tester.view.physicalSize = const Size(1920, 1080);
@@ -32,11 +36,21 @@ void main() {
     addTearDown(tester.view.reset);
 
     gateway = FakeGateway(scan: scan);
-    services = AppServices(gateway: gateway, db: AppDatabase(NativeDatabase.memory()));
+    final temp = Directory.systemTemp.createTempSync('gamebox_widget');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    prepare?.call('${temp.path}/ext0');
+    services = AppServices(
+      gateway: gateway,
+      db: AppDatabase(NativeDatabase.memory()),
+      appRoots: () async => ['${temp.path}/ext0'],
+      artworkDir: () async => '${temp.path}/artwork',
+    );
     await tester.runAsync(() async {
       await services.initialize();
       // Let background detection + first scan finish.
-      for (var i = 0; i < 50 && services.device.state.value.profile == null; i++) {
+      for (var i = 0;
+          i < 100 && (services.device.state.value.profile == null || services.library.progress.value.finishedAt == null);
+          i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
       }
       await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -142,6 +156,30 @@ void main() {
     expect(find.byType(DeviceReportScreen), findsOneWidget);
     expect(find.text('Device compatibility report'), findsOneWidget);
     expect(find.text('UNKNOWN'), findsWidgets);
+    await shutdown(tester);
+  });
+
+  testWidgets('startup scan fills My Games and search filters it', (tester) async {
+    await boot(tester, prepare: (root) {
+      for (final (folder, name, bytes) in [
+        ('NES', 'Space Quest (USA).nes', nesRom()),
+        ('GBA', 'Farm Life.gba', gbaRom()),
+      ]) {
+        File('$root/GAMEBOX/Games/$folder/$name')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(bytes);
+      }
+    });
+    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    // Each card shows the title on the generated cover and in the caption.
+    expect(find.text('Space Quest'), findsWidgets);
+    expect(find.text('Farm Life'), findsWidgets);
+    expect(find.textContaining('2 added'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'farm');
+    await settle(tester);
+    expect(find.text('Farm Life'), findsWidgets);
+    expect(find.text('Space Quest'), findsNothing);
     await shutdown(tester);
   });
 }

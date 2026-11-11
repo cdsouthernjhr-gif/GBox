@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -7,6 +9,8 @@ import '../../core/utilities/formatters.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/entities/hardware_profile.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../game_library/my_games_screen.dart' show ScanStatusBanner;
+import '../rom_manager/rom_library_service.dart';
 
 class StorageScreen extends StatelessWidget {
   const StorageScreen({super.key});
@@ -17,7 +21,12 @@ class StorageScreen extends StatelessWidget {
       final uri = await s.gateway.pickDirectory();
       if (uri == null) return;
       final current = s.settings.state.value.romFolders;
-      if (!current.contains(uri)) await s.settings.setRomFolders([...current, uri]);
+      if (!current.contains(uri)) {
+        await s.settings.setRomFolders([...current, uri]);
+        // Let the settings stream deliver the new folder, then scan it.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        unawaited(s.library.scanAll());
+      }
     } on PlatformException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -38,9 +47,18 @@ class StorageScreen extends StatelessWidget {
       actions: [
         TvButton(label: 'Add game folder', icon: Icons.create_new_folder_rounded,
             onPressed: () => _addFolder(context)),
+        ValueListenableBuilder<ScanProgress>(
+          valueListenable: s.library.progress,
+          builder: (_, p, _) => TvButton(
+            label: p.running ? 'Scanning…' : 'Scan for games',
+            icon: Icons.manage_search_rounded,
+            onPressed: p.running ? null : () => s.library.scanAll(),
+          ),
+        ),
         TvButton(label: 'Rescan', icon: Icons.refresh_rounded, onPressed: () => s.storage.refresh()),
       ],
       child: ListView(children: [
+        const ScanStatusBanner(),
         const SectionHeader('Storage devices'),
         ValueListenableBuilder<List<StorageVolumeInfo>>(
           valueListenable: s.storage.volumes,
@@ -79,6 +97,21 @@ class StorageScreen extends StatelessWidget {
                 ),
             ]);
           },
+        ),
+        const SizedBox(height: 18),
+        const SectionHeader('GAMEBOX folders',
+            subtitle: 'Created automatically on every connected volume; no permission needed. '
+                'Copy games into Games/<console>/ with a PC (USB cable) or a file manager.'),
+        FutureBuilder<List<LibraryRoot>>(
+          future: s.library.roots(),
+          builder: (context, snap) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final r in snap.data ?? const <LibraryRoot>[])
+              if (r.kind == RootKind.appFolder)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(r.uri, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5, color: Colors.white70)),
+                ),
+          ]),
         ),
         const SizedBox(height: 18),
         const SectionHeader('Recommended folder layout'),

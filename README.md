@@ -2,7 +2,7 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
-> **Status: Phase 1 (Foundation).** The launcher, Device Intelligence Engine, compatibility classifier, local database, controller/storage detection and basic settings are implemented. ROM import (Phase 2) and game launching through emulators (Phase 3) are **not implemented yet**. See [docs/DEVELOPMENT_REPORT.md](docs/DEVELOPMENT_REPORT.md).
+> **Status: Phase 2 (Game Library).** Phase 1 (launcher, Device Intelligence Engine, database, controller/storage detection, settings) plus the ROM manager: folder scanning, console detection, manual import, missing-file and duplicate detection, header verification, local artwork, search/filter/sort and metadata editing. Game launching through emulators (Phase 3) is **not implemented yet**. See [docs/DEVELOPMENT_REPORT.md](docs/DEVELOPMENT_REPORT.md).
 
 ## What works in Phase 1
 
@@ -18,13 +18,14 @@ GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-scr
 | Controllers | Live list via InputDevice (VID/PID, buttons, axes, vibration, player number), connect/disconnect notifications, raw input test screen |
 | Storage | Volume detection (internal/USB/SD where Android labels it), capacity, mount/unmount events, SAF folder registration with persisted permission |
 | Emulators | Detects 10 known external emulator apps and can open them. No emulators are bundled |
+| Game library (Phase 2) | Auto-created `GAMEBOX/Games/<CONSOLE>` folders on every volume, SAF folder scanning, manual import with console chooser, console detection by extension/folder, multi-disc grouping, missing vs. disconnected detection, header checks + SHA-1/CRC32, duplicates, local cover artwork, search/filters/sorting, favourites, metadata editing, remove or (double-confirmed) delete — see [ROM_MANAGER](docs/ROM_MANAGER.md) |
 | Settings | 4 themes, animations, UI sounds, low-memory mode, image cache, startup rescan, sorting, default console, logs, device report export |
 
 ## Quick start
 
 ```bash
 flutter pub get
-flutter test                 # 43 unit/database/widget tests
+flutter test                 # 80 unit/database/migration/widget tests
 flutter build apk --debug    # needs the Android SDK (platform 36)
 ```
 
@@ -34,7 +35,7 @@ See [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) for the full toolchain and CI. In
 
 ## Documentation
 
-- [ARCHITECTURE](docs/ARCHITECTURE.md) · [DATABASE_SCHEMA](docs/DATABASE_SCHEMA.md) · [EMULATOR_INTEGRATION](docs/EMULATOR_INTEGRATION.md)
+- [ROM_MANAGER](docs/ROM_MANAGER.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [DATABASE_SCHEMA](docs/DATABASE_SCHEMA.md) · [EMULATOR_INTEGRATION](docs/EMULATOR_INTEGRATION.md)
 - [DEVICE_COMPATIBILITY](docs/DEVICE_COMPATIBILITY.md) · [CONTROLLER_SUPPORT](docs/CONTROLLER_SUPPORT.md) · [STORAGE_SUPPORT](docs/STORAGE_SUPPORT.md)
 - [BUILD_GUIDE](docs/BUILD_GUIDE.md) · [TESTING_GUIDE](docs/TESTING_GUIDE.md) · [INSTALLATION_GUIDE](docs/INSTALLATION_GUIDE.md)
 - [RELEASE_NOTES](docs/RELEASE_NOTES.md) · [KNOWN_LIMITATIONS](docs/KNOWN_LIMITATIONS.md) · [DEVELOPMENT_REPORT](docs/DEVELOPMENT_REPORT.md)

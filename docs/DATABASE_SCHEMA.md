@@ -1,6 +1,6 @@
 # Database schema
 
-Engine: SQLite via Drift (`lib/core/database/tables.dart`, `app_database.dart`). File: `gamebox.sqlite` in the app support directory. **Schema version: 1.** `PRAGMA foreign_keys = ON` is set on every open.
+Engine: SQLite via Drift (`lib/core/database/tables.dart`, `app_database.dart`). File: `gamebox.sqlite` in the app support directory. **Schema version: 2.** `PRAGMA foreign_keys = ON` is set on every open.
 
 ROM binaries are never stored. `game_files` holds a URI/path, size and hashes only. A test checks that no BLOB columns exist.
 
@@ -33,8 +33,16 @@ ROM binaries are never stored. `game_files` holds a URI/path, size and hashes on
 | 25 | benchmarks | id | measured FPS/score only (no estimates), duration | FK devices (cascade), games |
 | 26 | app_settings | key | string values; typed by `SettingsRepository` | — |
 
+## Version history
+
+| Version | Changes |
+|---|---|
+| 1 | initial 26 tables (Phase 1) |
+| 2 | `games.regions`; `game_files.root_uri`, `last_modified`, `is_primary` (default true), `disc_number`, `header_status`, `header_detail`; indexes `idx_game_files_root`, `idx_game_files_game` (Phase 2) |
+
 ## Migration strategy
 
 * `schemaVersion` is bumped for every schema change. `onUpgrade` gets `if (from < N)` steps that use `Migrator` (`addColumn`, `createTable`, …). User tables are never dropped.
 * Catalogue data (consoles, emulators, connectors) is upserted on every open, so catalogue changes don't need migrations.
-* Before shipping a schema change, add a Drift schema dump (`dart run drift_dev make-migrations`) and a migration test.
+* Every version's schema is frozen in `drift_schemas/drift_schema_vN.json` (`dart run drift_dev schema dump lib/core/database/app_database.dart drift_schemas/`). Test helpers are generated with `dart run drift_dev schema generate drift_schemas/ test/generated_migrations/`.
+* `test/migration_test.dart` upgrades a real v1 database to v2 and validates the result **exactly** against the v2 snapshot. It also checks that existing games and files survive the upgrade.

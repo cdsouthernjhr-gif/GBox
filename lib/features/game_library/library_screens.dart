@@ -40,8 +40,8 @@ class GameCard extends StatelessWidget {
         onSelect: () => Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => GameDetailScreen(gameId: g.id))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          AspectRatio(
-            aspectRatio: 4 / 3,
+          // Artwork takes whatever height the cell leaves after the caption.
+          Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Stack(fit: StackFit.expand, children: [
@@ -65,12 +65,14 @@ class GameCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(g.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleMedium),
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(g.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleMedium?.copyWith(height: 1.2)),
               Text(console?.name ?? g.consoleId,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: t.bodySmall?.copyWith(color: Colors.white70)),
               Text('Last played: ${formatRelative(g.lastPlayedAt)}',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: t.bodySmall?.copyWith(color: Colors.white54)),
             ]),
           ),
@@ -158,8 +160,8 @@ class GameCardRow extends StatelessWidget {
   }
 }
 
-class _GameGrid extends StatelessWidget {
-  const _GameGrid({required this.stream, required this.empty});
+class GameGrid extends StatelessWidget {
+  const GameGrid({super.key, required this.stream, required this.empty});
   final Stream<List<GameWithStatus>> stream;
   final Widget empty;
 
@@ -195,74 +197,13 @@ class _GameGrid extends StatelessWidget {
   }
 }
 
-const _importNote = 'ROM import and folder scanning arrive in Phase 2. '
-    'You can already register your game folders under STORAGE.';
-
-class MyGamesScreen extends StatefulWidget {
-  const MyGamesScreen({super.key});
-
-  @override
-  State<MyGamesScreen> createState() => _MyGamesScreenState();
-}
-
-class _MyGamesScreenState extends State<MyGamesScreen> {
-  String? _console;
-
-  @override
-  Widget build(BuildContext context) {
-    final db = servicesOf(context).db;
-    return PageFrame(
-      title: 'My Games',
-      subtitle: 'Your local library — available offline',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        StreamBuilder<Map<String, int>>(
-          stream: db.watchGameCountsByConsole(),
-          builder: (context, snap) {
-            final counts = snap.data ?? const {};
-            if (counts.isEmpty) return const SizedBox.shrink();
-            return SizedBox(
-              height: 48,
-              child: ListView(scrollDirection: Axis.horizontal, children: [
-                _filterChip(context, null, 'All (${counts.values.fold(0, (a, b) => a + b)})'),
-                for (final e in counts.entries)
-                  _filterChip(context, e.key, '${consoleById(e.key)?.name ?? e.key} (${e.value})'),
-              ]),
-            );
-          },
-        ),
-        Expanded(
-          child: _GameGrid(
-            stream: db.watchAllGames(consoleId: _console),
-            empty: const EmptyState(
-              icon: Icons.sports_esports_outlined,
-              title: 'No games in your library yet',
-              message: _importNote,
-            ),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Widget _filterChip(BuildContext context, String? id, String label) => Padding(
-        padding: const EdgeInsets.only(right: 8, bottom: 8),
-        child: TvFocusable(
-          borderRadius: 24,
-          color: _console == id ? GameboxPalette.of(context).accent : null,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          onSelect: () => setState(() => _console = id),
-          child: Text(label, style: Theme.of(context).textTheme.labelLarge),
-        ),
-      );
-}
-
 class RecentlyPlayedScreen extends StatelessWidget {
   const RecentlyPlayedScreen({super.key});
 
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Recently Played',
-        child: _GameGrid(
+        child: GameGrid(
           stream: servicesOf(context).db.watchRecentlyPlayed(limit: 60),
           empty: const EmptyState(
             icon: Icons.history_rounded,
@@ -280,7 +221,7 @@ class FavouritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Favourites',
-        child: _GameGrid(
+        child: GameGrid(
           stream: servicesOf(context).db.watchFavorites(),
           empty: const EmptyState(
             icon: Icons.star_outline_rounded,

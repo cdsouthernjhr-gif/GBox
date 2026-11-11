@@ -177,10 +177,15 @@ class Games extends Table {
   DateTimeColumn get lastPlayedAt => dateTime().nullable()();
   IntColumn get playCount => integer().withDefault(const Constant(0))();
   BoolColumn get isMissing => boolean().withDefault(const Constant(false))();
+
+  /// Comma-separated regions parsed from the file name (schema v2).
+  TextColumn get regions => text().nullable()();
 }
 
 @DataClassName('GameFileRow')
 @TableIndex(name: 'idx_game_files_hash', columns: {#sha1})
+@TableIndex(name: 'idx_game_files_root', columns: {#rootUri})
+@TableIndex(name: 'idx_game_files_game', columns: {#gameId})
 class GameFiles extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get gameId =>
@@ -198,6 +203,18 @@ class GameFiles extends Table {
       .references(StorageDevices, #id, onDelete: KeyAction.setNull)();
   BoolColumn get fileExists => boolean().withDefault(const Constant(true))();
   DateTimeColumn get lastVerifiedAt => dateTime().nullable()();
+
+  // ---- schema v2 ----
+  /// Scan root (SAF tree URI or directory path) the file was found under;
+  /// null for manually imported files.
+  TextColumn get rootUri => text().nullable()();
+  IntColumn get lastModified => integer().nullable()();
+  BoolColumn get isPrimary => boolean().withDefault(const Constant(true))();
+  IntColumn get discNumber => integer().nullable()();
+
+  /// valid | invalid | notChecked (see rom_header_validator.dart).
+  TextColumn get headerStatus => text().nullable()();
+  TextColumn get headerDetail => text().nullable()();
 }
 
 @DataClassName('GameMetadataRow')

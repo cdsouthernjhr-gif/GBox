@@ -13,6 +13,7 @@ import '../dashboard/dashboard_screen.dart';
 import '../download_manager/downloads_screen.dart';
 import '../emulator_manager/emulators_screen.dart';
 import '../game_library/library_screens.dart';
+import '../game_library/my_games_screen.dart';
 import '../settings/settings_screen.dart';
 import '../storage_manager/storage_screen.dart';
 import 'apps_screen.dart';

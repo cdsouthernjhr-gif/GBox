@@ -18,6 +18,10 @@
 
 Some Android TV firmwares ship **without the DocumentsUI folder picker**. GAMEBOX detects this (`saf_unavailable`) and tells the user. Alternatives are in KNOWN_LIMITATIONS.md.
 
+## Game scanning (Phase 2)
+
+See [ROM_MANAGER.md](ROM_MANAGER.md): GAMEBOX folders on every volume, recursive SAF scanning, missing vs. disconnected detection, automatic rescan when storage is connected.
+
 ## Pending
 
-Recursive scanning of registered folders, moving files, backup/restore and missing-file detection (Phases 2, 4 and 7).
+Moving files between volumes and backup/restore (Phases 4 and 7).

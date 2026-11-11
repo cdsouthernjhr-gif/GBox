@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Bump on every schema change and add a step in [migration].
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,8 +63,19 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (m, from, to) async {
-          // Future versions: add `if (from < N) { ... }` steps here, never
-          // drop user tables. See docs/DATABASE_SCHEMA.md.
+          // One step per version; never drop user tables.
+          // See docs/DATABASE_SCHEMA.md.
+          if (from < 2) {
+            await m.addColumn(games, games.regions);
+            await m.addColumn(gameFiles, gameFiles.rootUri);
+            await m.addColumn(gameFiles, gameFiles.lastModified);
+            await m.addColumn(gameFiles, gameFiles.isPrimary);
+            await m.addColumn(gameFiles, gameFiles.discNumber);
+            await m.addColumn(gameFiles, gameFiles.headerStatus);
+            await m.addColumn(gameFiles, gameFiles.headerDetail);
+            await m.create(idxGameFilesRoot);
+            await m.create(idxGameFilesGame);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -292,6 +303,160 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<GameWithStatus>> watchFavorites() =>
       _watchGames((q) => q.orderBy([(g) => OrderingTerm.asc(g.sortTitle)]),
           favoritesOnly: true);
+
+  /// Library view with search, filters and sorting (Phase 2).
+  /// [sort]: `title` | `recentlyPlayed` | `recentlyAdded`.
+  Stream<List<GameWithStatus>> watchLibrary({
+    String query = '',
+    String? consoleId,
+    bool favoritesOnly = false,
+    bool missingOnly = false,
+    String sort = 'title',
+  }) {
+    final words = query.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    // Each word must appear in the title (bound parameters, LIKE-escaped).
+    final q2 = select(games).join([
+      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id)),
+    ]);
+    for (final w in words) {
+      q2.where(games.title.lower().like('%${_escapeLike(w)}%', escapeChar: r'\'));
+    }
+    if (consoleId != null) q2.where(games.consoleId.equals(consoleId));
+    if (favoritesOnly) q2.where(favorites.gameId.isNotNull());
+    if (missingOnly) q2.where(games.isMissing.equals(true));
+    q2.orderBy(switch (sort) {
+      'recentlyPlayed' => [
+          OrderingTerm(expression: games.lastPlayedAt, mode: OrderingMode.desc, nulls: NullsOrder.last),
+          OrderingTerm.asc(games.sortTitle),
+        ],
+      'recentlyAdded' => [OrderingTerm.desc(games.addedAt), OrderingTerm.asc(games.sortTitle)],
+      _ => [OrderingTerm.asc(games.sortTitle)],
+    });
+    return q2.watch().map((rows) => [
+          for (final r in rows)
+            GameWithStatus(r.readTable(games), r.readTableOrNull(favorites) != null),
+        ]);
+  }
+
+  static String _escapeLike(String s) =>
+      s.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_');
+
+  Future<GameFileRow?> fileByUri(String uri) =>
+      (select(gameFiles)..where((f) => f.uri.equals(uri))).getSingleOrNull();
+
+  Future<List<GameFileRow>> filesPendingVerification() =>
+      (select(gameFiles)..where((f) => f.headerStatus.isNull() & f.fileExists.equals(true))).get();
+
+  Future<GameRow> gameById(int id) => (select(games)..where((g) => g.id.equals(id))).getSingle();
+
+  Future<GameFileRow> fileById(int id) => (select(gameFiles)..where((f) => f.id.equals(id))).getSingle();
+
+  Future<List<GameFileRow>> filesUnderRoot(String rootUri) =>
+      (select(gameFiles)..where((f) => f.rootUri.equals(rootUri))).get();
+
+  /// Inserts a game with its files (and optional cached cover) atomically.
+  Future<int> insertGameWithFiles(
+    GamesCompanion game,
+    List<GameFilesCompanion> files, {
+    String? coverPath,
+  }) =>
+      transaction(() async {
+        final id = await into(games).insert(game);
+        for (final f in files) {
+          await into(gameFiles).insert(f.copyWith(gameId: Value(id)));
+        }
+        if (coverPath != null) await setCover(id, coverPath);
+        return id;
+      });
+
+  /// Marks files present/absent and recomputes `games.is_missing`.
+  Future<void> setFilesExist(Iterable<int> fileIds, bool exists) async {
+    final ids = fileIds.toList();
+    if (ids.isEmpty) return;
+    await (update(gameFiles)..where((f) => f.id.isIn(ids)))
+        .write(GameFilesCompanion(fileExists: Value(exists)));
+    await refreshMissingFlags();
+  }
+
+  /// A game is missing when none of its files exist.
+  Future<void> refreshMissingFlags() => customStatement(
+        'UPDATE games SET is_missing = NOT EXISTS (SELECT 1 FROM game_files f '
+        'WHERE f.game_id = games.id AND f.file_exists = 1)',
+      );
+
+  Future<void> updateFileVerification(
+    int fileId, {
+    String? sha1,
+    String? crc32,
+    int? size,
+    String? headerStatus,
+    String? headerDetail,
+  }) =>
+      (update(gameFiles)..where((f) => f.id.equals(fileId))).write(GameFilesCompanion(
+        sha1: sha1 == null ? const Value.absent() : Value(sha1),
+        crc32: crc32 == null ? const Value.absent() : Value(crc32),
+        sizeBytes: size == null ? const Value.absent() : Value(size),
+        headerStatus: headerStatus == null ? const Value.absent() : Value(headerStatus),
+        headerDetail: headerDetail == null ? const Value.absent() : Value(headerDetail),
+        lastVerifiedAt: Value(DateTime.now()),
+      ));
+
+  /// Other files with the same SHA-1 (exact duplicates).
+  Future<List<GameFileRow>> duplicatesOf(GameFileRow file) {
+    if (file.sha1 == null) {
+      // Without a hash, same name + size is reported as a *possible* duplicate.
+      return (select(gameFiles)
+            ..where((f) =>
+                f.id.equals(file.id).not() &
+                f.displayPath.like('%${_escapeLike(file.displayPath.split('/').last)}', escapeChar: r'\') &
+                (file.sizeBytes == null ? const Constant(false) : f.sizeBytes.equals(file.sizeBytes!))))
+          .get();
+    }
+    return (select(gameFiles)..where((f) => f.sha1.equals(file.sha1!) & f.id.equals(file.id).not())).get();
+  }
+
+  Future<void> setCover(int gameId, String localPath, {String? provider}) => transaction(() async {
+        await (delete(gameArtworks)..where((a) => a.gameId.equals(gameId) & a.type.equals('cover'))).go();
+        await into(gameArtworks).insert(GameArtworksCompanion.insert(
+          gameId: gameId,
+          type: 'cover',
+          localPath: localPath,
+          provider: Value(provider ?? 'local'),
+          fetchedAt: DateTime.now(),
+        ));
+      });
+
+  Future<void> removeCover(int gameId) =>
+      (delete(gameArtworks)..where((a) => a.gameId.equals(gameId) & a.type.equals('cover'))).go();
+
+  /// Manual metadata editing. Marks the metadata as user-edited so automatic
+  /// scraping (Phase 5) will not overwrite it.
+  Future<void> saveManualMetadata(
+    int gameId, {
+    required String title,
+    required String sortTitle,
+    String? developer,
+    String? publisher,
+    String? releaseDate,
+    String? genre,
+    String? description,
+  }) =>
+      transaction(() async {
+        await (update(games)..where((g) => g.id.equals(gameId)))
+            .write(GamesCompanion(title: Value(title), sortTitle: Value(sortTitle)));
+        String? n(String? s) => (s == null || s.trim().isEmpty) ? null : s.trim();
+        await into(gameMetadata).insertOnConflictUpdate(GameMetadataCompanion.insert(
+          gameId: Value(gameId),
+          developer: Value(n(developer)),
+          publisher: Value(n(publisher)),
+          releaseDate: Value(n(releaseDate)),
+          genre: Value(n(genre)),
+          description: Value(n(description)),
+          provider: const Value('manual'),
+          editedManually: const Value(true),
+          fetchedAt: Value(DateTime.now()),
+        ));
+      });
 
   /// Local cover artwork path per game (cached files only; never remote).
   Stream<Map<int, String>> watchCoverPaths() =>

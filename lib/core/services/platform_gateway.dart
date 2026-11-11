@@ -86,6 +86,27 @@ abstract class PlatformGateway {
   Future<List<String>> persistedDirectories();
   Future<bool> releaseDirectory(String uri);
 
+  // ---- ROM manager (Phase 2) ----
+  /// Recursively lists files under a SAF tree whose extension is in
+  /// [extensions]. Returns `{files: [...], folders: n, truncated: bool}`.
+  Future<Map<String, dynamic>> scanTree(String treeUri, Set<String> extensions,
+      {int maxDepth = 8, int maxFiles = 20000});
+  Future<bool> treeAccessible(String treeUri);
+  Future<List<bool>> existsMany(List<String> uris);
+
+  /// `{sha1, crc32, size}` of the whole file.
+  Future<Map<String, dynamic>> hashFile(String uri);
+  Future<Uint8List> readBytes(String uri, {int offset = 0, required int length});
+
+  /// Downscaled JPEG copy of an image into [destPath]; null if not an image.
+  Future<String?> importImage(String uri, String destPath, {int maxDim = 600});
+  Future<bool> deleteFile(String uri);
+
+  /// `[{uri, name, size}]` for picked documents.
+  Future<List<Map<String, dynamic>>> describeFiles(List<String> uris);
+  Future<List<String>> pickFiles();
+  Future<String?> pickImage();
+
   Future<bool> isDefaultLauncher();
   Future<String> requestDefaultLauncher();
   Future<String> openHomeSettings();
@@ -188,6 +209,57 @@ class MethodChannelGateway implements PlatformGateway {
   @override
   Future<bool> releaseDirectory(String uri) async =>
       await _storage.invokeMethod<bool>('releaseDirectory', {'uri': uri}) ?? false;
+
+  @override
+  Future<Map<String, dynamic>> scanTree(String treeUri, Set<String> extensions,
+          {int maxDepth = 8, int maxFiles = 20000}) async =>
+      _map(await _storage.invokeMethod<Object?>('scanTree', {
+        'uri': treeUri,
+        'extensions': extensions.toList(),
+        'maxDepth': maxDepth,
+        'maxFiles': maxFiles,
+      }));
+
+  @override
+  Future<bool> treeAccessible(String treeUri) async =>
+      await _storage.invokeMethod<bool>('treeAccessible', {'uri': treeUri}) ?? false;
+
+  @override
+  Future<List<bool>> existsMany(List<String> uris) async {
+    final r = await _storage.invokeMethod<List<Object?>>('existsMany', {'uris': uris});
+    return (r ?? const []).map((e) => e == true).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> hashFile(String uri) async =>
+      _map(await _storage.invokeMethod<Object?>('hash', {'uri': uri}));
+
+  @override
+  Future<Uint8List> readBytes(String uri, {int offset = 0, required int length}) async =>
+      await _storage.invokeMethod<Uint8List>('readBytes', {'uri': uri, 'offset': offset, 'length': length}) ??
+      Uint8List(0);
+
+  @override
+  Future<String?> importImage(String uri, String destPath, {int maxDim = 600}) =>
+      _storage.invokeMethod<String>('importImage', {'uri': uri, 'dest': destPath, 'maxDim': maxDim});
+
+  @override
+  Future<bool> deleteFile(String uri) async =>
+      await _storage.invokeMethod<bool>('deleteFile', {'uri': uri}) ?? false;
+
+  @override
+  Future<List<Map<String, dynamic>>> describeFiles(List<String> uris) async =>
+      ((await _storage.invokeMethod<List<Object?>>('describe', {'uris': uris})) ?? const []).map(_map).toList();
+
+  @override
+  Future<List<String>> pickFiles() async =>
+      ((await _storage.invokeMethod<List<Object?>>('pickFiles')) ?? const []).cast<String>();
+
+  @override
+  Future<String?> pickImage() async {
+    final r = (await _storage.invokeMethod<List<Object?>>('pickImage')) ?? const [];
+    return r.isEmpty ? null : r.first as String;
+  }
 
   @override
   Future<bool> isDefaultLauncher() async =>

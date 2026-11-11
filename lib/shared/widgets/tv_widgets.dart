@@ -272,15 +272,28 @@ class PageFrame extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
+        // The title always keeps at least 40% of the width; actions wrap onto
+        // a second line instead of squeezing it (1080p TVs are ~960 px wide).
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
+            flex: 2,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: t.headlineSmall),
+              Text(title, style: t.headlineSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
               if (subtitle != null)
-                Text(subtitle!, style: t.bodyMedium?.copyWith(color: Colors.white60)),
+                Text(subtitle!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodyMedium?.copyWith(color: Colors.white60)),
             ]),
           ),
-          for (final a in actions) Padding(padding: const EdgeInsets.only(left: 10), child: a),
+          if (actions.isNotEmpty)
+            Expanded(
+              flex: 3,
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Wrap(alignment: WrapAlignment.end, spacing: 10, runSpacing: 8, children: actions),
+              ),
+            ),
         ]),
         const SizedBox(height: 14),
         Expanded(child: child),

@@ -54,6 +54,14 @@
 * Player slots and per-console profiles are stored but not applied to external emulators.
 * Stick navigation replaces Android's joystick→D-pad synthesis. It hasn't been tried on real pads yet.
 
+## Online services (Phase 5)
+
+* No foreground service: very long downloads may be stopped by Android while GAMEBOX is in the background. They resume from the partial file.
+* Sources needing a login, and online metadata scrapers (they need personal API keys and have their own terms), aren't supported. Metadata comes from catalogues and manual edits.
+* `.7z` archives aren't extracted. Only ZIP is.
+* Downloads go to app storage on the primary volume only.
+* Verified against a local test server only. Real HTTPS sources on a device are PENDING.
+
 ## Not yet implemented (by phase)
 
- · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.
+ · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.

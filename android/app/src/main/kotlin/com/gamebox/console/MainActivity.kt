@@ -139,6 +139,13 @@ class MainActivity : FlutterActivity() {
                         call.argument<Int>("maxDim") ?: 600,
                     )
                 }
+                "freeSpace" -> Background.run(result) {
+                    try {
+                        android.os.StatFs(call.argument<String>("path")!!).availableBytes
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
                 "describe" -> Background.run(result) {
                     val files = RomFiles(applicationContext)
                     (call.argument<List<String>>("uris") ?: emptyList()).map { files.describe(it) }

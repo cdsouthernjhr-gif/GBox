@@ -11,7 +11,10 @@ import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
 import '../features/controller_manager/controller_config_service.dart';
+import '../core/online/download_engine.dart';
+import '../features/download_manager/download_service.dart';
 import '../features/emulator_manager/launch_service.dart';
+import '../features/source_manager/source_service.dart';
 import '../features/rom_manager/rom_library_service.dart';
 
 /// Dependency container. Built once at startup and exposed to widgets via
@@ -23,6 +26,7 @@ class AppServices {
     required this.db,
     Future<List<String>> Function()? appRoots,
     Future<String> Function()? artworkDir,
+    DownloadEngine? downloadEngine,
   })  : settings = SettingsRepository(db),
         device = DeviceIntelligenceService(gateway, db) {
     connectivity = ConnectivityService(gateway);
@@ -50,7 +54,24 @@ class AppServices {
       db: db,
       emulators: emulators,
       device: device,
-      beforeLaunch: () => PaintingBinding.instance.imageCache.clear(),
+      beforeLaunch: () {
+        PaintingBinding.instance.imageCache.clear();
+        downloads.pauseForGameplay();
+      },
+    );
+    final engine = downloadEngine ?? DownloadEngine(freeSpace: gateway.freeSpace);
+    sources = SourceService(db, engine);
+    downloads = DownloadService(
+      db: db,
+      engine: engine,
+      library: library,
+      settings: settings,
+      connectivity: connectivity.status,
+      downloadsDir: () async {
+        final roots = await (appRoots ?? _defaultAppRoots)();
+        if (roots.isEmpty) throw StateError('No storage available for downloads');
+        return '${roots.first}/GAMEBOX/Downloads';
+      },
     );
   }
 
@@ -76,6 +97,8 @@ class AppServices {
   late final RomLibraryService library;
   late final LaunchService launcher;
   late final ControllerConfigService controllerConfig;
+  late final SourceService sources;
+  late final DownloadService downloads;
   AppLifecycleListener? _lifecycle;
   Timer? _autoScanDebounce;
 
@@ -83,7 +106,10 @@ class AppServices {
   /// scans continue in the background so the launcher appears quickly.
   Future<void> initialize() async {
     // Returning from an emulator ends the play session.
-    _lifecycle = AppLifecycleListener(onResume: () => launcher.onReturned());
+    _lifecycle = AppLifecycleListener(onResume: () {
+      launcher.onReturned();
+      downloads.resumeAfterGameplay();
+    });
     await settings.initialize();
     await device.initialize(rescan: false);
     await controllerConfig.initialize();
@@ -98,6 +124,7 @@ class AppServices {
       if (settings.state.value.rescanOnStartup || device.state.value.profile == null) {
         await device.scan();
       }
+      await downloads.initialize();
       if (settings.state.value.autoScan) await library.scanAll();
       // Storage connected/removed: recheck files and rescan (debounced).
       storage.volumes.addListener(_onVolumesChanged);
@@ -118,6 +145,7 @@ class AppServices {
     _lifecycle?.dispose();
     storage.volumes.removeListener(_onVolumesChanged);
     controllerConfig.dispose();
+    downloads.dispose();
     settings.dispose();
     connectivity.dispose();
     controllers.dispose();

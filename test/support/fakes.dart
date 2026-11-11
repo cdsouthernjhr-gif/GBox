@@ -257,6 +257,11 @@ class FakeGateway implements PlatformGateway {
     return destPath;
   }
 
+  int? freeBytes;
+
+  @override
+  Future<int?> freeSpace(String path) async => freeBytes;
+
   @override
   Future<bool> deleteFile(String uri) async {
     deleted.add(uri);

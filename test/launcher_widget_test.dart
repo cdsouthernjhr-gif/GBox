@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamebox/app/app_services.dart';
 import 'package:gamebox/app/gamebox_app.dart';
+import 'package:gamebox/core/online/download_engine.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:gamebox/core/services/platform_gateway.dart';
 import 'package:gamebox/core/database/app_database.dart';
 import 'package:gamebox/data/repositories/settings_repository.dart';
@@ -30,7 +32,10 @@ void main() {
   late AppServices services;
 
   Future<void> boot(WidgetTester tester,
-      {Map<String, dynamic>? scan, void Function(String appRoot)? prepare, void Function(FakeGateway)? configure}) async {
+      {Map<String, dynamic>? scan,
+      void Function(String appRoot)? prepare,
+      void Function(FakeGateway)? configure,
+      DownloadEngine? engine}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
     tester.view.physicalSize = const Size(1920, 1080);
@@ -47,6 +52,7 @@ void main() {
       db: AppDatabase(NativeDatabase.memory()),
       appRoots: () async => ['${temp.path}/ext0'],
       artworkDir: () async => '${temp.path}/artwork',
+      downloadEngine: engine,
     );
     await tester.runAsync(() async {
       await services.initialize();
@@ -263,6 +269,48 @@ void main() {
     await settle(tester);
     final remaps = gateway.lastInputConfig!['remaps'] as Map;
     expect(remaps['abc123'], {97: 96, 96: 97});
+    await shutdown(tester);
+  });
+
+  testWidgets('Downloads: completed file can be imported from the queue; Sources view', (tester) async {
+    // Network transfers are covered by test/online_services_test.dart (real
+    // local server). Here: the UI for a finished download.
+    late String file;
+    await boot(tester, prepare: (root) {
+      file = '$root/GAMEBOX/Downloads/demo.nes';
+      File(file)
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom());
+    });
+    for (var i = 0; i < 5; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown); // DOWNLOADS
+    }
+    final now = DateTime.now();
+    final insert = services.db.into(services.db.downloadQueue).insert(DownloadQueueCompanion.insert(
+          name: 'demo.nes',
+          url: 'https://example.org/demo.nes',
+          destination: File(file).parent.path,
+          status: 'completed',
+          createdAt: now,
+          updatedAt: now,
+          filePath: Value(file),
+          totalBytes: const Value(16400),
+          downloadedBytes: const Value(16400),
+        ));
+    await settle(tester);
+    await insert;
+    await settle(tester);
+    expect(find.text('COMPLETED'), findsOneWidget);
+
+    await tester.tap(find.text('Import into library'));
+    for (var i = 0; i < 4; i++) {
+      await settle(tester);
+    }
+    expect(find.text('IN LIBRARY'), findsOneWidget);
+
+    await tester.tap(find.text('Sources'));
+    await settle(tester);
+    expect(find.text('No sources'), findsOneWidget);
     await shutdown(tester);
   });
 }

@@ -12379,6 +12379,59 @@ class $DownloadQueueTable extends DownloadQueue
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _consoleIdMeta = const VerificationMeta(
+    'consoleId',
+  );
+  @override
+  late final GeneratedColumn<String> consoleId = GeneratedColumn<String>(
+    'console_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _catalogJsonMeta = const VerificationMeta(
+    'catalogJson',
+  );
+  @override
+  late final GeneratedColumn<String> catalogJson = GeneratedColumn<String>(
+    'catalog_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _importedGameIdMeta = const VerificationMeta(
+    'importedGameId',
+  );
+  @override
+  late final GeneratedColumn<int> importedGameId = GeneratedColumn<int>(
+    'imported_game_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -12395,6 +12448,11 @@ class $DownloadQueueTable extends DownloadQueue
     retries,
     createdAt,
     updatedAt,
+    filePath,
+    consoleId,
+    catalogJson,
+    sha256,
+    importedGameId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -12516,6 +12574,42 @@ class $DownloadQueueTable extends DownloadQueue
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    }
+    if (data.containsKey('console_id')) {
+      context.handle(
+        _consoleIdMeta,
+        consoleId.isAcceptableOrUnknown(data['console_id']!, _consoleIdMeta),
+      );
+    }
+    if (data.containsKey('catalog_json')) {
+      context.handle(
+        _catalogJsonMeta,
+        catalogJson.isAcceptableOrUnknown(
+          data['catalog_json']!,
+          _catalogJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(
+        _sha256Meta,
+        sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta),
+      );
+    }
+    if (data.containsKey('imported_game_id')) {
+      context.handle(
+        _importedGameIdMeta,
+        importedGameId.isAcceptableOrUnknown(
+          data['imported_game_id']!,
+          _importedGameIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -12581,6 +12675,26 @@ class $DownloadQueueTable extends DownloadQueue
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      ),
+      consoleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}console_id'],
+      ),
+      catalogJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}catalog_json'],
+      ),
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      ),
+      importedGameId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}imported_game_id'],
+      ),
     );
   }
 
@@ -12606,6 +12720,22 @@ class DownloadQueueRow extends DataClass
   final int retries;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// Final file path once the server named the file (`<path>.part` while
+  /// downloading). [destination] is the target directory.
+  final String? filePath;
+
+  /// Console to import as (from a catalogue entry or chosen by the user).
+  final String? consoleId;
+
+  /// Catalogue entry JSON (title, licence, description, cover) for metadata.
+  final String? catalogJson;
+
+  /// SHA-256 computed while downloading.
+  final String? sha256;
+
+  /// Game id once imported into the library.
+  final int? importedGameId;
   const DownloadQueueRow({
     required this.id,
     this.sourceId,
@@ -12621,6 +12751,11 @@ class DownloadQueueRow extends DataClass
     required this.retries,
     required this.createdAt,
     required this.updatedAt,
+    this.filePath,
+    this.consoleId,
+    this.catalogJson,
+    this.sha256,
+    this.importedGameId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -12649,6 +12784,21 @@ class DownloadQueueRow extends DataClass
     map['retries'] = Variable<int>(retries);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || filePath != null) {
+      map['file_path'] = Variable<String>(filePath);
+    }
+    if (!nullToAbsent || consoleId != null) {
+      map['console_id'] = Variable<String>(consoleId);
+    }
+    if (!nullToAbsent || catalogJson != null) {
+      map['catalog_json'] = Variable<String>(catalogJson);
+    }
+    if (!nullToAbsent || sha256 != null) {
+      map['sha256'] = Variable<String>(sha256);
+    }
+    if (!nullToAbsent || importedGameId != null) {
+      map['imported_game_id'] = Variable<int>(importedGameId);
+    }
     return map;
   }
 
@@ -12678,6 +12828,21 @@ class DownloadQueueRow extends DataClass
       retries: Value(retries),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      filePath: filePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(filePath),
+      consoleId: consoleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(consoleId),
+      catalogJson: catalogJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(catalogJson),
+      sha256: sha256 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sha256),
+      importedGameId: importedGameId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(importedGameId),
     );
   }
 
@@ -12701,6 +12866,11 @@ class DownloadQueueRow extends DataClass
       retries: serializer.fromJson<int>(json['retries']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      filePath: serializer.fromJson<String?>(json['filePath']),
+      consoleId: serializer.fromJson<String?>(json['consoleId']),
+      catalogJson: serializer.fromJson<String?>(json['catalogJson']),
+      sha256: serializer.fromJson<String?>(json['sha256']),
+      importedGameId: serializer.fromJson<int?>(json['importedGameId']),
     );
   }
   @override
@@ -12721,6 +12891,11 @@ class DownloadQueueRow extends DataClass
       'retries': serializer.toJson<int>(retries),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'filePath': serializer.toJson<String?>(filePath),
+      'consoleId': serializer.toJson<String?>(consoleId),
+      'catalogJson': serializer.toJson<String?>(catalogJson),
+      'sha256': serializer.toJson<String?>(sha256),
+      'importedGameId': serializer.toJson<int?>(importedGameId),
     };
   }
 
@@ -12739,6 +12914,11 @@ class DownloadQueueRow extends DataClass
     int? retries,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<String?> filePath = const Value.absent(),
+    Value<String?> consoleId = const Value.absent(),
+    Value<String?> catalogJson = const Value.absent(),
+    Value<String?> sha256 = const Value.absent(),
+    Value<int?> importedGameId = const Value.absent(),
   }) => DownloadQueueRow(
     id: id ?? this.id,
     sourceId: sourceId.present ? sourceId.value : this.sourceId,
@@ -12756,6 +12936,13 @@ class DownloadQueueRow extends DataClass
     retries: retries ?? this.retries,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    filePath: filePath.present ? filePath.value : this.filePath,
+    consoleId: consoleId.present ? consoleId.value : this.consoleId,
+    catalogJson: catalogJson.present ? catalogJson.value : this.catalogJson,
+    sha256: sha256.present ? sha256.value : this.sha256,
+    importedGameId: importedGameId.present
+        ? importedGameId.value
+        : this.importedGameId,
   );
   DownloadQueueRow copyWithCompanion(DownloadQueueCompanion data) {
     return DownloadQueueRow(
@@ -12785,6 +12972,15 @@ class DownloadQueueRow extends DataClass
       retries: data.retries.present ? data.retries.value : this.retries,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      consoleId: data.consoleId.present ? data.consoleId.value : this.consoleId,
+      catalogJson: data.catalogJson.present
+          ? data.catalogJson.value
+          : this.catalogJson,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      importedGameId: data.importedGameId.present
+          ? data.importedGameId.value
+          : this.importedGameId,
     );
   }
 
@@ -12804,7 +13000,12 @@ class DownloadQueueRow extends DataClass
           ..write('errorMessage: $errorMessage, ')
           ..write('retries: $retries, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('filePath: $filePath, ')
+          ..write('consoleId: $consoleId, ')
+          ..write('catalogJson: $catalogJson, ')
+          ..write('sha256: $sha256, ')
+          ..write('importedGameId: $importedGameId')
           ..write(')'))
         .toString();
   }
@@ -12825,6 +13026,11 @@ class DownloadQueueRow extends DataClass
     retries,
     createdAt,
     updatedAt,
+    filePath,
+    consoleId,
+    catalogJson,
+    sha256,
+    importedGameId,
   );
   @override
   bool operator ==(Object other) =>
@@ -12843,7 +13049,12 @@ class DownloadQueueRow extends DataClass
           other.errorMessage == this.errorMessage &&
           other.retries == this.retries &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.filePath == this.filePath &&
+          other.consoleId == this.consoleId &&
+          other.catalogJson == this.catalogJson &&
+          other.sha256 == this.sha256 &&
+          other.importedGameId == this.importedGameId);
 }
 
 class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
@@ -12861,6 +13072,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
   final Value<int> retries;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> filePath;
+  final Value<String?> consoleId;
+  final Value<String?> catalogJson;
+  final Value<String?> sha256;
+  final Value<int?> importedGameId;
   const DownloadQueueCompanion({
     this.id = const Value.absent(),
     this.sourceId = const Value.absent(),
@@ -12876,6 +13092,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
     this.retries = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.consoleId = const Value.absent(),
+    this.catalogJson = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.importedGameId = const Value.absent(),
   });
   DownloadQueueCompanion.insert({
     this.id = const Value.absent(),
@@ -12892,6 +13113,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
     this.retries = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.filePath = const Value.absent(),
+    this.consoleId = const Value.absent(),
+    this.catalogJson = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.importedGameId = const Value.absent(),
   }) : name = Value(name),
        url = Value(url),
        destination = Value(destination),
@@ -12913,6 +13139,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
     Expression<int>? retries,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? filePath,
+    Expression<String>? consoleId,
+    Expression<String>? catalogJson,
+    Expression<String>? sha256,
+    Expression<int>? importedGameId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -12929,6 +13160,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
       if (retries != null) 'retries': retries,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (filePath != null) 'file_path': filePath,
+      if (consoleId != null) 'console_id': consoleId,
+      if (catalogJson != null) 'catalog_json': catalogJson,
+      if (sha256 != null) 'sha256': sha256,
+      if (importedGameId != null) 'imported_game_id': importedGameId,
     });
   }
 
@@ -12947,6 +13183,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
     Value<int>? retries,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? filePath,
+    Value<String?>? consoleId,
+    Value<String?>? catalogJson,
+    Value<String?>? sha256,
+    Value<int?>? importedGameId,
   }) {
     return DownloadQueueCompanion(
       id: id ?? this.id,
@@ -12963,6 +13204,11 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
       retries: retries ?? this.retries,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      filePath: filePath ?? this.filePath,
+      consoleId: consoleId ?? this.consoleId,
+      catalogJson: catalogJson ?? this.catalogJson,
+      sha256: sha256 ?? this.sha256,
+      importedGameId: importedGameId ?? this.importedGameId,
     );
   }
 
@@ -13011,6 +13257,21 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (consoleId.present) {
+      map['console_id'] = Variable<String>(consoleId.value);
+    }
+    if (catalogJson.present) {
+      map['catalog_json'] = Variable<String>(catalogJson.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (importedGameId.present) {
+      map['imported_game_id'] = Variable<int>(importedGameId.value);
+    }
     return map;
   }
 
@@ -13030,7 +13291,12 @@ class DownloadQueueCompanion extends UpdateCompanion<DownloadQueueRow> {
           ..write('errorMessage: $errorMessage, ')
           ..write('retries: $retries, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('filePath: $filePath, ')
+          ..write('consoleId: $consoleId, ')
+          ..write('catalogJson: $catalogJson, ')
+          ..write('sha256: $sha256, ')
+          ..write('importedGameId: $importedGameId')
           ..write(')'))
         .toString();
   }
@@ -26366,6 +26632,11 @@ typedef $$DownloadQueueTableCreateCompanionBuilder =
       Value<int> retries,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<String?> filePath,
+      Value<String?> consoleId,
+      Value<String?> catalogJson,
+      Value<String?> sha256,
+      Value<int?> importedGameId,
     });
 typedef $$DownloadQueueTableUpdateCompanionBuilder =
     DownloadQueueCompanion Function({
@@ -26383,6 +26654,11 @@ typedef $$DownloadQueueTableUpdateCompanionBuilder =
       Value<int> retries,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<String?> filePath,
+      Value<String?> consoleId,
+      Value<String?> catalogJson,
+      Value<String?> sha256,
+      Value<int?> importedGameId,
     });
 
 final class $$DownloadQueueTableReferences
@@ -26486,6 +26762,31 @@ class $$DownloadQueueTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get consoleId => $composableBuilder(
+    column: $table.consoleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get catalogJson => $composableBuilder(
+    column: $table.catalogJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get importedGameId => $composableBuilder(
+    column: $table.importedGameId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$GameSourcesTableFilterComposer get sourceId {
     final $$GameSourcesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -26584,6 +26885,31 @@ class $$DownloadQueueTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get consoleId => $composableBuilder(
+    column: $table.consoleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get catalogJson => $composableBuilder(
+    column: $table.catalogJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get importedGameId => $composableBuilder(
+    column: $table.importedGameId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$GameSourcesTableOrderingComposer get sourceId {
     final $$GameSourcesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -26668,6 +26994,25 @@ class $$DownloadQueueTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get consoleId =>
+      $composableBuilder(column: $table.consoleId, builder: (column) => column);
+
+  GeneratedColumn<String> get catalogJson => $composableBuilder(
+    column: $table.catalogJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumn<int> get importedGameId => $composableBuilder(
+    column: $table.importedGameId,
+    builder: (column) => column,
+  );
+
   $$GameSourcesTableAnnotationComposer get sourceId {
     final $$GameSourcesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -26734,6 +27079,11 @@ class $$DownloadQueueTableTableManager
                 Value<int> retries = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String?> filePath = const Value.absent(),
+                Value<String?> consoleId = const Value.absent(),
+                Value<String?> catalogJson = const Value.absent(),
+                Value<String?> sha256 = const Value.absent(),
+                Value<int?> importedGameId = const Value.absent(),
               }) => DownloadQueueCompanion(
                 id: id,
                 sourceId: sourceId,
@@ -26749,6 +27099,11 @@ class $$DownloadQueueTableTableManager
                 retries: retries,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                filePath: filePath,
+                consoleId: consoleId,
+                catalogJson: catalogJson,
+                sha256: sha256,
+                importedGameId: importedGameId,
               ),
           createCompanionCallback:
               ({
@@ -26766,6 +27121,11 @@ class $$DownloadQueueTableTableManager
                 Value<int> retries = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<String?> filePath = const Value.absent(),
+                Value<String?> consoleId = const Value.absent(),
+                Value<String?> catalogJson = const Value.absent(),
+                Value<String?> sha256 = const Value.absent(),
+                Value<int?> importedGameId = const Value.absent(),
               }) => DownloadQueueCompanion.insert(
                 id: id,
                 sourceId: sourceId,
@@ -26781,6 +27141,11 @@ class $$DownloadQueueTableTableManager
                 retries: retries,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                filePath: filePath,
+                consoleId: consoleId,
+                catalogJson: catalogJson,
+                sha256: sha256,
+                importedGameId: importedGameId,
               ),
           withReferenceMapper: (p0) => p0
               .map(

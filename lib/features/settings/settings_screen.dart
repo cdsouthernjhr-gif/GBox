@@ -156,6 +156,27 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             value: 'Mapping, calibration, dead zone, vibration and player slots are under CONTROLLERS',
           ),
           const SizedBox(height: 12),
+          const SectionHeader('Downloads'),
+          _Toggle(
+            title: 'Pause downloads while playing',
+            subtitle: 'Frees bandwidth and storage I/O for the emulator; resumes when you return',
+            value: st.pauseDownloadsWhilePlaying,
+            onChanged: (v) => s.settings.set(SettingsKeys.pauseDownloadsWhilePlaying, v),
+          ),
+          _Toggle(
+            title: 'Import finished downloads automatically',
+            subtitle: 'When the console is known (catalogue entries or chosen when adding)',
+            value: st.autoImportDownloads,
+            onChanged: (v) => s.settings.set(SettingsKeys.autoImportDownloads, v),
+          ),
+          _Choice<int>(
+            title: 'Largest allowed download',
+            value: st.downloadMaxGb,
+            values: const [1, 2, 4, 8, 16],
+            label: (v) => '$v GB',
+            onChanged: (v) => s.settings.set(SettingsKeys.downloadMaxGb, v),
+          ),
+          const SizedBox(height: 12),
           const SectionHeader('Performance'),
           _Choice<LowMemoryMode>(
             title: 'Low memory mode',
@@ -191,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 .push(MaterialPageRoute(builder: (_) => const LogsScreen())),
             action: 'View',
           ),
-          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 4 controllers)'),
+          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 5 online services)'),
           const _Row(
               title: 'Backup & restore',
               value: 'Library and save backup are part of the Save Manager (Phase 7).'),

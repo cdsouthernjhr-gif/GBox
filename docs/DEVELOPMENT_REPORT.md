@@ -96,6 +96,15 @@ Design notes: Android already synthesises D-pad keys from unhandled joystick mot
 
 Issue found by tests and fixed: `PopScope(canPop: false)` callbacks popped a second time after programmatic `Navigator.pop` (setup screens and the Phase 1 controller test screen).
 
+## Phase 5 — Online services
+
+Completed: `url_safety`, `catalog` (licence-required format), `download_engine` (dart:io HttpClient, manual redirects, Range resume, streaming SHA-256), `archive_guard` (archive 4.x, central-directory validation, counted extraction), `DownloadService` (persistent queue, retries, offline/gameplay pauses, history, import with catalogue metadata and cover), `SourceService` (7 types → 2 connectors), Downloads/Sources UI, download settings, native `freeSpace`, schema v4 + migration tests. Tests: 147 total (34 new), including a real local HTTP server.
+
+Issues found and fixed:
+* **Queue race** (found when a widget test hung): `kick()` while the worker was finishing was dropped, stranding the new item. Fixed with a pending-kick flag. A deterministic regression test (worker held after an empty check) fails on the old code and passes on the fix.
+* Random bytes passed ZIP inspection as an empty archive. A signature check plus "no files" rule were added.
+* Test infrastructure: Dart's test `HttpServer` buffers output (set `bufferOutput = false`), and `detachSocket` after a flush throws, which made two early tests fail for the wrong reason.
+
 ## Pending features
 
 Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.

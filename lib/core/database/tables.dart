@@ -400,6 +400,23 @@ class DownloadQueue extends Table {
   IntColumn get retries => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
+
+  // ---- schema v4 ----
+  /// Final file path once the server named the file (`<path>.part` while
+  /// downloading). [destination] is the target directory.
+  TextColumn get filePath => text().nullable()();
+
+  /// Console to import as (from a catalogue entry or chosen by the user).
+  TextColumn get consoleId => text().nullable()();
+
+  /// Catalogue entry JSON (title, licence, description, cover) for metadata.
+  TextColumn get catalogJson => text().nullable()();
+
+  /// SHA-256 computed while downloading.
+  TextColumn get sha256 => text().nullable()();
+
+  /// Game id once imported into the library.
+  IntColumn get importedGameId => integer().nullable()();
 }
 
 @DataClassName('DownloadHistoryRow')

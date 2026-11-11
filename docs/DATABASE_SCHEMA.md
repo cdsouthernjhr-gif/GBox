@@ -1,6 +1,6 @@
 # Database schema
 
-Engine: SQLite via Drift (`lib/core/database/tables.dart`, `app_database.dart`). File: `gamebox.sqlite` in the app support directory. **Schema version: 3.** `PRAGMA foreign_keys = ON` is set on every open.
+Engine: SQLite via Drift (`lib/core/database/tables.dart`, `app_database.dart`). File: `gamebox.sqlite` in the app support directory. **Schema version: 4.** `PRAGMA foreign_keys = ON` is set on every open.
 
 ROM binaries are never stored. `game_files` holds a URI/path, size and hashes only. A test checks that no BLOB columns exist.
 
@@ -40,6 +40,7 @@ ROM binaries are never stored. `game_files` holds a URI/path, size and hashes on
 | 1 | initial 26 tables (Phase 1) |
 | 2 | `games.regions`; `game_files.root_uri`, `last_modified`, `is_primary` (default true), `disc_number`, `header_status`, `header_detail`; indexes `idx_game_files_root`, `idx_game_files_game` (Phase 2) |
 | 3 | `controller_profiles.calibration_json` (Phase 4) |
+| 4 | `download_queue.file_path`, `console_id`, `catalog_json`, `sha256`, `imported_game_id`; connector `gamebox_catalog` seeded (Phase 5) |
 
 ## Migration strategy
 

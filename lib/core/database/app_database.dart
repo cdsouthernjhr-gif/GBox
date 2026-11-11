@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Bump on every schema change and add a step in [migration].
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -78,6 +78,13 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 3) {
             await m.addColumn(controllerProfiles, controllerProfiles.calibrationJson);
+          }
+          if (from < 4) {
+            await m.addColumn(downloadQueue, downloadQueue.filePath);
+            await m.addColumn(downloadQueue, downloadQueue.consoleId);
+            await m.addColumn(downloadQueue, downloadQueue.catalogJson);
+            await m.addColumn(downloadQueue, downloadQueue.sha256);
+            await m.addColumn(downloadQueue, downloadQueue.importedGameId);
           }
         },
         beforeOpen: (details) async {
@@ -123,6 +130,13 @@ class AppDatabase extends _$AppDatabase {
           type: 'direct_url',
           version: '1',
           description: const Value('Single HTTPS file URL supplied by the user.'),
+        ),
+        SourceConnectorsCompanion.insert(
+          id: 'gamebox_catalog',
+          name: 'GAMEBOX catalogue',
+          type: 'catalog',
+          version: '1',
+          description: const Value('JSON list of licensed games (docs/ONLINE_SOURCES.md).'),
         ),
       ]);
     });
@@ -680,7 +694,67 @@ class AppDatabase extends _$AppDatabase {
             ]))
           .watch();
 
+  // ----------------------------------------------------------- sources --
+
+  Stream<List<GameSourceRow>> watchSources() =>
+      (select(gameSources)..orderBy([(s) => OrderingTerm.asc(s.name)])).watch();
+
+  Future<GameSourceRow> sourceById(int id) => (select(gameSources)..where((s) => s.id.equals(id))).getSingle();
+
+  Future<int> addSource(GameSourcesCompanion s) => into(gameSources).insert(s);
+
+  Future<void> updateSourceStatus(int id, String status) =>
+      (update(gameSources)..where((s) => s.id.equals(id))).write(GameSourcesCompanion(
+        connectionStatus: Value(status),
+        lastCheckedAt: Value(DateTime.now()),
+      ));
+
+  Future<void> deleteSource(int id) => (delete(gameSources)..where((s) => s.id.equals(id))).go();
+
   // ----------------------------------------------------------- downloads --
+
+  Future<DownloadQueueRow> downloadById(int id) =>
+      (select(downloadQueue)..where((d) => d.id.equals(id))).getSingle();
+
+  Future<DownloadQueueRow?> nextQueuedDownload() => (select(downloadQueue)
+        ..where((d) => d.status.equals('queued'))
+        ..orderBy([(d) => OrderingTerm.asc(d.createdAt), (d) => OrderingTerm.asc(d.id)])
+        ..limit(1))
+      .getSingleOrNull();
+
+  Future<void> updateDownload(int id, DownloadQueueCompanion c) =>
+      (update(downloadQueue)..where((d) => d.id.equals(id)))
+          .write(c.copyWith(updatedAt: Value(DateTime.now())));
+
+  Future<void> deleteDownload(int id) => (delete(downloadQueue)..where((d) => d.id.equals(id))).go();
+
+  Stream<List<DownloadHistoryRow>> watchDownloadHistory({int limit = 50}) => (select(downloadHistory)
+        ..orderBy([(h) => OrderingTerm.desc(h.finishedAt)])
+        ..limit(limit))
+      .watch();
+
+  /// Metadata from an online provider (e.g. a catalogue). Never overwrites
+  /// metadata the user edited manually.
+  Future<void> saveProviderMetadata(
+    int gameId, {
+    required String provider,
+    String? description,
+    String? developer,
+    String? releaseDate,
+    String? providerId,
+  }) async {
+    final existing = await metadataForGame(gameId);
+    if (existing?.editedManually == true) return;
+    await into(gameMetadata).insertOnConflictUpdate(GameMetadataCompanion.insert(
+      gameId: Value(gameId),
+      description: Value(description),
+      developer: Value(developer),
+      releaseDate: Value(releaseDate),
+      provider: Value(provider),
+      providerId: Value(providerId),
+      fetchedAt: Value(DateTime.now()),
+    ));
+  }
 
   Stream<List<DownloadQueueRow>> watchDownloadQueue() =>
       (select(downloadQueue)..orderBy([(d) => OrderingTerm.desc(d.createdAt)]))

@@ -388,6 +388,51 @@ class RomLibraryService {
     return n;
   }
 
+  /// Imports local files (e.g. completed downloads or extracted archives).
+  /// [root] gives folder hints relative to it; [consoleId] is used for files
+  /// whose console cannot be detected. Returns the ids of the games created
+  /// or already present for these files.
+  Future<List<int>> importLocalFiles(List<String> paths, {String? root, String? consoleId}) async {
+    final entries = <ScannedEntry>[];
+    for (final path in paths) {
+      final f = File(path);
+      if (!await f.exists()) continue;
+      final name = f.uri.pathSegments.last;
+      var dirs = const <String>[];
+      if (root != null && path.startsWith('$root/')) {
+        final rel = path.substring(root.length + 1).split('/');
+        dirs = rel.sublist(0, rel.length - 1);
+      }
+      final st = await f.stat();
+      entries.add(ScannedEntry(
+          uri: path, name: name, dirSegments: dirs, size: st.size, lastModified: st.modified.millisecondsSinceEpoch));
+    }
+    final plan = planScan(entries, detector);
+    final ids = <int>[];
+    Future<void> add(PlannedGame g) async {
+      final known = await _db.fileByUri(g.primary.uri);
+      ids.add(known?.gameId ?? await _importPlanned(g));
+    }
+
+    for (final g in plan.games) {
+      // A console chosen explicitly (e.g. from a catalogue) wins over
+      // extension detection only when the extension is valid for it.
+      if (consoleId != null && g.consoleId != consoleId &&
+          (consoleById(consoleId)?.extensions.contains(g.primary.extension) ?? false)) {
+        await add(PlannedGame(consoleId: consoleId, title: g.title, primary: g.primary, files: g.files, cover: g.cover));
+      } else {
+        await add(g);
+      }
+    }
+    if (consoleId != null) {
+      for (final e in plan.unresolved) {
+        await add(PlannedGame(consoleId: consoleId, title: normalizeTitle(e.name), primary: e, files: [e]));
+      }
+    }
+    await verifyPending();
+    return ids;
+  }
+
   /// External-storage document ids often contain the path
   /// (`primary:ROMs/SNES/game.sfc`); use its folders as a console hint.
   static List<String> _dirHintFromUri(String uri) {

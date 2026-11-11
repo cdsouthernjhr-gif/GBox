@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.5.0+5 — Phase 5 Online Services (pre-release, not for distribution)
+
+**New:** Online Source Manager (7 source types, authorisation confirmation, connection check, GAMEBOX catalogue browsing with required licences). Download Manager (queue, pause/resume/cancel/retry/remove, speed and ETA, history, offline wait, pause while playing, auto import, max size). HTTPS-only engine with safe redirects, Range resume, SHA-256 and size verification, free-space check, refusal of web pages and executables. ZIP inspection and guarded extraction (path traversal, symlinks, archive bombs). Catalogue metadata and covers on import. Database schema v4.
+
+**Fixed (found by tests):** download-queue race that could leave an item queued forever when it was added while the worker was finishing. Garbage files were accepted as empty ZIP archives.
+
 ## 0.4.0+4 — Phase 4 Controllers (pre-release, not for distribution)
 
 **New:** button-mapping wizard (16 actions, axis triggers/hat D-pads, conflict warnings), analog calibration with suggested dead zone, dead zone and trigger threshold settings, vibration on/off and rumble test, Player 1–4 slots, RetroArch autoconfig export, native key remapping, dead-zone-aware stick/hat navigation (Settings → Controllers). Database schema v3.

@@ -35,7 +35,19 @@ class SettingsState {
     this.romFolders = const [],
     this.autoScan = true,
     this.stickNavigation = true,
+    this.pauseDownloadsWhilePlaying = true,
+    this.autoImportDownloads = true,
+    this.downloadMaxGb = 8,
   });
+
+  /// Downloads must not interfere with gameplay (spec Part 13).
+  final bool pauseDownloadsWhilePlaying;
+
+  /// Import finished downloads whose console is known.
+  final bool autoImportDownloads;
+
+  /// Largest single download allowed.
+  final int downloadMaxGb;
 
   /// Left stick / hat navigates the launcher using each controller's dead zone.
   final bool stickNavigation;
@@ -84,6 +96,9 @@ class SettingsState {
       romFolders: folders,
       autoScan: (m[SettingsKeys.autoScan] ?? 'true') == 'true',
       stickNavigation: (m[SettingsKeys.stickNavigation] ?? 'true') == 'true',
+      pauseDownloadsWhilePlaying: (m[SettingsKeys.pauseDownloadsWhilePlaying] ?? 'true') == 'true',
+      autoImportDownloads: (m[SettingsKeys.autoImportDownloads] ?? 'true') == 'true',
+      downloadMaxGb: int.tryParse(m[SettingsKeys.downloadMaxGb] ?? '') ?? 8,
     );
   }
 }
@@ -101,6 +116,9 @@ abstract final class SettingsKeys {
   static const romFolders = 'storage.rom_folders';
   static const autoScan = 'gaming.auto_scan';
   static const stickNavigation = 'controller.stick_navigation';
+  static const pauseDownloadsWhilePlaying = 'downloads.pause_while_playing';
+  static const autoImportDownloads = 'downloads.auto_import';
+  static const downloadMaxGb = 'downloads.max_size_gb';
 }
 
 class SettingsRepository {

@@ -112,6 +112,9 @@ abstract class PlatformGateway {
   Future<String?> importImage(String uri, String destPath, {int maxDim = 600});
   Future<bool> deleteFile(String uri);
 
+  /// Free bytes on the volume holding [path], or null if unknown.
+  Future<int?> freeSpace(String path);
+
   /// `[{uri, name, size}]` for picked documents.
   Future<List<Map<String, dynamic>>> describeFiles(List<String> uris);
   Future<List<String>> pickFiles();
@@ -278,6 +281,10 @@ class MethodChannelGateway implements PlatformGateway {
   @override
   Future<String?> importImage(String uri, String destPath, {int maxDim = 600}) =>
       _storage.invokeMethod<String>('importImage', {'uri': uri, 'dest': destPath, 'maxDim': maxDim});
+
+  @override
+  Future<int?> freeSpace(String path) async =>
+      (await _storage.invokeMethod<Object?>('freeSpace', {'path': path}) as num?)?.toInt();
 
   @override
   Future<bool> deleteFile(String uri) async =>

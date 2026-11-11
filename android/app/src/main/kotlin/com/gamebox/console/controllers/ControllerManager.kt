@@ -35,7 +35,7 @@ class ControllerManager(private val context: Context) {
     private val inputManager = context.getSystemService(Context.INPUT_SERVICE) as InputManager
 
     fun listDevices(): List<Map<String, Any?>> =
-        InputDevice.getDeviceIds().mapNotNull { id -> InputDevice.getDevice(id)?.let { describe(it) } }
+        InputDevice.getDeviceIds().toList().mapNotNull { id -> InputDevice.getDevice(id)?.let { describe(it) } }
 
     fun describe(d: InputDevice): Map<String, Any?>? {
         if (d.isVirtual) return null

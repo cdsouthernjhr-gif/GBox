@@ -61,6 +61,39 @@ A successful launch writes a `game_history` row and updates `last_played_at` and
 
 `verifiedOnDevice` stays `false` (shown as "Experimental" in the UI) until a launch with a legally obtained homebrew/public-domain test file has been confirmed on a real TV box and recorded here.
 
+## Phase 6: additional emulators (implemented, experimental)
+
+All 10 detected emulators can now be given a game. Standalone emulators are described as **launch recipes** (`lib/integrations/emulator_adapters/launcher_registry.dart`, `recipe_launcher.dart`). Recipes follow the launch interfaces used by established Android frontends. None has been executed on a device by GAMEBOX.
+
+| Emulator | Consoles | Recipe | Game passed as | Fallback |
+|---|---|---|---|---|
+| PPSSPP / Gold | PSP | `org.ppsspp.ppsspp.PpssppActivity`, VIEW | content URI data | generic VIEW |
+| Mupen64Plus FZ | N64 | `paulscode.android.mupen64plusae.SplashActivity`, VIEW | content URI data | generic VIEW |
+| melonDS | NDS | action `me.magnum.melonds.LAUNCH_ROM` | `uri` extra (content or path) | generic VIEW |
+| DraStic | NDS | `com.dsemu.drastic.DraSticActivity` | `GAMEPATH` extra (path) | none |
+| Flycast | Dreamcast | VIEW to package | content URI data | — |
+| Redream | Dreamcast | VIEW to package | content URI data | — |
+| Dolphin | GameCube, Wii | `org.dolphinemu.dolphinemu.ui.main.MainActivity`, VIEW; **arm64 only** | `AutoStartFile` extra (content or path) | generic VIEW |
+| AetherSX2 / NetherSX2 | PS2 | `xyz.aethersx2.android.EmulationActivity`, MAIN; **arm64 only** | `bootPath` extra (content or path) | generic VIEW |
+
+New RetroArch cores: N64 mupen64plus_next / parallel_n64 · NDS melonds / desmume · PSP ppsspp · Saturn yabasanshiro / yabause / mednafen_saturn · Dreamcast flycast. **Saturn has no standalone recipe**, so it launches through RetroArch only.
+
+**Fallback chain**: if the specific activity of a recipe isn't found (e.g. a different app version renamed it), the native layer tries a generic `ACTION_VIEW` intent to the same package with the game's content URI and a read grant. Only "activity not found" triggers the next attempt. Other errors are reported.
+
+**Default per console**: for N64, NDS, PSP, Saturn, Dreamcast, GameCube, Wii and PS2 the dedicated emulator is preferred when installed. RetroArch is preferred for the retro systems and PS1. "Play with…" and the per-console default override this.
+
+**Device intelligence**: arm64-only emulators are blocked on 32-bit Android with an explanation. When the device is below the estimated tier for the console, the launch proceeds with a warning (estimates never block).
+
+| Emulator | Console(s) | Tested on device | Result |
+|---|---|---|---|
+| PPSSPP | PSP | PENDING | — |
+| Mupen64Plus FZ | N64 | PENDING | — |
+| melonDS / DraStic | NDS | PENDING | — |
+| Flycast / Redream | Dreamcast | PENDING | — |
+| Dolphin | GameCube, Wii | PENDING | — |
+| AetherSX2 / NetherSX2 | PS2 | PENDING | — |
+| RetroArch (new cores) | N64, NDS, PSP, Saturn, Dreamcast | PENDING | — |
+
 ## BIOS
 
 Some systems (PS1 optional, Saturn, PS2) need user-supplied BIOS dumps. GAMEBOX will only point users to the emulator's own BIOS setting. It never downloads or ships BIOS files.

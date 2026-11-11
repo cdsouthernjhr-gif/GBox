@@ -1,11 +1,13 @@
 import 'dart:convert';
 
+import '../../core/constants/console_catalog.dart';
 import '../../core/database/app_database.dart';
 import '../../core/device/device_intelligence_service.dart';
 import '../../core/errors/app_logger.dart';
 import '../../core/rom/rom_path_resolver.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/services/system_services.dart';
+import '../../domain/entities/performance_tier.dart';
 import '../../integrations/emulator_adapters/emulator_adapter.dart';
 import '../../integrations/emulator_adapters/launcher_registry.dart';
 
@@ -129,16 +131,19 @@ class LaunchService {
       contentUri: content,
     );
     // Unknown SDK → assume the stricter Android 11+ storage rules.
+    final profile = _device.state.value.profile;
     final env = LaunchEnvironment(
       installedPackage: choice.installedPackage!,
-      sdkInt: _device.state.value.profile?.sdkInt ?? 30,
+      sdkInt: profile?.sdkInt ?? 30,
+      supportsArm64: profile == null || profile.supportedAbis.isEmpty || profile.supportsArm64,
     );
     final name = choice.adapter.emulator.name;
     final plan = choice.adapter.plan(target, env, opts);
     switch (plan) {
       case LaunchBlocked(:final reasons):
         return LaunchOutcome.blocked(reasons, emulatorName: name);
-      case LaunchReady(:final spec, :final notes):
+      case LaunchReady(:final spec, notes: final adapterNotes):
+        final notes = [...adapterNotes, ?_performanceWarning(game.consoleId, choice.adapter)];
         _beforeLaunch?.call();
         final r = await _gateway.launchIntent(spec.toMap());
         if (r['ok'] != true) {
@@ -152,6 +157,21 @@ class LaunchService {
         AppLogger.instance.info('Launched game $gameId with $name (${env.installedPackage})');
         return LaunchOutcome.started(emulatorName: name, notes: notes);
     }
+  }
+
+  /// Hardware-based warning when this device is below the estimated tier for
+  /// the console (never blocks; the estimate is not a measurement).
+  String? _performanceWarning(String consoleId, GameLauncherAdapter adapter) {
+    final st = _device.state.value;
+    final console = consoleById(consoleId);
+    if (st.profile == null || st.classification == null || console == null) return null;
+    final e = _device.classifier.estimate(st.profile!, st.classification!, console, emulator: adapter.emulator);
+    return switch (e.rating) {
+      CompatibilityRating.limited =>
+        'This device is below the estimated requirement for ${console.name}; games may run slowly.',
+      CompatibilityRating.unsupported => 'Hardware check: ${e.reasons.join(' ')} The game may not start.',
+      _ => null,
+    };
   }
 
   /// Called when GAMEBOX returns to the foreground.

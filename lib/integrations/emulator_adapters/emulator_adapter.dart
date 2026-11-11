@@ -25,6 +25,7 @@ class IntentSpec {
     this.extras = const {},
     this.flags = const [],
     this.grantReadUris = const [],
+    this.fallbacks = const [],
   });
 
   final String packageName;
@@ -44,6 +45,10 @@ class IntentSpec {
   /// emulator for this launch only (FLAG_GRANT_READ_URI_PERMISSION).
   final List<String> grantReadUris;
 
+  /// Tried in order by the native layer only if this intent's activity is
+  /// not found.
+  final List<IntentSpec> fallbacks;
+
   Map<String, Object?> toMap() => {
         'package': packageName,
         'className': className,
@@ -54,6 +59,7 @@ class IntentSpec {
         'extras': extras,
         'flags': flags,
         'grantReadUris': grantReadUris,
+        'fallbacks': [for (final f in fallbacks) f.toMap()],
       };
 }
 
@@ -81,11 +87,15 @@ class LaunchTarget {
 }
 
 class LaunchEnvironment {
-  const LaunchEnvironment({required this.installedPackage, required this.sdkInt});
+  const LaunchEnvironment({required this.installedPackage, required this.sdkInt, this.supportsArm64 = true});
 
   /// Package of the installed emulator build being used.
   final String installedPackage;
   final int sdkInt;
+
+  /// From the hardware profile; true when unknown (the emulator then reports
+  /// incompatibility itself).
+  final bool supportsArm64;
 }
 
 /// A user-selectable option, e.g. a RetroArch core.

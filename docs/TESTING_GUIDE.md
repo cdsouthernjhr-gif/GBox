@@ -13,6 +13,7 @@
 | `test/controller_test.dart` | key remap (swaps, identities, conflicts), calibration maths, dead-zone suggestion, serialisation, player cycle, RetroArch autoconfig (RetroPad naming, sanitising, axes omitted), profile persistence, per-console override, native config push (remaps, dead zones, stick-navigation setting, reset), player slot exclusivity, vibration rules, export file | 13 |
 | `test/online_core_test.dart` | URL rules (https only, credentials, redirect downgrade), file-name sanitising and Content-Disposition, catalogue validation (licence required), ZIP guard (traversal, absolute/drive paths, symlinks, entry count, bombs, non-ZIP), **download engine against a real local HTTP server**: redirect, SHA-256 pass/fail, redirect loops/unsafe targets, HTML and executables refused, size/space limits, sanitised names, truncated transfer kept for resume, pause → Range resume byte-identical, no-Range restart, cancel cleanup, probe/fetch | 21 |
 | `test/online_services_test.dart` | catalogue source → browse → download → auto-import with metadata, licence and cover; offline wait; gameplay pause + Range resume; user pause/cancel; 404 fail + retry; automatic network retries; ZIP extraction import and malicious ZIP rejection; console chooser path; remove; enqueue validation; source authorisation/HTML/invalid catalogue; **deterministic regression test for the queue race** | 11 |
+| `test/phase6_launch_test.dart` | every emulator/console has a launcher, dedicated-first ordering, nothing marked verified, new RetroArch cores, each recipe (PPSSPP incl. Gold package, Dolphin arm64 + AutoStartFile, DraStic path rule, melonDS action/extra, Flycast/Redream VIEW, AetherSX2), fallback serialisation, content-required blocking, below-tier warning, 32-bit Dolphin block, PPSSPP preferred over RetroArch | 14 |
 | `test/migration_test.dart` | v1/v2/v3 → v4 upgrades match the v4 snapshot exactly; existing data preserved | 4 |
 
 Hardware profiles and ROM headers in tests are **synthetic** (headers are built byte-by-byte from public format documentation; no game data is used). They exercise logic only and say nothing about real devices.
@@ -36,7 +37,7 @@ flutter test integration_test/device_smoke_test.dart -d <device-id>
 | 5 | ROM import | 2 | Logic PASSED (unit/widget, fake picker); SAF picker on device PENDING |
 | 6 | ROM scanning | 2 | Logic PASSED (real temp folders + simulated SAF trees); on-device SAF/USB/SD PENDING |
 | 7 | Emulator detection | 1/3 | UI logic PASSED (fake gateway); on-device PENDING |
-| 8 | Game launching | 3 | Intent building, selection and history PASSED (unit/widget); **on-device launch PENDING** |
+| 8 | Game launching | 3/6 | Intent building, fallbacks, selection and history PASSED (unit/widget) for all 10 emulators; **on-device launch PENDING** |
 | 9 | Bluetooth controller | 1/4 | Mapping/calibration logic PASSED (unit/widget); hardware PENDING |
 | 10 | USB controller | 1/4 | Logic PASSED; hardware PENDING |
 | 11 | USB storage | 1/4 | PENDING (needs hardware) |
@@ -67,3 +68,4 @@ flutter test integration_test/device_smoke_test.dart -d <device-id>
 15. Phase 4: for a Bluetooth pad, a USB pad and a 2.4 GHz receiver pad: Map buttons with A and B swapped, then check that the launcher now uses the swapped buttons. Calibrate and check the suggested dead zone. Test rumble on a pad that reports vibration. Export for RetroArch and import the file into RetroArch.
 16. Phase 4: with a pad whose stick drifts slightly, check the focus doesn't move by itself with stick navigation on, and that it moves reliably when pushed. Hat-switch D-pads should navigate too.
 17. Phase 5: host a small GAMEBOX catalogue (e.g. a public HTTPS gist) listing a CC0 homebrew ROM with its SHA-256, add it as a homebrew source, browse it, download, and confirm the game appears in MY GAMES with title, licence and cover. Unplug the network mid-download: it waits and resumes. Launch a game during a download: it pauses and continues afterwards.
+18. Phase 6: for each installed emulator (PPSSPP, Mupen64Plus FZ, melonDS, DraStic, Flycast, Redream, Dolphin, AetherSX2/NetherSX2) launch a legally obtained homebrew game. Record in EMULATOR_INTEGRATION.md whether the specific activity started or the generic VIEW fallback was used (logcat shows which). Check the below-tier warning on a weaker box.

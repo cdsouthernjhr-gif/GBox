@@ -28,6 +28,12 @@ const Map<String, Map<String, String>> retroArchCores = {
   'sms': {'genesis_plus_gx': 'Genesis Plus GX', 'picodrive': 'PicoDrive'},
   'megadrive': {'genesis_plus_gx': 'Genesis Plus GX', 'picodrive': 'PicoDrive (fast)'},
   'ps1': {'pcsx_rearmed': 'PCSX ReARMed', 'swanstation': 'SwanStation', 'mednafen_psx': 'Beetle PSX'},
+  // Phase 6
+  'n64': {'mupen64plus_next': 'Mupen64Plus-Next', 'parallel_n64': 'ParaLLEl N64'},
+  'nds': {'melonds': 'melonDS', 'desmume': 'DeSmuME'},
+  'psp': {'ppsspp': 'PPSSPP'},
+  'saturn': {'yabasanshiro': 'YabaSanshiro', 'yabause': 'Yabause', 'mednafen_saturn': 'Beetle Saturn (very heavy)'},
+  'dreamcast': {'flycast': 'Flycast'},
 };
 
 class RetroArchLauncher extends GameLauncherAdapter {

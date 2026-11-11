@@ -35,9 +35,9 @@ class EmulatorsScreen extends StatelessWidget {
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
                     'Install emulators from their official sources (e.g. the developer website or '
-                    'your app store). Phase 3: RetroArch (NES, SNES, Master System, Mega Drive, Game Boy, '
-                    'GBA, PS1) and DuckStation (PS1) can launch games. These launch methods are '
-                    'experimental until verified on a TV box. Other emulators follow in Phase 6.',
+                    'your app store). All listed emulators can launch games from GAMEBOX; RetroArch covers '
+                    'most systems through cores installed inside RetroArch. Launch methods are experimental '
+                    'until verified on a TV box. BIOS files are never provided by GAMEBOX.',
                     style: TextStyle(color: Colors.white60),
                   ),
                 );

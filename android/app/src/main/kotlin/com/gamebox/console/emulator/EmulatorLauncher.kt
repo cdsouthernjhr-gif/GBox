@@ -22,8 +22,24 @@ class EmulatorLauncher(private val activity: Activity) {
         "noHistory" to Intent.FLAG_ACTIVITY_NO_HISTORY,
     )
 
+    /**
+     * Starts [spec]; if its activity is not found, tries each of its
+     * "fallbacks" in order. Returns which attempt started (0 = primary).
+     */
     @Suppress("UNCHECKED_CAST")
     fun launch(spec: Map<String, Any?>): Map<String, Any?> {
+        val attempts = listOf(spec) + ((spec["fallbacks"] as? List<Map<String, Any?>>) ?: emptyList())
+        var last: Map<String, Any?> = error("bad_spec", "Nothing to launch")
+        for ((index, attempt) in attempts.withIndex()) {
+            last = launchOne(attempt)
+            if (last["ok"] == true) return last + ("attempt" to index)
+            if (last["code"] != "not_found") return last
+        }
+        return last
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun launchOne(spec: Map<String, Any?>): Map<String, Any?> {
         val pkg = spec["package"] as? String ?: return error("bad_spec", "Missing package")
         val intent = Intent()
         (spec["action"] as? String)?.let { intent.action = it }

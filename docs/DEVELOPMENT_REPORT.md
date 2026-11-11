@@ -105,6 +105,12 @@ Issues found and fixed:
 * Random bytes passed ZIP inspection as an empty archive. A signature check plus "no files" rule were added.
 * Test infrastructure: Dart's test `HttpServer` buffers output (set `bufferOutput = false`), and `detachSocket` after a flush throws, which made two early tests fail for the wrong reason.
 
+## Phase 6 — Additional emulators
+
+Completed: `RecipeLauncher` (three hand-off modes: content data, content-or-path extra, path extra), 8 standalone recipes, RetroArch cores for 5 more systems, `IntentSpec.fallbacks` + native fallback chain (only on "activity not found"), dedicated-first ordering, arm64 gating and performance warnings in `LaunchService`, Consoles/Emulators screen updates. Tests: 161 total (14 new).
+
+Honesty note: I'm less certain of some standalone apps' exact activity names and extras than of RetroArch's interface. The fallback chain and the "Experimental" label exist because of that. Each recipe needs a device test (TESTING_GUIDE step 18).
+
 ## Pending features
 
 Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.

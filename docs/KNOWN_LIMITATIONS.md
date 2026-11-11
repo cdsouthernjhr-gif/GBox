@@ -62,6 +62,13 @@
 * Downloads go to app storage on the primary volume only.
 * Verified against a local test server only. Real HTTPS sources on a device are PENDING.
 
+## Additional emulators (Phase 6)
+
+* All launch recipes are unverified on a device. Component names and extras follow those emulators' public launch interfaces as used by other frontends, and can change between app versions. The generic VIEW fallback reduces, but doesn't remove, that risk.
+* Saturn launches through RetroArch only (no standalone recipe).
+* GAMEBOX never provides BIOS/firmware. PS2, Saturn and some Dreamcast/NDS games need user-supplied dumps configured inside the emulator.
+* Performance warnings are estimates from detected hardware, not measurements (benchmarks: Phase 7).
+
 ## Not yet implemented (by phase)
 
- · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.
+ · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.

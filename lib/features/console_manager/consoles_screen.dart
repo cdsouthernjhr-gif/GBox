@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/console_catalog.dart';
 import '../../core/device/device_intelligence_service.dart';
+import '../../integrations/emulator_adapters/launcher_registry.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../game_library/game_detail_screen.dart' show ratingColor;
@@ -71,8 +72,8 @@ class _ConsoleTile extends StatelessWidget {
             StatusChip(est?.rating.label ?? 'Not Tested',
                 color: est == null ? Colors.white54 : ratingColor(context, est.rating)),
             const SizedBox(width: 6),
-            if (console.plannedPhase > 3)
-              StatusChip('Phase ${console.plannedPhase}', color: Colors.white54),
+            if (launchersForConsole(console.id).isEmpty)
+              const StatusChip('No launcher yet', color: Colors.white54),
           ]),
         ]),
       ),
@@ -92,7 +93,8 @@ class _ConsoleTile extends StatelessWidget {
             InfoRow('Estimated recommended', console.recommendedTier.label),
             InfoRow('64-bit Android required', console.requiresArm64 ? 'Yes' : 'No'),
             InfoRow('Minimum OpenGL ES', console.minGlEs.toStringAsFixed(1)),
-            InfoRow('Emulator integration phase', 'Phase ${console.plannedPhase}'),
+            InfoRow('Can launch with (experimental)',
+                launchersForConsole(console.id).map((l) => l.emulator.name).join(', ')),
             InfoRow('Compatible emulator apps',
                 knownEmulators.where((e) => e.consoleIds.contains(console.id)).map((e) => e.name).join(', ')),
             if (console.notes != null) InfoRow('Notes', console.notes),

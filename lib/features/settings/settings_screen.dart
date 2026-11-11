@@ -212,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 .push(MaterialPageRoute(builder: (_) => const LogsScreen())),
             action: 'View',
           ),
-          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 5 online services)'),
+          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 6 additional emulators)'),
           const _Row(
               title: 'Backup & restore',
               value: 'Library and save backup are part of the Save Manager (Phase 7).'),

@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.6.0+6 — Phase 6 Additional emulators (pre-release, not for distribution)
+
+**New:** launch recipes for PPSSPP (PSP), Mupen64Plus FZ (N64), melonDS and DraStic (NDS), Flycast and Redream (Dreamcast), Dolphin (GameCube/Wii) and AetherSX2/NetherSX2 (PS2). RetroArch cores for N64, NDS, PSP, Saturn and Dreamcast. Native fallback to a generic VIEW intent when a recipe's activity isn't found. Dedicated emulators preferred for 3D/handheld systems. Arm64-only emulators blocked on 32-bit Android. Below-tier performance warnings. The Consoles screen lists launch options.
+
+**Status:** experimental. No launch has been verified on a TV box.
+
 ## 0.5.0+5 — Phase 5 Online Services (pre-release, not for distribution)
 
 **New:** Online Source Manager (7 source types, authorisation confirmation, connection check, GAMEBOX catalogue browsing with required licences). Download Manager (queue, pause/resume/cancel/retry/remove, speed and ETA, history, offline wait, pause while playing, auto import, max size). HTTPS-only engine with safe redirects, Range resume, SHA-256 and size verification, free-space check, refusal of web pages and executables. ZIP inspection and guarded extraction (path traversal, symlinks, archive bombs). Catalogue metadata and covers on import. Database schema v4.

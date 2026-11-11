@@ -21,22 +21,44 @@ Hardware profiles and ROM headers in tests are **synthetic** (headers are built 
 
 ## On-device tests
 
-`integration_test/device_smoke_test.dart` calls the real platform channels:
+`integration_test/device_test.dart` runs on a real Android device or emulator with the real native layer:
 
 ```bash
-flutter test integration_test/device_smoke_test.dart -d <device-id>
+flutter test integration_test/device_test.dart -d <device-id>
+./tool/ci_device_tests.sh   # integration tests + adb HOME-launcher checks (needs emulator-5554)
 ```
+
+| Test | Checks |
+|---|---|
+| hardware scan | native scan returns API ≥ 24, ABIs, RAM, display size, a primary storage volume; prints a `DEVICE:` line |
+| bundled SQLite | a real database **file** opens, seeds 16 consoles, writes, `VACUUM INTO` backup reopens with the data |
+| library | GAMEBOX folders created on device storage, scan imports a synthetic NES file, native header check `valid`, native SHA-1, FileProvider gives a `content://com.gamebox.console.files/` URI |
+| emulator launch errors | launching a non-installed app walks the fallback chain and returns `not_found` without throwing |
+| channels | storage, input devices, connectivity, performance snapshot, default-launcher state, app list, free space, input config |
+| launcher UI | the real app boots on the device, HOME and MY GAMES render; on a landscape screen all 11 menu entries fit; no Flutter exception |
+
+`tool/ci_device_tests.sh` then installs the debug APK and checks with adb: HOME and LEANBACK_LAUNCHER filters registered (`dumpsys package`), GAMEBOX set as default HOME (`cmd package set-home-activity`), HOME key → GAMEBOX is the resumed activity, BACK → GAMEBOX stays in front, no crash in logcat.
+
+### Emulator results (CI run #14, commit 5d5f8e1, 2026-11-11)
+
+| Emulator | Integration tests | HOME filters | Set default HOME | HOME → GAMEBOX | BACK stays | Crash |
+|---|---|---|---|---|---|---|
+| API 24 (Android 7.0) default x86_64, 1920×1080 | 6/6 PASS | PASS | command accepted (no output) | PASS | PASS | none |
+| API 34 (Android 14) google_apis x86_64, 1920×1080 | 6/6 PASS | PASS | `Success` | PASS | PASS | none |
+| API 30 android-tv x86 | not run: Flutter doesn't support 32-bit x86 ("unsupported" device) | — | — | — | — | — |
+
+These are **Android emulators on x86_64, not TV boxes**. They prove the APK installs and runs on Android 7.0 and 14, the native layer, SQLite and FileProvider work, and Android accepts GAMEBOX as the HOME app. They don't prove anything about ARM TV-box firmware, real remotes or controllers, USB/SD, GPU drivers, or emulator launches. Those remain PENDING.
 
 ## Acceptance checklist (Part 26)
 
 | # | Test | Phase | Status |
 |---|---|---|---|
-| 1 | Installation | 1 | APK builds (CI); install PENDING (needs Android 7.0+ device) |
-| 2 | Launcher selection (HOME role / Home settings) | 1 | PENDING (needs device) |
-| 3 | Device scanning | 1 | Logic PASSED (unit); on-device PENDING |
-| 4 | Database operations | 1 | PASSED (unit, in-memory SQLite) |
+| 1 | Installation | 1/8 | **PASSED on Android emulators** API 24 and API 34 (CI device-tests); physical TV box PENDING |
+| 2 | Launcher selection (HOME role / Home settings) | 1/8 | **PASSED on emulators** via adb (set default HOME, HOME → GAMEBOX, BACK stays); in-app RoleManager/Home-settings flow and physical TV box PENDING |
+| 3 | Device scanning | 1/8 | Logic PASSED (unit); native scan PASSED on emulators; real TV-box values PENDING |
+| 4 | Database operations | 1/8 | PASSED (unit, in-memory) and **on emulators** with a real database file and backup |
 | 5 | ROM import | 2 | Logic PASSED (unit/widget, fake picker); SAF picker on device PENDING |
-| 6 | ROM scanning | 2 | Logic PASSED (real temp folders + simulated SAF trees); on-device SAF/USB/SD PENDING |
+| 6 | ROM scanning | 2/8 | Logic PASSED; GAMEBOX-folder scan + native header/hash PASSED on emulators; SAF/USB/SD on device PENDING |
 | 7 | Emulator detection | 1/3 | UI logic PASSED (fake gateway); on-device PENDING |
 | 8 | Game launching | 3/6 | Intent building, fallbacks, selection and history PASSED (unit/widget) for all 10 emulators; **on-device launch PENDING** |
 | 9 | Bluetooth controller | 1/4 | Mapping/calibration logic PASSED (unit/widget); hardware PENDING |
@@ -49,6 +71,8 @@ flutter test integration_test/device_smoke_test.dart -d <device-id>
 | 16 | Download validation | 5 | PASSED (SHA-256, size, ZIP traversal/bomb, executables, HTML) |
 | 17 | Low-memory performance | 1 | PENDING (needs 2 GB device) |
 | 18 | Application recovery | 1 | Startup retry screen implemented; on-device PENDING |
+| — | Android 7.0 (API 24) support | 8 | **PASSED on the API 24 emulator**; physical Android 7 box PENDING |
+| — | Android 6.0 (API 23) support | — | **NOT SUPPORTED** (build declares minSdk 24; see KNOWN_LIMITATIONS) |
 
 ## Manual on-device checklist for Phase 1
 

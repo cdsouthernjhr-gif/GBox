@@ -6,9 +6,10 @@
   1. Find what injects 24 (print `variant.minSdk` in `androidComponents.onVariants`, test with AGP 8.x), then retest on an API 23 device. Even if the manifest allows 23, the Flutter 3.47 engine is only supported on 24+.
   2. Build a separate legacy flavour with an older Flutter release whose supported floor included API 23, and re-validate every dependency.
   3. Accept Android 7.0 as the minimum. Most TV boxes still in use run 7.1 or later, but this is an assumption, not data.
-* **No device testing yet:** Phase 1 was built and tested without an Android device or emulator. All hardware-dependent behaviour is PENDING (see TESTING_GUIDE).
-* **Release signing:** without `key.properties`, the release APK uses the debug key.
-* The dev container couldn't download the Android SDK (`dl.google.com` blocked), so APKs are built in GitHub Actions only.
+* **No physical TV box tested yet.** Since Phase 8 the app runs on Android emulators in CI (API 24 and API 34, x86_64, 1920×1080), which pass the on-device tests and HOME-launcher checks. Emulators aren't TV boxes: ARM firmware, real remotes/controllers, USB/SD, GPU drivers and emulator launches are still PENDING (TESTING_GUIDE).
+* **No Android TV system image in CI:** the API 30 android-tv image is 32-bit x86, which Flutter doesn't support; the API 34 android-tv x86_64 image didn't boot on the GitHub runner. The leanback filter is checked, but leanback-specific behaviour is untested.
+* **Release signing:** without signing secrets / `key.properties`, release APKs use the debug key. The release workflow refuses to publish such builds. No release has been published yet.
+* The dev container couldn't download the Android SDK (`dl.google.com` blocked), so APKs are built and device-tested in GitHub Actions only.
 
 ## Launcher
 
@@ -22,7 +23,7 @@
 * CPU max frequency may be unreadable due to SELinux.
 * Bus type of controllers (USB/Bluetooth/receiver) isn't exposed by public APIs.
 * USB vs SD classification relies on the system's volume description.
-* Vulkan isn't detectable via the platform on API 23 and is reported as not available.
+* Vulkan detection uses the platform feature flag. The API 24 emulator reports none even though some API 24 boxes have Vulkan drivers.
 * Tier and ratings are **estimates**: the GPU table covers common TV-box GPUs only, and unknown GPUs fall back to GLES/Vulkan level.
 
 ## Storage

@@ -29,6 +29,7 @@ else
   adb shell input keyevent KEYCODE_HOME
   for i in $(seq 1 30); do
     if adb shell dumpsys activity activities | tr -d '\r' | grep -E "mResumedActivity|ResumedActivity|topResumedActivity" | grep -q com.gamebox.console; then
+      adb shell dumpsys activity activities | tr -d '\r' | grep -E "mResumedActivity|topResumedActivity" | head -2
       echo "PASS: GAMEBOX is the resumed HOME activity"
       break
     fi

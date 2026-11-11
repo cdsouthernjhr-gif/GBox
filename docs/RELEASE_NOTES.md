@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.8.0+8 — Phase 8 Testing and release preparation (pre-release)
+
+**New:** on-device integration tests (`integration_test/device_test.dart`) and adb HOME-launcher checks, run in CI on Android emulators. Release signing from GitHub secrets. Tag-triggered release workflow that refuses debug-signed builds. Signing, release and checklist documentation.
+
+**Verified (Android emulators, not TV boxes):** on Android 7.0 (API 24) and Android 14 (API 34) at 1920×1080, the APK installs, the native hardware scan works, a real SQLite database file opens and backs up, the library scan reads headers and hashes natively, FileProvider shares GAMEBOX files, launch errors are reported without crashing, the launcher UI boots, Android accepts GAMEBOX as the default HOME app, HOME brings it to the front and BACK doesn't leave it. No crash was logged.
+
+**Still PENDING:** every physical TV-box test, all emulator (RetroArch, DuckStation, …) launches, controllers, USB/SD. Android 6.0 isn't supported.
+
+**Artifacts:** the `gamebox-apks` CI artifact. No GitHub Release has been published; publishing needs the signing secrets and a version tag (BUILD_GUIDE).
+
 ## 0.7.0+7 — Phase 7 Advanced features (pre-release, not for distribution)
 
 **New:** Save Manager (save folders per emulator, state/game save/memory card classification, backup, restore with automatic safety copy, ZIP export/import). Library database backup and staged restore. Compatibility evidence precedence with your own "how did it run?" results, community bundle import and consent-only anonymous export. Device benchmarks (CPU single/multi, memory, storage, launcher rendering FPS). Live performance monitor (RAM, app CPU, core clocks, temperatures, Android thermal status). Accent colour and custom wallpaper image. Database schema v5.

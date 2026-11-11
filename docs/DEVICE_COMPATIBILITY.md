@@ -8,6 +8,17 @@
 |---|---|---|---|---|---|---|---|---|
 | — | — | — | — | PENDING | PENDING | PENDING | PENDING | PENDING |
 
+### Android emulators (CI, Phase 8)
+
+Not TV boxes. Recorded so the evidence is visible, from the `DEVICE:` lines in CI run #14:
+
+| Emulator | Android | ABIs | Cores / RAM | GPU (reported) | Vulkan | Screen | Launcher | Scan | DB file | Result |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Android SDK built for x86_64 (manufacturer not reported → UNKNOWN) | 7.0 (API 24) | x86_64, x86 | 2 / 2.0 GB | SwiftShader, GLES 3.0 | false | 1920×1080 | PASS (adb) | PASS | PASS | 6/6 tests + launcher checks PASS |
+| Google sdk_gphone64_x86_64 | 14 (API 34) | x86_64, arm64-v8a | 2 / 2.4 GB | SwiftShader, GLES 3.0 | true | 1920×1080 | PASS (adb) | PASS | PASS | 6/6 tests + launcher checks PASS |
+
+Both report `TV false`: they're phone images with a TV-sized screen. A real Android TV image couldn't be used (TESTING_GUIDE → Emulator results).
+
 ## What the Device Intelligence Engine reads
 
 | Item | Source | Notes |

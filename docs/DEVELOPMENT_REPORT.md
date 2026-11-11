@@ -120,10 +120,18 @@ Issues found by tests and fixed:
 * `LauncherShell.dispose()` looked up an inherited widget, which isn't allowed during dispose.
 * Docs said the database lived in the app support directory; it's in the documents directory (now explicit in code).
 
-## Pending features
+## Phase 8 — Testing and release preparation
 
-Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.
+Completed: `integration_test/device_test.dart` (6 tests against the real native layer), `tool/ci_device_tests.sh` (integration tests + adb HOME/BACK/crash checks), `device-tests` CI matrix on KVM Android emulators, optional release signing from secrets in the build workflow, `release.yml` (tag = pubspec version, signing required, debug signer refused, GitHub Release with notes), signing/release docs and checklist. Version 0.8.0+8.
 
-## Next step (Phase 2)
+Results (CI run #14): **API 24 and API 34: 6/6 integration tests passed, all launcher checks PASS, no crash.** These are the first executions of GAMEBOX on Android.
 
-ROM manager: SAF tree scanning of registered folders, extension → console detection (folder-based disambiguation of `iso/bin/chd`), SHA-1/CRC32 hashing in a background isolate, duplicate detection, missing-file checks, search/filter/sort, local artwork.
+Issues found and fixed:
+* The default emulator screen (320×640 portrait) only built part of the lazy navigation menu, so the UI test failed. CI now uses the `tv_1080p` profile, and the test checks the full menu only in landscape.
+* The API 34 android-tv x86_64 image didn't boot (run #13). The API 30 android-tv image is x86 (32-bit), which Flutter reports as "unsupported" (run #14). The TV image was removed from the matrix and documented.
+
+Not done (needs hardware or the owner): physical TV-box tests, emulator launches, controller/USB/SD tests, setting signing secrets, publishing a release.
+
+## Pending
+
+All physical-device acceptance tests (TESTING_GUIDE). No emulator launch is marked verified.

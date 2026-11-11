@@ -230,7 +230,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 .push(MaterialPageRoute(builder: (_) => const LogsScreen())),
             action: 'View',
           ),
-          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 7 advanced features)'),
+          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 8 release preparation)'),
           _Row(
             title: 'Performance & benchmarks',
             value: 'Live RAM, CPU clocks, temperatures; CPU, memory, storage and rendering benchmarks',

@@ -57,6 +57,12 @@ jobs:
           AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
           for f in *.apk; do echo "== $f"; "$AAPT2" dump badging "$f" | grep -E "^(package|minSdkVersion|sdkVersion|targetSdkVersion|native-code|application-label|launchable-activity|leanback-launchable-activity):|uses-feature.*(leanback|touchscreen|gamepad)" || true; done
 
+      - name: Manifest merge diagnostics (minSdk source)
+        run: |
+          for f in $(find build/app -name "manifest-merger-*release-report.txt" -o -name "manifest-merger-blame-*release-report.txt" | sort); do
+            echo "== $f"; grep -n -B1 -A3 -i "uses-sdk\|minSdk" "$f" | head -40 || true
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: gamebox-phase1-apks

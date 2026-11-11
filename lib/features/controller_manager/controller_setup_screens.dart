@@ -27,7 +27,7 @@ class _SetupFrame extends StatelessWidget {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: DecoratedBox(
-            decoration: BoxDecoration(gradient: GameboxPalette.of(context).background),
+            decoration: GameboxPalette.of(context).decoration,
             child: SafeArea(child: PageFrame(title: title, subtitle: subtitle, child: child)),
           ),
         ),

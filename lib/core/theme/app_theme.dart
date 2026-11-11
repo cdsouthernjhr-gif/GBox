@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../data/repositories/settings_repository.dart';
@@ -15,7 +17,23 @@ class GameboxPalette extends ThemeExtension<GameboxPalette> {
     required this.warning,
     required this.danger,
     required this.muted,
+    this.wallpaperImage,
   });
+
+  /// Custom wallpaper (local file), drawn under a dark overlay.
+  final String? wallpaperImage;
+
+  /// Background for full screens: wallpaper image if set, else gradient.
+  BoxDecoration get decoration => BoxDecoration(
+        gradient: background,
+        image: wallpaperImage == null
+            ? null
+            : DecorationImage(
+                image: ResizeImage(FileImage(File(wallpaperImage!)), width: 1280),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.55), BlendMode.darken),
+              ),
+      );
 
   final Gradient background;
   final Color surface;
@@ -29,6 +47,7 @@ class GameboxPalette extends ThemeExtension<GameboxPalette> {
 
   @override
   GameboxPalette copyWith({Gradient? background}) => GameboxPalette(
+        wallpaperImage: wallpaperImage,
         background: background ?? this.background,
         surface: surface,
         card: card,
@@ -56,8 +75,13 @@ const List<(String, List<Color>)> wallpaperPresets = [
   ('Forest Night', [Color(0xFF0D2214), Color(0xFF07120B), Color(0xFF1F2A0A)]),
 ];
 
-ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0}) {
-  final (seed, bg, surface, card, focus, accent) = switch (id) {
+/// Accent colours offered in Settings (null = theme default).
+const accentChoices = <int?>[
+  null, 0xFF7C4DFF, 0xFF00BFA5, 0xFFFF2E88, 0xFFFF9100, 0xFF2979FF, 0xFF00C853, 0xFFFFD600, 0xFFE53935,
+];
+
+ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0, int? accentColor, String? wallpaperImage}) {
+  final (seed0, bg, surface, card, focus, accent0) = switch (id) {
     AppThemeId.darkGaming => (
         const Color(0xFF7C4DFF),
         const Color(0xFF0B0E17),
@@ -91,6 +115,8 @@ ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0}) {
         const Color(0xFF00BFA5),
       ),
   };
+  final accent = accentColor == null ? accent0 : Color(accentColor);
+  final seed = accentColor == null ? seed0 : Color(accentColor);
 
   final Gradient background = switch (id) {
     AppThemeId.wallpaper => LinearGradient(
@@ -160,6 +186,7 @@ ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0}) {
         warning: const Color(0xFFFFC400),
         danger: const Color(0xFFFF5252),
         muted: Colors.white60,
+        wallpaperImage: id == AppThemeId.wallpaper ? wallpaperImage : null,
       ),
     ],
   );

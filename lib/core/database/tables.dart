@@ -451,6 +451,14 @@ class SaveStates extends Table {
   TextColumn get path => text()();
   IntColumn get sizeBytes => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
+
+  // ---- schema v5 ----
+  /// Registered save folder (SAF tree or directory) the file was found in.
+  TextColumn get folderUri => text().nullable()();
+
+  /// File name inside the save folder (relative path).
+  TextColumn get relativePath => text().nullable()();
+  IntColumn get lastModified => integer().nullable()();
 }
 
 @DataClassName('SaveBackupRow')

@@ -205,6 +205,33 @@ class RomFiles(private val context: Context) {
         return mapOf("uri" to uri, "name" to (name ?: Uri.parse(uri).lastPathSegment ?: uri), "size" to size)
     }
 
+    /** Copies [uri] (content or path) to the local file [destPath]. */
+    fun copyToLocal(uri: String, destPath: String): Long {
+        val dest = File(destPath)
+        dest.parentFile?.mkdirs()
+        val tmp = File("$destPath.tmp")
+        open(uri).use { input -> FileOutputStream(tmp).use { input.copyTo(it, 256 * 1024) } }
+        if (dest.exists()) dest.delete()
+        if (!tmp.renameTo(dest)) throw IllegalStateException("Cannot write $destPath")
+        return dest.length()
+    }
+
+    /**
+     * Overwrites the existing document/file [destUri] with [srcPath]. Needs
+     * write access (granted when the save folder was registered).
+     */
+    fun copyFromLocal(srcPath: String, destUri: String): Long {
+        val src = File(srcPath)
+        if (isContent(destUri)) {
+            resolver.openOutputStream(Uri.parse(destUri), "wt")?.use { out ->
+                src.inputStream().use { it.copyTo(out, 256 * 1024) }
+            } ?: throw IllegalStateException("Cannot open $destUri for writing")
+        } else {
+            src.inputStream().use { input -> FileOutputStream(File(destUri)).use { input.copyTo(it, 256 * 1024) } }
+        }
+        return src.length()
+    }
+
     /** Deletes the original file. Called only after explicit user confirmation. */
     fun delete(uri: String): Boolean = try {
         if (isContent(uri)) {

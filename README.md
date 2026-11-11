@@ -2,7 +2,7 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
-> **Status: Phase 6 (Additional emulators, experimental).** All 10 supported emulator apps can launch games: PPSSPP, Mupen64Plus FZ, melonDS, DraStic, Flycast, Redream, Dolphin, AetherSX2/NetherSX2, plus RetroArch cores for N64, NDS, PSP, Saturn and Dreamcast. Launch methods are unverified on a device. Earlier: **Phase 5 (Online Services).** User-added sources (direct links and the licence-required GAMEBOX catalogue format), HTTPS download engine with resume, SHA-256, size/space checks and safe ZIP extraction, download dashboard and history, catalogue metadata and covers. Earlier: **Phase 4 (Controllers).** Button mapping wizard, analog calibration, dead zone, trigger threshold, vibration test, player slots and RetroArch autoconfig export. Mappings apply inside GAMEBOX (native key remap + dead-zone-aware stick navigation). Earlier: **Phase 3 (First emulator integration, experimental).** Games can be launched through RetroArch (NES, SNES, Master System, Mega Drive, GB/GBC, GBA, PS1) and DuckStation (PS1), with play history. The launch methods are untested on a real device. Earlier phases: **Phase 2 (Game Library).** Phase 1 (launcher, Device Intelligence Engine, database, controller/storage detection, settings) plus the ROM manager: folder scanning, console detection, manual import, missing-file and duplicate detection, header verification, local artwork, search/filter/sort and metadata editing. Game launching through emulators (Phase 3) is **not implemented yet**. See [docs/DEVELOPMENT_REPORT.md](docs/DEVELOPMENT_REPORT.md).
+> **Status: Phase 7 (Advanced features).** Save Manager (backup/restore/export/import of emulator saves), library database backup/restore, compatibility evidence (your own results, community imports, anonymous export with consent), device benchmarks, live performance monitor, accent colour and wallpaper image. Earlier: **Phase 6 (Additional emulators, experimental).** All 10 supported emulator apps can launch games: PPSSPP, Mupen64Plus FZ, melonDS, DraStic, Flycast, Redream, Dolphin, AetherSX2/NetherSX2, plus RetroArch cores for N64, NDS, PSP, Saturn and Dreamcast. Launch methods are unverified on a device. Earlier: **Phase 5 (Online Services).** User-added sources (direct links and the licence-required GAMEBOX catalogue format), HTTPS download engine with resume, SHA-256, size/space checks and safe ZIP extraction, download dashboard and history, catalogue metadata and covers. Earlier: **Phase 4 (Controllers).** Button mapping wizard, analog calibration, dead zone, trigger threshold, vibration test, player slots and RetroArch autoconfig export. Mappings apply inside GAMEBOX (native key remap + dead-zone-aware stick navigation). Earlier: **Phase 3 (First emulator integration, experimental).** Games can be launched through RetroArch (NES, SNES, Master System, Mega Drive, GB/GBC, GBA, PS1) and DuckStation (PS1), with play history. The launch methods are untested on a real device. Earlier phases: **Phase 2 (Game Library).** Phase 1 (launcher, Device Intelligence Engine, database, controller/storage detection, settings) plus the ROM manager: folder scanning, console detection, manual import, missing-file and duplicate detection, header verification, local artwork, search/filter/sort and metadata editing. Game launching through emulators (Phase 3) is **not implemented yet**. See [docs/DEVELOPMENT_REPORT.md](docs/DEVELOPMENT_REPORT.md).
 
 ## What works in Phase 1
 
@@ -23,13 +23,14 @@ GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-scr
 | Controllers (Phase 4) | Mapping wizard, calibration with suggested dead zone, dead zone / trigger threshold, rumble test, Player 1–4, RetroArch export, stick/hat navigation — see [CONTROLLER_SUPPORT](docs/CONTROLLER_SUPPORT.md) |
 | Online services (Phase 5) | Source manager (7 source types, connection check, catalogue browse), download queue (pause/resume/cancel/retry, speed/ETA, offline wait, pause while playing), HTTPS-only with safe redirects, SHA-256 and size checks, archive-bomb and path-traversal protection, import with catalogue metadata — see [ONLINE_SOURCES](docs/ONLINE_SOURCES.md) |
 | Additional emulators (Phase 6) | Launch recipes with a generic-VIEW fallback, dedicated-emulator-first defaults, arm64 blocking and below-tier warnings from the Device Intelligence Engine — **experimental** |
+| Advanced (Phase 7) | Save folders, save backup/restore with safety copies, export/import; library backup + staged restore; "how did it run?" results and evidence precedence; compatibility bundle import and consent-only anonymous export; CPU/memory/storage/rendering benchmarks; RAM/CPU clock/thermal monitor; accent colour, wallpaper image — see [SAVES_AND_BACKUP](docs/SAVES_AND_BACKUP.md), [PERFORMANCE](docs/PERFORMANCE.md) |
 | Settings | 4 themes, animations, UI sounds, low-memory mode, image cache, startup rescan, sorting, default console, logs, device report export |
 
 ## Quick start
 
 ```bash
 flutter pub get
-flutter test                 # 161 unit/database/migration/widget/network tests
+flutter test                 # 175 unit/database/migration/widget/network tests
 flutter build apk --debug    # needs the Android SDK (platform 36)
 ```
 
@@ -39,7 +40,7 @@ See [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) for the full toolchain and CI. In
 
 ## Documentation
 
-- [ONLINE_SOURCES](docs/ONLINE_SOURCES.md) · [ROM_MANAGER](docs/ROM_MANAGER.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [DATABASE_SCHEMA](docs/DATABASE_SCHEMA.md) · [EMULATOR_INTEGRATION](docs/EMULATOR_INTEGRATION.md)
+- [SAVES_AND_BACKUP](docs/SAVES_AND_BACKUP.md) · [PERFORMANCE](docs/PERFORMANCE.md) · [ONLINE_SOURCES](docs/ONLINE_SOURCES.md) · [ROM_MANAGER](docs/ROM_MANAGER.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [DATABASE_SCHEMA](docs/DATABASE_SCHEMA.md) · [EMULATOR_INTEGRATION](docs/EMULATOR_INTEGRATION.md)
 - [DEVICE_COMPATIBILITY](docs/DEVICE_COMPATIBILITY.md) · [CONTROLLER_SUPPORT](docs/CONTROLLER_SUPPORT.md) · [STORAGE_SUPPORT](docs/STORAGE_SUPPORT.md)
 - [BUILD_GUIDE](docs/BUILD_GUIDE.md) · [TESTING_GUIDE](docs/TESTING_GUIDE.md) · [INSTALLATION_GUIDE](docs/INSTALLATION_GUIDE.md)
 - [RELEASE_NOTES](docs/RELEASE_NOTES.md) · [KNOWN_LIMITATIONS](docs/KNOWN_LIMITATIONS.md) · [DEVELOPMENT_REPORT](docs/DEVELOPMENT_REPORT.md)

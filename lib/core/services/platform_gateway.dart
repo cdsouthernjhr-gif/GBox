@@ -112,6 +112,15 @@ abstract class PlatformGateway {
   Future<String?> importImage(String uri, String destPath, {int maxDim = 600});
   Future<bool> deleteFile(String uri);
 
+  /// Copies a document/file to a local path; returns bytes copied.
+  Future<int> copyToLocal(String uri, String destPath);
+
+  /// Overwrites an existing document/file with a local file.
+  Future<int> copyFromLocal(String srcPath, String destUri);
+
+  /// Live performance data (memory, CPU frequencies, thermal zones, …).
+  Future<Map<String, dynamic>> performanceSnapshot();
+
   /// Free bytes on the volume holding [path], or null if unknown.
   Future<int?> freeSpace(String path);
 
@@ -285,6 +294,18 @@ class MethodChannelGateway implements PlatformGateway {
   @override
   Future<int?> freeSpace(String path) async =>
       (await _storage.invokeMethod<Object?>('freeSpace', {'path': path}) as num?)?.toInt();
+
+  @override
+  Future<int> copyToLocal(String uri, String destPath) async =>
+      ((await _storage.invokeMethod<Object?>('copyToLocal', {'uri': uri, 'dest': destPath})) as num).toInt();
+
+  @override
+  Future<int> copyFromLocal(String srcPath, String destUri) async =>
+      ((await _storage.invokeMethod<Object?>('copyFromLocal', {'src': srcPath, 'dest': destUri})) as num).toInt();
+
+  @override
+  Future<Map<String, dynamic>> performanceSnapshot() async =>
+      _map(await _device.invokeMethod<Object?>('performance'));
 
   @override
   Future<bool> deleteFile(String uri) async =>

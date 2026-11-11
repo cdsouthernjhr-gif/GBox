@@ -13,7 +13,10 @@ import '../data/repositories/controller_profile_repository.dart';
 import '../features/controller_manager/controller_config_service.dart';
 import '../core/online/download_engine.dart';
 import '../features/download_manager/download_service.dart';
+import '../features/compatibility/compatibility_service.dart';
 import '../features/emulator_manager/launch_service.dart';
+import '../features/performance/benchmark_service.dart';
+import '../features/save_manager/save_service.dart';
 import '../features/source_manager/source_service.dart';
 import '../features/rom_manager/rom_library_service.dart';
 
@@ -61,6 +64,16 @@ class AppServices {
     );
     final engine = downloadEngine ?? DownloadEngine(freeSpace: gateway.freeSpace);
     sources = SourceService(db, engine);
+    Future<String> gameboxRoot() async {
+      final roots = await (appRoots ?? _defaultAppRoots)();
+      if (roots.isEmpty) throw StateError('No storage available');
+      return '${roots.first}/GAMEBOX';
+    }
+
+    this.gameboxRoot = gameboxRoot;
+    saves = SaveService(gateway: gateway, db: db, settings: settings, gameboxRoot: gameboxRoot);
+    compatibility = CompatibilityService(db, device);
+    benchmarks = BenchmarkService(db, device);
     downloads = DownloadService(
       db: db,
       engine: engine,
@@ -99,6 +112,12 @@ class AppServices {
   late final ControllerConfigService controllerConfig;
   late final SourceService sources;
   late final DownloadService downloads;
+  late final SaveService saves;
+  late final CompatibilityService compatibility;
+  late final BenchmarkService benchmarks;
+
+  /// `<primary app folder>/GAMEBOX`.
+  late final Future<String> Function() gameboxRoot;
   AppLifecycleListener? _lifecycle;
   Timer? _autoScanDebounce;
 

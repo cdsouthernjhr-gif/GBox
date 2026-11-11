@@ -56,6 +56,7 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "scan" -> Background.run(result) { HardwareScanner(applicationContext).scan() }
                 "memory" -> Background.run(result) { HardwareScanner(applicationContext).memoryInfo() }
+                "performance" -> Background.run(result) { HardwareScanner(applicationContext).performanceSnapshot() }
                 "connectivity" -> result.success(connectivity.status())
                 else -> result.notImplemented()
             }
@@ -145,6 +146,12 @@ class MainActivity : FlutterActivity() {
                     } catch (_: Exception) {
                         null
                     }
+                }
+                "copyToLocal" -> Background.run(result) {
+                    RomFiles(applicationContext).copyToLocal(call.argument<String>("uri")!!, call.argument<String>("dest")!!)
+                }
+                "copyFromLocal" -> Background.run(result) {
+                    RomFiles(applicationContext).copyFromLocal(call.argument<String>("src")!!, call.argument<String>("dest")!!)
                 }
                 "describe" -> Background.run(result) {
                     val files = RomFiles(applicationContext)

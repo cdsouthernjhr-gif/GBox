@@ -39,7 +39,12 @@ class GameboxApp extends StatelessWidget {
               child: MaterialApp(
                 title: 'GAMEBOX',
                 debugShowCheckedModeBanner: false,
-                theme: buildTheme(settings.theme, wallpaperPreset: settings.wallpaperPreset),
+                theme: buildTheme(
+                  settings.theme,
+                  wallpaperPreset: settings.wallpaperPreset,
+                  accentColor: settings.accentColor,
+                  wallpaperImage: settings.wallpaperImagePath,
+                ),
                 themeAnimationDuration: Duration.zero,
                 shortcuts: {
                   ...WidgetsApp.defaultShortcuts,

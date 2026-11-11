@@ -260,6 +260,41 @@ class FakeGateway implements PlatformGateway {
   int? freeBytes;
 
   @override
+  Future<int> copyToLocal(String uri, String destPath) async {
+    final b = _bytesOf(uri);
+    File(destPath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(b);
+    return b.length;
+  }
+
+  @override
+  Future<int> copyFromLocal(String srcPath, String destUri) async {
+    final b = File(srcPath).readAsBytesSync();
+    if (destUri.startsWith('content://')) {
+      documents[destUri] = b;
+    } else {
+      File(destUri).writeAsBytesSync(b);
+    }
+    return b.length;
+  }
+
+  Map<String, dynamic> performance = {
+    'totalRamBytes': 4 * 1024 * 1024 * 1024,
+    'availableRamBytes': 2 * 1024 * 1024 * 1024,
+    'cpuCurFreqKhz': [1200000, 1800000],
+    'procStatReadable': false,
+    'thermalZones': [
+      {'zone': 'thermal_zone0', 'type': 'soc_thermal', 'celsius': 52.0},
+    ],
+    'appCpuTimeMs': 1000,
+    'uptimeMs': 100000,
+  };
+
+  @override
+  Future<Map<String, dynamic>> performanceSnapshot() async => performance;
+
+  @override
   Future<int?> freeSpace(String path) async => freeBytes;
 
   @override

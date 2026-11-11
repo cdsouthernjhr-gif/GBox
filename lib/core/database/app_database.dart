@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/hardware_profile.dart';
 import '../../domain/entities/performance_tier.dart';
@@ -50,12 +52,47 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   /// Opens the on-device database file (`gamebox.sqlite` in app support dir).
-  factory AppDatabase.open() =>
-      AppDatabase(driftDatabase(name: 'gamebox'));
+  factory AppDatabase.open() => AppDatabase(driftDatabase(
+        name: 'gamebox',
+        native: DriftNativeOptions(databasePath: databaseFilePath),
+      ));
+
+  /// `<app documents>/gamebox.sqlite` (drift_flutter's default location,
+  /// made explicit so backup/restore target the same file).
+  static Future<String> databaseFilePath() async =>
+      '${(await getApplicationDocumentsDirectory()).path}/gamebox.sqlite';
+
+  /// Consistent copy of the live database (SQLite `VACUUM INTO`).
+  Future<void> backupTo(String path) async {
+    final f = File(path);
+    if (await f.exists()) await f.delete();
+    await customStatement('VACUUM INTO ?', [path]);
+  }
+
+  // ---------------------------------------------------------------- saves --
+
+  Future<void> replaceSavesInFolder(String folderUri, List<SaveStatesCompanion> rows) => transaction(() async {
+        await (delete(saveStates)..where((s) => s.folderUri.equals(folderUri))).go();
+        for (final r in rows) {
+          await into(saveStates).insert(r);
+        }
+      });
+
+  Stream<List<SaveStateRow>> watchSavesForGame(int gameId) => (select(saveStates)
+        ..where((s) => s.gameId.equals(gameId))
+        ..orderBy([(s) => OrderingTerm.asc(s.kind), (s) => OrderingTerm.desc(s.createdAt)]))
+      .watch();
+
+  Future<List<SaveStateRow>> allSaves() => select(saveStates).get();
+
+  Stream<List<SaveBackupRow>> watchBackupsForGame(int gameId) => (select(saveBackups)
+        ..where((b) => b.gameId.equals(gameId))
+        ..orderBy([(b) => OrderingTerm.desc(b.createdAt)]))
+      .watch();
 
   /// Bump on every schema change and add a step in [migration].
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +122,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(downloadQueue, downloadQueue.catalogJson);
             await m.addColumn(downloadQueue, downloadQueue.sha256);
             await m.addColumn(downloadQueue, downloadQueue.importedGameId);
+          }
+          if (from < 5) {
+            await m.addColumn(saveStates, saveStates.folderUri);
+            await m.addColumn(saveStates, saveStates.relativePath);
+            await m.addColumn(saveStates, saveStates.lastModified);
           }
         },
         beforeOpen: (details) async {

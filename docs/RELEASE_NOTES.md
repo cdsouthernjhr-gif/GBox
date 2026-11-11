@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.7.0+7 — Phase 7 Advanced features (pre-release, not for distribution)
+
+**New:** Save Manager (save folders per emulator, state/game save/memory card classification, backup, restore with automatic safety copy, ZIP export/import). Library database backup and staged restore. Compatibility evidence precedence with your own "how did it run?" results, community bundle import and consent-only anonymous export. Device benchmarks (CPU single/multi, memory, storage, launcher rendering FPS). Live performance monitor (RAM, app CPU, core clocks, temperatures, Android thermal status). Accent colour and custom wallpaper image. Database schema v5.
+
+**Fixed (found by tests):** a restore performed within the same second as its backup overwrote that backup with the current save, so restoring brought back the *current* data. Backup folders are now unique, and backups are never overwritten.
+
 ## 0.6.0+6 — Phase 6 Additional emulators (pre-release, not for distribution)
 
 **New:** launch recipes for PPSSPP (PSP), Mupen64Plus FZ (N64), melonDS and DraStic (NDS), Flycast and Redream (Dreamcast), Dolphin (GameCube/Wii) and AetherSX2/NetherSX2 (PS2). RetroArch cores for N64, NDS, PSP, Saturn and Dreamcast. Native fallback to a generic VIEW intent when a recipe's activity isn't found. Dedicated emulators preferred for 3D/handheld systems. Arm64-only emulators blocked on 32-bit Android. Below-tier performance warnings. The Consoles screen lists launch options.

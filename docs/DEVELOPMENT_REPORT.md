@@ -111,6 +111,15 @@ Completed: `RecipeLauncher` (three hand-off modes: content data, content-or-path
 
 Honesty note: I'm less certain of some standalone apps' exact activity names and extras than of RetroArch's interface. The fallback chain and the "Experimental" label exist because of that. Each recipe needs a device test (TESTING_GUIDE step 18).
 
+## Phase 7 — Advanced features
+
+Completed: `save_classifier`, `SaveService`, native `copyToLocal`/`copyFromLocal`, `db_maintenance` (VACUUM INTO, staged restore applied in `main()` before opening), explicit database path, `CompatibilityService` (evidence precedence, local results, bundle import as community only, anonymous consent-only export), `BenchmarkService` (isolates), `FrameBenchmarkScreen` (engine FrameTiming), native `performanceSnapshot`, Performance screen, post-game rating prompt, accent colour / wallpaper image, save UI on game page and Storage, schema v5 + migration tests. Tests: 175 total (14 new).
+
+Issues found by tests and fixed:
+* **Save backup overwrite**: backup folders were named to the second, so a restore's safety copy replaced the backup being restored. The restore then wrote back the current data. Fixed: unique folders, never overwrite.
+* `LauncherShell.dispose()` looked up an inherited widget, which isn't allowed during dispose.
+* Docs said the database lived in the app support directory; it's in the documents directory (now explicit in code).
+
 ## Pending features
 
 Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.

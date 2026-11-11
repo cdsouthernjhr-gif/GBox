@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../../core/constants/console_catalog.dart';
 import '../../core/database/app_database.dart';
 import '../../core/device/device_intelligence_service.dart';
@@ -51,6 +53,11 @@ class LaunchService {
 
   int? _activeSession;
   int? get activeSession => _activeSession;
+  (int, String)? _activeGame;
+
+  /// Set when the user returns from a game: (gameId, emulatorId). The UI
+  /// uses it to ask how the game ran (optional local compatibility result).
+  final ValueNotifier<(int, String)?> finishedSession = ValueNotifier(null);
 
   Future<List<LaunchChoice>> choicesFor(String consoleId) async {
     if (_emulators.installations.value == null) await _emulators.detect();
@@ -154,6 +161,7 @@ class LaunchService {
         if (remember) await _db.setDefaultLaunchProfile(game.consoleId, choice.adapter.emulatorId, opts);
         await onReturned(); // close any session left open
         _activeSession = await _db.startPlaySession(gameId, choice.adapter.emulatorId, DateTime.now());
+        _activeGame = (gameId, choice.adapter.emulatorId);
         AppLogger.instance.info('Launched game $gameId with $name (${env.installedPackage})');
         return LaunchOutcome.started(emulatorName: name, notes: notes);
     }
@@ -180,5 +188,8 @@ class LaunchService {
     if (s == null) return;
     _activeSession = null;
     await _db.endPlaySession(s, DateTime.now());
+    final g = _activeGame;
+    _activeGame = null;
+    if (g != null) finishedSession.value = g;
   }
 }

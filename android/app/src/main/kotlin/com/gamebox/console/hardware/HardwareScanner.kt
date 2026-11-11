@@ -95,6 +95,42 @@ class HardwareScanner(private val context: Context) {
         return if (count > 0) count else null
     }
 
+    /**
+     * Live performance data that Android lets an app read. System-wide CPU
+     * load (/proc/stat) is blocked for apps since Android 8, so it is not
+     * reported; per-core current frequency and thermal zones often are
+     * readable on TV boxes and are reported when available.
+     */
+    fun performanceSnapshot(): Map<String, Any?> {
+        val m = HashMap<String, Any?>()
+        m.putAll(memoryInfo())
+        val freqs = ArrayList<Int?>()
+        File("/sys/devices/system/cpu").listFiles { f -> f.name.matches(Regex("cpu\\d+")) }
+            ?.sortedBy { it.name.removePrefix("cpu").toIntOrNull() ?: 0 }
+            ?.forEach { cpu -> freqs.add(readText("${cpu.path}/cpufreq/scaling_cur_freq", 64)?.trim()?.toIntOrNull()) }
+        m["cpuCurFreqKhz"] = freqs
+        m["procStatReadable"] = readText("/proc/stat", 128) != null
+        val zones = ArrayList<Map<String, Any?>>()
+        File("/sys/class/thermal").listFiles { f -> f.name.startsWith("thermal_zone") }?.forEach { z ->
+            val raw = readText("${z.path}/temp", 32)?.trim()?.toIntOrNull()
+            if (raw != null) {
+                // Most kernels report millidegrees; some report degrees.
+                val celsius = if (raw > 1000 || raw < -1000) raw / 1000.0 else raw.toDouble()
+                if (celsius in -30.0..150.0) {
+                    zones.add(mapOf("zone" to z.name, "type" to readText("${z.path}/type", 64)?.trim(), "celsius" to celsius))
+                }
+            }
+        }
+        m["thermalZones"] = zones
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            m["thermalStatus"] = pm.currentThermalStatus
+        }
+        m["appCpuTimeMs"] = android.os.Process.getElapsedCpuTime()
+        m["uptimeMs"] = android.os.SystemClock.elapsedRealtime()
+        return m
+    }
+
     fun memoryInfo(): Map<String, Any?> {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val mi = ActivityManager.MemoryInfo()

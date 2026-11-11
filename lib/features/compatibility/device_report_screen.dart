@@ -27,7 +27,7 @@ class DeviceReportScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: palette.background),
+        decoration: palette.decoration,
         child: SafeArea(
           child: ValueListenableBuilder<DeviceState>(
             valueListenable: s.device.state,
@@ -48,6 +48,16 @@ class DeviceReportScreen extends StatelessWidget {
                   label: 'Export report',
                   icon: Icons.save_alt_rounded,
                   onPressed: st.profile == null ? null : () => _export(context, st),
+                ),
+                TvButton(
+                  label: 'Import compatibility data',
+                  icon: Icons.file_download_rounded,
+                  onPressed: () => _importCompat(context),
+                ),
+                TvButton(
+                  label: 'Export anonymous results',
+                  icon: Icons.ios_share_rounded,
+                  onPressed: st.profile == null ? null : () => _exportAnonymous(context),
                 ),
               ],
               child: st.profile == null
@@ -214,5 +224,45 @@ class _Report extends StatelessWidget {
         ]),
       ),
     ]);
+  }
+}
+
+Future<void> _importCompat(BuildContext context) async {
+  final s = servicesOf(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final picked = await s.gateway.pickFiles();
+    if (picked.isEmpty) return;
+    final tmp = await Directory.systemTemp.createTemp('gamebox_compat');
+    try {
+      final local = '${tmp.path}/bundle.json';
+      final size = await s.gateway.copyToLocal(picked.first, local);
+      if (size > 5 * 1024 * 1024) {
+        messenger.showSnackBar(const SnackBar(content: Text('File too large for a compatibility bundle')));
+        return;
+      }
+      final r = await s.compatibility.importBundle(await File(local).readAsString(),
+          batchId: 'import-${DateTime.now().millisecondsSinceEpoch}');
+      messenger.showSnackBar(SnackBar(
+          content: Text(r.error ??
+              '${r.imported} community result(s) imported (shown as unverified)'
+                  '${r.rejected.isEmpty ? '' : ', ${r.rejected.length} rejected'}')));
+    } finally {
+      await tmp.delete(recursive: true);
+    }
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+  }
+}
+
+Future<void> _exportAnonymous(BuildContext context) async {
+  final s = servicesOf(context);
+  final path = await s.compatibility.exportAnonymousReport('${await s.gameboxRoot()}/Exports');
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text(path == null
+            ? 'Scan the hardware first.'
+            : 'Saved $path — contains only results you agreed to share. GAMEBOX does not upload it; share it yourself.')));
   }
 }

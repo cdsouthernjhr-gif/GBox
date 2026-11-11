@@ -34,13 +34,14 @@ extension CompatibilityRatingLabel on CompatibilityRating {
 
 /// What a rating is based on. Ratings from hardware data alone are always
 /// labelled as estimates.
-enum EvidenceLevel { hardwareEstimate, benchmark, communityReport, verified }
+enum EvidenceLevel { hardwareEstimate, benchmark, communityReport, userTest, verified }
 
 extension EvidenceLevelLabel on EvidenceLevel {
   String get label => switch (this) {
         EvidenceLevel.hardwareEstimate => 'Estimate from detected hardware',
         EvidenceLevel.benchmark => 'Local benchmark',
         EvidenceLevel.communityReport => 'Community report (unverified)',
+        EvidenceLevel.userTest => 'Your own test on this device',
         EvidenceLevel.verified => 'Verified by GAMEBOX testing',
       };
 }

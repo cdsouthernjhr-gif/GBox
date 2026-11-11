@@ -38,6 +38,30 @@ Tier = min(CPU, GPU). Then caps apply: RAM 0 → ENTRY, RAM 1 → at most ADVANC
 
 Per-console ratings compare the tier with the console's estimated minimum/recommended tier. Hard requirements (arm64, GLES version, emulator min SDK) give **Unsupported**. Missing data gives **Not Tested**. Every rating is labelled *Estimate from detected hardware* until benchmark or test evidence exists. No FPS is ever promised.
 
+## Evidence precedence (Phase 7)
+
+For a console (and optionally emulator) on this device, GAMEBOX shows the strongest evidence available:
+
+1. **Verified by GAMEBOX testing**: `device_compatibility` rows with source `verified` for this manufacturer + model. None exist yet. Imports can never create them.
+2. **Your own test on this device**: the optional "How did it run?" prompt after returning from a game, or *Rate how it ran* on the game page.
+3. **Community report (unverified)**: imported bundles, always stored as `community`.
+4. **Estimate from detected hardware**: the Phase 1 classifier.
+
+### Bundle format (`gamebox-compat`, v1)
+
+```json
+{"format": "gamebox-compat", "version": 1, "results": [
+  {"manufacturer": "…", "model": "…", "console": "nes", "emulator": "retroarch",
+   "result": "excellent|good|limited|unsupported|notTested", "chipset": "…", "gpu": "…",
+   "ramGb": 2, "android": "9", "game": "…", "notes": "…", "date": "2026-11-11"}]}
+```
+
+Import: Device report → **Import compatibility data** (file picker). Invalid rows (unknown console or emulator, bad result, missing model) are rejected and counted.
+
+### Anonymous reports (consent)
+
+Device report → **Export anonymous results** writes the same format with **only** results you ticked "Include in anonymous reports" for. It has coarse hardware facts only: model, SoC, GPU, RAM rounded to GB, Android version. No serial, build fingerprint, build ID or account data. GAMEBOX has no upload server, so you share the file yourself. Exported results are marked as submitted.
+
 ## Compatibility database
 
 Rows in `device_compatibility` have `source`:

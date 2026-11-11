@@ -14004,6 +14004,39 @@ class $SaveStatesTable extends SaveStates
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _folderUriMeta = const VerificationMeta(
+    'folderUri',
+  );
+  @override
+  late final GeneratedColumn<String> folderUri = GeneratedColumn<String>(
+    'folder_uri',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta(
+    'relativePath',
+  );
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastModifiedMeta = const VerificationMeta(
+    'lastModified',
+  );
+  @override
+  late final GeneratedColumn<int> lastModified = GeneratedColumn<int>(
+    'last_modified',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -14014,6 +14047,9 @@ class $SaveStatesTable extends SaveStates
     path,
     sizeBytes,
     createdAt,
+    folderUri,
+    relativePath,
+    lastModified,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -14080,6 +14116,30 @@ class $SaveStatesTable extends SaveStates
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('folder_uri')) {
+      context.handle(
+        _folderUriMeta,
+        folderUri.isAcceptableOrUnknown(data['folder_uri']!, _folderUriMeta),
+      );
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(
+          data['relative_path']!,
+          _relativePathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_modified')) {
+      context.handle(
+        _lastModifiedMeta,
+        lastModified.isAcceptableOrUnknown(
+          data['last_modified']!,
+          _lastModifiedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -14121,6 +14181,18 @@ class $SaveStatesTable extends SaveStates
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      folderUri: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}folder_uri'],
+      ),
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      ),
+      lastModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_modified'],
+      ),
     );
   }
 
@@ -14141,6 +14213,13 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
   final String path;
   final int? sizeBytes;
   final DateTime createdAt;
+
+  /// Registered save folder (SAF tree or directory) the file was found in.
+  final String? folderUri;
+
+  /// File name inside the save folder (relative path).
+  final String? relativePath;
+  final int? lastModified;
   const SaveStateRow({
     required this.id,
     required this.gameId,
@@ -14150,6 +14229,9 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
     required this.path,
     this.sizeBytes,
     required this.createdAt,
+    this.folderUri,
+    this.relativePath,
+    this.lastModified,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -14168,6 +14250,15 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
       map['size_bytes'] = Variable<int>(sizeBytes);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || folderUri != null) {
+      map['folder_uri'] = Variable<String>(folderUri);
+    }
+    if (!nullToAbsent || relativePath != null) {
+      map['relative_path'] = Variable<String>(relativePath);
+    }
+    if (!nullToAbsent || lastModified != null) {
+      map['last_modified'] = Variable<int>(lastModified);
+    }
     return map;
   }
 
@@ -14185,6 +14276,15 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
           ? const Value.absent()
           : Value(sizeBytes),
       createdAt: Value(createdAt),
+      folderUri: folderUri == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folderUri),
+      relativePath: relativePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relativePath),
+      lastModified: lastModified == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastModified),
     );
   }
 
@@ -14202,6 +14302,9 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
       path: serializer.fromJson<String>(json['path']),
       sizeBytes: serializer.fromJson<int?>(json['sizeBytes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      folderUri: serializer.fromJson<String?>(json['folderUri']),
+      relativePath: serializer.fromJson<String?>(json['relativePath']),
+      lastModified: serializer.fromJson<int?>(json['lastModified']),
     );
   }
   @override
@@ -14216,6 +14319,9 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
       'path': serializer.toJson<String>(path),
       'sizeBytes': serializer.toJson<int?>(sizeBytes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'folderUri': serializer.toJson<String?>(folderUri),
+      'relativePath': serializer.toJson<String?>(relativePath),
+      'lastModified': serializer.toJson<int?>(lastModified),
     };
   }
 
@@ -14228,6 +14334,9 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
     String? path,
     Value<int?> sizeBytes = const Value.absent(),
     DateTime? createdAt,
+    Value<String?> folderUri = const Value.absent(),
+    Value<String?> relativePath = const Value.absent(),
+    Value<int?> lastModified = const Value.absent(),
   }) => SaveStateRow(
     id: id ?? this.id,
     gameId: gameId ?? this.gameId,
@@ -14237,6 +14346,9 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
     path: path ?? this.path,
     sizeBytes: sizeBytes.present ? sizeBytes.value : this.sizeBytes,
     createdAt: createdAt ?? this.createdAt,
+    folderUri: folderUri.present ? folderUri.value : this.folderUri,
+    relativePath: relativePath.present ? relativePath.value : this.relativePath,
+    lastModified: lastModified.present ? lastModified.value : this.lastModified,
   );
   SaveStateRow copyWithCompanion(SaveStatesCompanion data) {
     return SaveStateRow(
@@ -14250,6 +14362,13 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
       path: data.path.present ? data.path.value : this.path,
       sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      folderUri: data.folderUri.present ? data.folderUri.value : this.folderUri,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      lastModified: data.lastModified.present
+          ? data.lastModified.value
+          : this.lastModified,
     );
   }
 
@@ -14263,7 +14382,10 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
           ..write('slot: $slot, ')
           ..write('path: $path, ')
           ..write('sizeBytes: $sizeBytes, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('folderUri: $folderUri, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('lastModified: $lastModified')
           ..write(')'))
         .toString();
   }
@@ -14278,6 +14400,9 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
     path,
     sizeBytes,
     createdAt,
+    folderUri,
+    relativePath,
+    lastModified,
   );
   @override
   bool operator ==(Object other) =>
@@ -14290,7 +14415,10 @@ class SaveStateRow extends DataClass implements Insertable<SaveStateRow> {
           other.slot == this.slot &&
           other.path == this.path &&
           other.sizeBytes == this.sizeBytes &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.folderUri == this.folderUri &&
+          other.relativePath == this.relativePath &&
+          other.lastModified == this.lastModified);
 }
 
 class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
@@ -14302,6 +14430,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
   final Value<String> path;
   final Value<int?> sizeBytes;
   final Value<DateTime> createdAt;
+  final Value<String?> folderUri;
+  final Value<String?> relativePath;
+  final Value<int?> lastModified;
   const SaveStatesCompanion({
     this.id = const Value.absent(),
     this.gameId = const Value.absent(),
@@ -14311,6 +14442,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
     this.path = const Value.absent(),
     this.sizeBytes = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.folderUri = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.lastModified = const Value.absent(),
   });
   SaveStatesCompanion.insert({
     this.id = const Value.absent(),
@@ -14321,6 +14455,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
     required String path,
     this.sizeBytes = const Value.absent(),
     required DateTime createdAt,
+    this.folderUri = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.lastModified = const Value.absent(),
   }) : gameId = Value(gameId),
        kind = Value(kind),
        path = Value(path),
@@ -14334,6 +14471,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
     Expression<String>? path,
     Expression<int>? sizeBytes,
     Expression<DateTime>? createdAt,
+    Expression<String>? folderUri,
+    Expression<String>? relativePath,
+    Expression<int>? lastModified,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -14344,6 +14484,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
       if (path != null) 'path': path,
       if (sizeBytes != null) 'size_bytes': sizeBytes,
       if (createdAt != null) 'created_at': createdAt,
+      if (folderUri != null) 'folder_uri': folderUri,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (lastModified != null) 'last_modified': lastModified,
     });
   }
 
@@ -14356,6 +14499,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
     Value<String>? path,
     Value<int?>? sizeBytes,
     Value<DateTime>? createdAt,
+    Value<String?>? folderUri,
+    Value<String?>? relativePath,
+    Value<int?>? lastModified,
   }) {
     return SaveStatesCompanion(
       id: id ?? this.id,
@@ -14366,6 +14512,9 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
       path: path ?? this.path,
       sizeBytes: sizeBytes ?? this.sizeBytes,
       createdAt: createdAt ?? this.createdAt,
+      folderUri: folderUri ?? this.folderUri,
+      relativePath: relativePath ?? this.relativePath,
+      lastModified: lastModified ?? this.lastModified,
     );
   }
 
@@ -14396,6 +14545,15 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (folderUri.present) {
+      map['folder_uri'] = Variable<String>(folderUri.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (lastModified.present) {
+      map['last_modified'] = Variable<int>(lastModified.value);
+    }
     return map;
   }
 
@@ -14409,7 +14567,10 @@ class SaveStatesCompanion extends UpdateCompanion<SaveStateRow> {
           ..write('slot: $slot, ')
           ..write('path: $path, ')
           ..write('sizeBytes: $sizeBytes, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('folderUri: $folderUri, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('lastModified: $lastModified')
           ..write(')'))
         .toString();
   }
@@ -27642,6 +27803,9 @@ typedef $$SaveStatesTableCreateCompanionBuilder = SaveStatesCompanion Function({
   required String path,
   Value<int?> sizeBytes,
   required DateTime createdAt,
+  Value<String?> folderUri,
+  Value<String?> relativePath,
+  Value<int?> lastModified,
 });
 typedef $$SaveStatesTableUpdateCompanionBuilder = SaveStatesCompanion Function({
   Value<int> id,
@@ -27652,6 +27816,9 @@ typedef $$SaveStatesTableUpdateCompanionBuilder = SaveStatesCompanion Function({
   Value<String> path,
   Value<int?> sizeBytes,
   Value<DateTime> createdAt,
+  Value<String?> folderUri,
+  Value<String?> relativePath,
+  Value<int?> lastModified,
 });
 
 final class $$SaveStatesTableReferences
@@ -27735,6 +27902,21 @@ class $$SaveStatesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get folderUri => $composableBuilder(
+    column: $table.folderUri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastModified => $composableBuilder(
+    column: $table.lastModified,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -27831,6 +28013,21 @@ class $$SaveStatesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get folderUri => $composableBuilder(
+    column: $table.folderUri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$GamesTableOrderingComposer get gameId {
     final $$GamesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -27886,6 +28083,19 @@ class $$SaveStatesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get folderUri =>
+      $composableBuilder(column: $table.folderUri, builder: (column) => column);
+
+  GeneratedColumn<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => column,
+  );
 
   $$GamesTableAnnotationComposer get gameId {
     final $$GamesTableAnnotationComposer composer = $composerBuilder(
@@ -27972,6 +28182,9 @@ class $$SaveStatesTableTableManager
                 Value<String> path = const Value.absent(),
                 Value<int?> sizeBytes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> folderUri = const Value.absent(),
+                Value<String?> relativePath = const Value.absent(),
+                Value<int?> lastModified = const Value.absent(),
               }) => SaveStatesCompanion(
                 id: id,
                 gameId: gameId,
@@ -27981,6 +28194,9 @@ class $$SaveStatesTableTableManager
                 path: path,
                 sizeBytes: sizeBytes,
                 createdAt: createdAt,
+                folderUri: folderUri,
+                relativePath: relativePath,
+                lastModified: lastModified,
               ),
           createCompanionCallback:
               ({
@@ -27992,6 +28208,9 @@ class $$SaveStatesTableTableManager
                 required String path,
                 Value<int?> sizeBytes = const Value.absent(),
                 required DateTime createdAt,
+                Value<String?> folderUri = const Value.absent(),
+                Value<String?> relativePath = const Value.absent(),
+                Value<int?> lastModified = const Value.absent(),
               }) => SaveStatesCompanion.insert(
                 id: id,
                 gameId: gameId,
@@ -28001,6 +28220,9 @@ class $$SaveStatesTableTableManager
                 path: path,
                 sizeBytes: sizeBytes,
                 createdAt: createdAt,
+                folderUri: folderUri,
+                relativePath: relativePath,
+                lastModified: lastModified,
               ),
           withReferenceMapper: (p0) => p0
               .map(

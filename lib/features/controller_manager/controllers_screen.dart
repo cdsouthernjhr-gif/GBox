@@ -290,7 +290,7 @@ class _ControllerTestScreenState extends State<ControllerTestScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: DecoratedBox(
-          decoration: BoxDecoration(gradient: palette.background),
+          decoration: palette.decoration,
           child: SafeArea(
             child: Focus(
               autofocus: true,

@@ -313,4 +313,56 @@ void main() {
     expect(find.text('No sources'), findsOneWidget);
     await shutdown(tester);
   });
+
+  testWidgets('after returning from a game, GAMEBOX asks how it ran and stores the answer', (tester) async {
+    await boot(
+      tester,
+      configure: (g) => g.installed['com.retroarch'] = '1.20.0',
+      prepare: (root) => File('$root/GAMEBOX/Games/NES/Space Quest.nes')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom()),
+    );
+    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    await tester.tap(find.text('Space Quest').last);
+    await settle(tester);
+    await settle(tester);
+    await tester.tap(find.text('Play'));
+    await settle(tester);
+    await settle(tester);
+    expect(gateway.launchedSpecs, hasLength(1));
+
+    final back = services.launcher.onReturned(); // user comes back from RetroArch
+    await settle(tester);
+    await back;
+    await settle(tester);
+    expect(find.text('How did Space Quest run?'), findsOneWidget);
+    await tester.tap(find.text('Good'));
+    await settle(tester);
+    await settle(tester);
+    final results = services.db.select(services.db.compatibilityTestResults).get();
+    await settle(tester);
+    final rows = await results;
+    expect(rows.single.result, 'good');
+    expect(rows.single.emulatorId, 'retroarch');
+    expect(rows.single.consentToShare, isFalse, reason: 'sharing is opt-in');
+    await shutdown(tester);
+  });
+
+  testWidgets('performance screen shows live data and honest unavailability', (tester) async {
+    await boot(tester);
+    for (var i = 0; i < 9; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown); // SETTINGS
+    }
+    await tester.scrollUntilVisible(find.text('Performance & benchmarks'), 200,
+        scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.text('Performance & benchmarks'));
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Not accessible to apps on Android 8+'), findsOneWidget);
+    expect(find.text('52.0 °C'), findsOneWidget);
+    expect(find.text('1200 / 1800 MHz'), findsOneWidget);
+    await tester.tap(find.text('Back'));
+    await settle(tester);
+    await shutdown(tester);
+  });
 }

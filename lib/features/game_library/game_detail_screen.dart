@@ -10,7 +10,10 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utilities/formatters.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../compatibility/compatibility_service.dart';
+import '../compatibility/rating_prompt.dart';
 import '../emulator_manager/launch_dialogs.dart';
+import '../save_manager/save_widgets.dart';
 import 'my_games_screen.dart' show headerLabel;
 
 /// Dedicated game information page.
@@ -25,7 +28,7 @@ class GameDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: palette.background),
+        decoration: palette.decoration,
         child: SafeArea(
           child: StreamBuilder<GameWithStatus?>(
             stream: s.db.watchGame(gameId),
@@ -186,10 +189,6 @@ class _BodyState extends State<_Body> {
     final s = servicesOf(context);
     final console = consoleById(g.consoleId);
     final t = Theme.of(context).textTheme;
-    final dev = s.device.state.value;
-    final estimate = (console != null && dev.profile != null && dev.classification != null)
-        ? s.device.classifier.estimate(dev.profile!, dev.classification!, console)
-        : null;
 
     return Padding(
       padding: const EdgeInsets.all(28),
@@ -259,17 +258,24 @@ class _BodyState extends State<_Body> {
           ),
         ]),
         const SizedBox(height: 22),
-        if (estimate != null) ...[
-          const SectionHeader('Compatibility on this device'),
-          Row(children: [
-            StatusChip(estimate.rating.label, color: ratingColor(context, estimate.rating)),
-            const SizedBox(width: 10),
-            Expanded(
-                child: Text('${estimate.evidence.label}. ${estimate.reasons.join(' ')}',
-                    style: t.bodyMedium?.copyWith(color: Colors.white70))),
-          ]),
-          const SizedBox(height: 18),
-        ],
+        const SectionHeader('Compatibility on this device'),
+        FutureBuilder<EffectiveRating>(
+          future: s.compatibility.effective(g.consoleId),
+          builder: (context, snap) {
+            final e = snap.data;
+            if (e == null) return const SizedBox(height: 24);
+            return Row(children: [
+              StatusChip(e.rating.label, color: ratingColor(context, e.rating)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text('${e.evidence.label}. ${e.detail}', style: t.bodyMedium?.copyWith(color: Colors.white70))),
+              TvButton(label: 'Rate how it ran', onPressed: () => askHowItRan(context, g.id, null)),
+            ]);
+          },
+        ),
+        const SizedBox(height: 18),
+        GameSavesSection(gameId: g.id),
+        const SizedBox(height: 18),
         FutureBuilder(
           key: ValueKey(_rev),
           future: Future.wait([s.db.metadataForGame(g.id), s.db.filesForGame(g.id)]),

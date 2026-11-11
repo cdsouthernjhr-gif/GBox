@@ -11,6 +11,7 @@ import '../../domain/entities/hardware_profile.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../game_library/my_games_screen.dart' show ScanStatusBanner;
 import '../rom_manager/rom_library_service.dart';
+import '../save_manager/save_widgets.dart';
 
 class StorageScreen extends StatelessWidget {
   const StorageScreen({super.key});
@@ -98,6 +99,8 @@ class StorageScreen extends StatelessWidget {
             ]);
           },
         ),
+        const SizedBox(height: 18),
+        const SaveFoldersSection(),
         const SizedBox(height: 18),
         const SectionHeader('GAMEBOX folders',
             subtitle: 'Created automatically on every connected volume; no permission needed. '

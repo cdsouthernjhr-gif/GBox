@@ -7,6 +7,8 @@ import '../../core/theme/app_theme.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../compatibility/device_report_screen.dart';
+import '../performance/performance_screen.dart';
+import 'settings_actions.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -98,6 +100,22 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
               label: (i) => wallpaperPresets[i].$1,
               onChanged: (v) => s.settings.set(SettingsKeys.wallpaperPreset, v),
             ),
+          if (st.theme == AppThemeId.wallpaper)
+            _Row(
+              title: 'Wallpaper image',
+              value: st.wallpaperImagePath == null ? 'None (gradient preset is used)' : 'Custom image set',
+              action: st.wallpaperImagePath == null ? 'Choose…' : 'Remove',
+              onSelect: () => st.wallpaperImagePath == null
+                  ? chooseWallpaperAction(context)
+                  : s.settings.set(SettingsKeys.wallpaperImage, ''),
+            ),
+          _Choice<int?>(
+            title: 'Accent colour',
+            value: st.accentColor,
+            values: accentChoices,
+            label: (v) => v == null ? 'Theme default' : '#${(v & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}',
+            onChanged: (v) => s.settings.set(SettingsKeys.accentColor, v ?? ''),
+          ),
           _Toggle(
             title: 'Animations',
             subtitle: 'Focus zoom and transitions (off automatically in low-memory mode)',
@@ -212,10 +230,28 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 .push(MaterialPageRoute(builder: (_) => const LogsScreen())),
             action: 'View',
           ),
-          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 6 additional emulators)'),
+          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 7 advanced features)'),
+          _Row(
+            title: 'Performance & benchmarks',
+            value: 'Live RAM, CPU clocks, temperatures; CPU, memory, storage and rendering benchmarks',
+            onSelect: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PerformanceScreen())),
+            action: 'Open',
+          ),
+          _Row(
+            title: 'Back up library',
+            value: 'Copies the GAMEBOX database (library, settings, history, profiles) to GAMEBOX/Backups/library',
+            action: 'Back up',
+            onSelect: () => backupLibraryAction(context),
+          ),
+          _Row(
+            title: 'Restore library…',
+            value: 'Choose a library backup; it is applied the next time GAMEBOX starts',
+            action: 'Choose',
+            onSelect: () => restoreLibraryAction(context),
+          ),
           const _Row(
-              title: 'Backup & restore',
-              value: 'Library and save backup are part of the Save Manager (Phase 7).'),
+              title: 'Save games',
+              value: 'Back up / restore emulator saves: STORAGE → Save folders, or on each game page.'),
         ]),
       ),
     );
@@ -314,7 +350,7 @@ class LogsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: palette.background),
+        decoration: palette.decoration,
         child: SafeArea(
           child: PageFrame(
             title: 'Logs',

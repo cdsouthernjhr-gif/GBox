@@ -69,6 +69,15 @@
 * GAMEBOX never provides BIOS/firmware. PS2, Saturn and some Dreamcast/NDS games need user-supplied dumps configured inside the emulator.
 * Performance warnings are estimates from detected hardware, not measurements (benchmarks: Phase 7).
 
+## Advanced features (Phase 7)
+
+* Saves are only found in folders you register. Emulators that keep saves in their own `Android/data` folder can't be read on Android 11+. PPSSPP `SAVEDATA` folders aren't matched to games yet.
+* Loading a specific save state at launch isn't possible through the emulators' public intents. Use the emulator's own menu.
+* Imported compatibility data is always "community". No GAMEBOX upload server exists, so anonymous reports are files you share yourself.
+* Benchmarks measure the box, not emulator FPS, and don't change ratings yet.
+* System-wide CPU load can't be read by apps on Android 8+.
+* Library restore applies at the next start.
+
 ## Not yet implemented (by phase)
 
- · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.
+ · languages other than English.

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../app/app_services.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/hardware_profile.dart';
@@ -16,6 +17,7 @@ import '../game_library/library_screens.dart';
 import '../game_library/my_games_screen.dart';
 import '../settings/settings_screen.dart';
 import '../storage_manager/storage_screen.dart';
+import '../compatibility/rating_prompt.dart';
 import 'apps_screen.dart';
 
 enum LauncherSection {
@@ -51,12 +53,14 @@ class LauncherShellState extends State<LauncherShell> {
       List.generate(LauncherSection.values.length, (i) => FocusNode(debugLabel: 'nav$i'));
   final _contentScope = FocusScopeNode(debugLabel: 'content');
   final List<StreamSubscription<Object?>> _subs = [];
+  AppServices? _services;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_subs.isNotEmpty) return;
     final s = servicesOf(context);
+    _services = s;
     _subs.add(s.gateway.homePressed().listen((_) => goHome()));
     void notify(String msg) {
       if (!mounted) return;
@@ -64,11 +68,21 @@ class LauncherShellState extends State<LauncherShell> {
           ?.showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 3)));
     }
     _subs.add(s.controllers.notifications.stream.listen(notify));
+    s.launcher.finishedSession.addListener(_onFinished);
     _subs.add(s.storage.notifications.stream.listen(notify));
+  }
+
+  void _onFinished() {
+    final s = servicesOf(context);
+    final done = s.launcher.finishedSession.value;
+    if (done == null || !mounted) return;
+    s.launcher.finishedSession.value = null;
+    askHowItRan(context, done.$1, done.$2);
   }
 
   @override
   void dispose() {
+    _services?.launcher.finishedSession.removeListener(_onFinished);
     for (final s in _subs) {
       s.cancel();
     }
@@ -120,7 +134,7 @@ class LauncherShellState extends State<LauncherShell> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: DecoratedBox(
-          decoration: BoxDecoration(gradient: palette.background),
+          decoration: palette.decoration,
           child: SafeArea(
             child: Row(children: [
               _NavRail(

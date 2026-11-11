@@ -38,7 +38,19 @@ class SettingsState {
     this.pauseDownloadsWhilePlaying = true,
     this.autoImportDownloads = true,
     this.downloadMaxGb = 8,
+    this.saveFolders = const [],
+    this.accentColor,
+    this.wallpaperImagePath,
   });
+
+  /// Registered emulator save folders.
+  final List<SaveFolder> saveFolders;
+
+  /// Custom accent colour (ARGB) or null for the theme default.
+  final int? accentColor;
+
+  /// Cached custom wallpaper image (Custom Wallpaper theme).
+  final String? wallpaperImagePath;
 
   /// Downloads must not interfere with gameplay (spec Part 13).
   final bool pauseDownloadsWhilePlaying;
@@ -99,8 +111,33 @@ class SettingsState {
       pauseDownloadsWhilePlaying: (m[SettingsKeys.pauseDownloadsWhilePlaying] ?? 'true') == 'true',
       autoImportDownloads: (m[SettingsKeys.autoImportDownloads] ?? 'true') == 'true',
       downloadMaxGb: int.tryParse(m[SettingsKeys.downloadMaxGb] ?? '') ?? 8,
+      saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
+      accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
+      wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
     );
   }
+}
+
+class SaveFolder {
+  const SaveFolder(this.uri, this.emulatorId);
+  final String uri;
+  final String? emulatorId;
+
+  Map<String, Object?> toJson() => {'uri': uri, 'emulator': emulatorId};
+
+  static List<SaveFolder> decodeList(String? raw) {
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      return [
+        for (final e in jsonDecode(raw) as List)
+          SaveFolder((e as Map)['uri'] as String, e['emulator'] as String?),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static String encodeList(List<SaveFolder> list) => jsonEncode([for (final f in list) f.toJson()]);
 }
 
 abstract final class SettingsKeys {
@@ -119,6 +156,9 @@ abstract final class SettingsKeys {
   static const pauseDownloadsWhilePlaying = 'downloads.pause_while_playing';
   static const autoImportDownloads = 'downloads.auto_import';
   static const downloadMaxGb = 'downloads.max_size_gb';
+  static const saveFolders = 'saves.folders';
+  static const accentColor = 'theme.accent_color';
+  static const wallpaperImage = 'theme.wallpaper_image';
 }
 
 class SettingsRepository {

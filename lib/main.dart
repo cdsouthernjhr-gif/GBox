@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'app/app_services.dart';
 import 'app/gamebox_app.dart';
 import 'core/database/app_database.dart';
+import 'core/database/db_maintenance.dart';
 import 'core/errors/app_logger.dart';
 import 'core/services/platform_gateway.dart';
 
@@ -60,6 +61,9 @@ class _BootstrapState extends State<_Bootstrap> {
   Future<void> _start() async {
     setState(() => _error = null);
     try {
+      // A library restore chosen in Settings is applied before opening.
+      final restored = await applyPendingRestore(await AppDatabase.databaseFilePath());
+      if (restored != null) AppLogger.instance.info(restored);
       final services = AppServices(gateway: MethodChannelGateway(), db: AppDatabase.open());
       await services.initialize();
       if (mounted) setState(() => _services = services);

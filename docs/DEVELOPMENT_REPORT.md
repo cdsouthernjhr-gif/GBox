@@ -128,6 +128,7 @@ Results (CI run #14): **API 24 and API 34: 6/6 integration tests passed, all lau
 
 Issues found and fixed:
 * The default emulator screen (320×640 portrait) only built part of the lazy navigation menu, so the UI test failed. CI now uses the `tv_1080p` profile, and the test checks the full menu only in landscape.
+* My own evidence line in the HOME check (`… | head -2` under `set -o pipefail`) failed the API 34 job in run #15 with SIGPIPE after the check had passed. Fixed by reading `dumpsys` once into a variable; run #17 green.
 * The API 34 android-tv x86_64 image didn't boot (run #13). The API 30 android-tv image is x86 (32-bit), which Flutter reports as "unsupported" (run #14). The TV image was removed from the matrix and documented.
 
 Not done (needs hardware or the owner): physical TV-box tests, emulator launches, controller/USB/SD tests, setting signing secrets, publishing a release.

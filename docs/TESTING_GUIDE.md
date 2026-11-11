@@ -39,7 +39,9 @@ flutter test integration_test/device_test.dart -d <device-id>
 
 `tool/ci_device_tests.sh` then installs the debug APK and checks with adb: HOME and LEANBACK_LAUNCHER filters registered (`dumpsys package`), GAMEBOX set as default HOME (`cmd package set-home-activity`), HOME key → GAMEBOX is the resumed activity, BACK → GAMEBOX stays in front, no crash in logcat.
 
-### Emulator results (CI run #14, commit 5d5f8e1, 2026-11-11)
+### Emulator results (CI runs #14 and #17, commits 5d5f8e1 and 7918e2d, 2026-11-11)
+
+Run #17 also logs the resumed activity as evidence, e.g. `mResumedActivity: ActivityRecord{… com.gamebox.console/.MainActivity …}` after HOME and again after BACK, on both API levels.
 
 | Emulator | Integration tests | HOME filters | Set default HOME | HOME → GAMEBOX | BACK stays | Crash |
 |---|---|---|---|---|---|---|

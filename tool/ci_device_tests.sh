@@ -28,8 +28,9 @@ if echo "$SET_OUT" | grep -qiE "error|unknown|exception"; then
 else
   adb shell input keyevent KEYCODE_HOME
   for i in $(seq 1 30); do
-    if adb shell dumpsys activity activities | tr -d '\r' | grep -E "mResumedActivity|ResumedActivity|topResumedActivity" | grep -q com.gamebox.console; then
-      adb shell dumpsys activity activities | tr -d '\r' | grep -E "mResumedActivity|topResumedActivity" || true
+    RESUMED=$(adb shell dumpsys activity activities | tr -d '\r' | grep -E "ResumedActivity" || true)
+    if echo "$RESUMED" | grep -q com.gamebox.console; then
+      echo "$RESUMED"
       echo "PASS: GAMEBOX is the resumed HOME activity"
       break
     fi
@@ -43,7 +44,9 @@ else
   echo "== BACK must not leave the launcher"
   adb shell input keyevent KEYCODE_BACK
   sleep 3
-  adb shell dumpsys activity activities | tr -d '\r' | grep -E "mResumedActivity|ResumedActivity|topResumedActivity" | grep -q com.gamebox.console
+  RESUMED=$(adb shell dumpsys activity activities | tr -d '\r' | grep -E "ResumedActivity" || true)
+  echo "$RESUMED"
+  echo "$RESUMED" | grep -q com.gamebox.console
   echo "PASS: still in front after BACK"
 fi
 

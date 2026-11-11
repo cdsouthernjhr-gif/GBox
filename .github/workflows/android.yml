@@ -55,7 +55,7 @@ jobs:
           ls -la
           sha256sum *.apk | tee SHA256SUMS.txt
           AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
-          for f in *.apk; do echo "== $f"; "$AAPT2" dump badging "$f" | grep -E "^(package|sdkVersion|targetSdkVersion|native-code|leanback|application-label):" || true; done
+          for f in *.apk; do echo "== $f"; "$AAPT2" dump badging "$f" | grep -E "^(package|minSdkVersion|sdkVersion|targetSdkVersion|native-code|application-label|launchable-activity|leanback-launchable-activity):|uses-feature.*(leanback|touchscreen|gamepad)" || true; done
 
       - uses: actions/upload-artifact@v4
         with:

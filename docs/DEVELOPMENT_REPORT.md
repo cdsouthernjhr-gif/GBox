@@ -55,6 +55,8 @@ Consequence: Dart analysis and all Dart tests run locally. Gradle/Kotlin compila
 | #2 | 49b0d87 | **all steps passed**: analyze, tests, debug APK, per-ABI release APKs, artifact upload |
 | #3 | f37bdf4 | passed; badging now shows `minSdkVersion:'24'` despite `minSdk = 23` in Gradle |
 | #4 | 3f82f04 | passed; manifest-merger report: minSdkVersion 24 *INJECTED* from the build variant |
+| #5 | 6ba771b | passed (Gradle states minSdk 24 explicitly) |
+| #6 | 520cf76 | **Phase 2: all steps passed first time** (80 tests, new Kotlin compiled). APKs report versionName 0.2.0, versionCodes 1002/2002/4002, minSdkVersion 24. Artifact ID 13838675229 |
 
 APK details from run #2 (`aapt2 dump badging`, `sha256sum`):
 

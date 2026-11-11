@@ -65,7 +65,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gamebox-phase1-apks
+          name: gamebox-apks
           path: |
             build/app/outputs/flutter-apk/*.apk
             build/app/outputs/flutter-apk/SHA256SUMS.txt

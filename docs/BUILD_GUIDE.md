@@ -40,6 +40,6 @@ keyPassword=...
 
 ## Continuous integration
 
-`.github/workflows/android.yml` runs on every push and pull request. It checks that the generated Drift code is current, runs the analyzer and the tests, builds the debug and per-ABI release APKs, prints `aapt2 dump badging` (package, SDK levels, ABIs, leanback) and SHA-256 sums, and uploads the **gamebox-phase1-apks** artifact.
+`.github/workflows/android.yml` runs on every push and pull request. It checks that the generated Drift code is current, runs the analyzer and the tests, builds the debug and per-ABI release APKs, prints `aapt2 dump badging` (package, SDK levels, ABIs, leanback) and SHA-256 sums, and uploads the **gamebox-apks** artifact.
 
 Why CI: the development container that produced Phase 1 couldn't reach `dl.google.com` (Android SDK downloads were blocked by its network policy), so APKs are produced on GitHub-hosted runners.

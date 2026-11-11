@@ -14,7 +14,7 @@
 
 **Not included:** ROM import, game launching, downloads, save management.
 
-**Artifacts** (GitHub Actions → *Android build* → artifact `gamebox-phase1-apks`):
+**Artifacts** (GitHub Actions → *Android build* → artifact `gamebox-apks`):
 `app-debug.apk`, `app-armeabi-v7a-release.apk`, `app-arm64-v8a-release.apk`, `app-x86_64-release.apk`, `SHA256SUMS.txt`. Release APKs are signed with the debug key.
 
 **Minimum Android:** 7.0 (API 24). Android 6.0 isn't supported by this build (KNOWN_LIMITATIONS).

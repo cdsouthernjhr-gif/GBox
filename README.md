@@ -29,7 +29,7 @@ flutter test                 # 80 unit/database/migration/widget tests
 flutter build apk --debug    # needs the Android SDK (platform 36)
 ```
 
-CI builds the APKs on every push: GitHub → Actions → **Android build** → artifact `gamebox-phase1-apks`.
+CI builds the APKs on every push: GitHub → Actions → **Android build** → artifact `gamebox-apks`.
 
 See [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) for the full toolchain and CI. Installation and launcher setup are covered in [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md).
 

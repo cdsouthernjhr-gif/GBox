@@ -1,6 +1,6 @@
 # Installation guide
 
-1. Download the APK that matches the box from the CI artifact **gamebox-phase1-apks**:
+1. Download the APK that matches the box from the CI artifact **gamebox-apks**:
    * `app-arm64-v8a-release.apk` for 64-bit Android (Settings → Device information in GAMEBOX shows `arm64-v8a` under ABIs),
    * `app-armeabi-v7a-release.apk` for 32-bit Android (very common on budget boxes, even with 64-bit CPUs),
    * `app-debug.apk` is universal but larger and slower.

@@ -1,0 +1,66 @@
+name: Android build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Verify generated database code is up to date
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code -- lib/
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Unit and widget tests
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Build release APKs (per ABI)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Checksums and APK details
+        run: |
+          cd build/app/outputs/flutter-apk
+          ls -la
+          sha256sum *.apk | tee SHA256SUMS.txt
+          AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
+          for f in *.apk; do echo "== $f"; "$AAPT2" dump badging "$f" | grep -E "^(package|sdkVersion|targetSdkVersion|native-code|leanback|application-label):" || true; done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamebox-phase1-apks
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/flutter-apk/SHA256SUMS.txt
+          if-no-files-found: error

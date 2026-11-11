@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Bump on every schema change and add a step in [migration].
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +75,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(gameFiles, gameFiles.headerDetail);
             await m.create(idxGameFilesRoot);
             await m.create(idxGameFilesGame);
+          }
+          if (from < 3) {
+            await m.addColumn(controllerProfiles, controllerProfiles.calibrationJson);
           }
         },
         beforeOpen: (details) async {

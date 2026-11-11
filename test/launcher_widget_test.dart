@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamebox/app/app_services.dart';
 import 'package:gamebox/app/gamebox_app.dart';
+import 'package:gamebox/core/services/platform_gateway.dart';
 import 'package:gamebox/core/database/app_database.dart';
 import 'package:gamebox/data/repositories/settings_repository.dart';
 import 'package:gamebox/features/compatibility/device_report_screen.dart';
@@ -209,6 +210,59 @@ void main() {
     expect(find.textContaining('Starting Space Quest in RetroArch'), findsOneWidget);
     final game = (await tester.runAsync(() => services.db.select(services.db.games).get()))!.single;
     expect(game.playCount, 1);
+    await shutdown(tester);
+  });
+
+  testWidgets('mapping wizard: binds pad keys, ignores B→BACK fallback, remote BACK skips', (tester) async {
+    await boot(tester);
+    for (var i = 0; i < 7; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown); // CONTROLLERS
+    }
+    await tester.tap(find.text('Map buttons'));
+    await settle(tester);
+    expect(find.text('A'), findsOneWidget);
+
+    Future<void> padKey(int code) async {
+      gateway.raw.add(RawInputEvent(type: 'key', deviceId: 5, keyCode: code, keyName: '$code', isDown: true));
+      await tester.pump();
+      // Real time must pass: the wizard ignores input for 350 ms after a bind.
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 380)));
+      await tester.pump();
+    }
+
+    Future<void> systemBack() async {
+      final message = const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute'));
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage('flutter/navigation', message, (_) {});
+      await tester.pump();
+    }
+
+    // A ← physical B (97). Android then falls back to BACK immediately:
+    gateway.raw.add(const RawInputEvent(type: 'key', deviceId: 5, keyCode: 97, keyName: 'BUTTON_B', isDown: true));
+    await tester.pump();
+    await systemBack(); // must NOT skip the next step
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 380)));
+    await tester.pump();
+    expect(find.text('B'), findsOneWidget, reason: 'now asking for B');
+
+    await padKey(96); // B ← physical A
+    expect(find.text('X'), findsOneWidget);
+    await systemBack(); // remote BACK: skip X
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 380)));
+    await tester.pump();
+    expect(find.text('Y'), findsOneWidget);
+    for (final code in [100, 102, 103, 104, 105, 108, 109, 19, 20, 21, 22, 106, 107]) {
+      await padKey(code);
+    }
+    await settle(tester);
+    expect(find.text('Save mapping'), findsOneWidget);
+    expect(find.textContaining('not mapped'), findsOneWidget, reason: 'X was skipped');
+
+    await tester.tap(find.text('Save mapping'));
+    await settle(tester);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await settle(tester);
+    final remaps = gateway.lastInputConfig!['remaps'] as Map;
+    expect(remaps['abc123'], {97: 96, 96: 97});
     await shutdown(tester);
   });
 }

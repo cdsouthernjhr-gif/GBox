@@ -7,6 +7,9 @@ import android.net.Uri
 import android.view.KeyEvent
 import android.view.MotionEvent
 import com.gamebox.console.controllers.ControllerManager
+import com.gamebox.console.controllers.ControllerVibration
+import com.gamebox.console.controllers.InputConfig
+import com.gamebox.console.controllers.StickNavigator
 import com.gamebox.console.controllers.RawInputStream
 import com.gamebox.console.emulator.EmulatorLauncher
 import com.gamebox.console.hardware.HardwareScanner
@@ -36,6 +39,8 @@ class MainActivity : FlutterActivity() {
     private lateinit var launcher: LauncherBridge
     private lateinit var connectivity: ConnectivityMonitor
     private val rawInput = RawInputStream()
+    private val inputConfig = InputConfig()
+    private val stickNavigator = StickNavigator(inputConfig) { super.dispatchKeyEvent(it) }
     private var launcherChannel: MethodChannel? = null
     private var pendingDirectoryResult: MethodChannel.Result? = null
     private var pendingFilesResult: MethodChannel.Result? = null
@@ -85,6 +90,18 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, "gamebox/controllers").setMethodCallHandler { call, result ->
             when (call.method) {
                 "list" -> result.success(controllers.listDevices())
+                "setInputConfig" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    inputConfig.update((call.arguments as? Map<String, Any?>) ?: emptyMap())
+                    result.success(true)
+                }
+                "vibrate" -> result.success(
+                    ControllerVibration.vibrate(
+                        call.argument<Int>("deviceId") ?: -1,
+                        (call.argument<Number>("durationMs") ?: 250).toLong(),
+                        call.argument<Int>("amplitude") ?: 200,
+                    ),
+                )
                 else -> result.notImplemented()
             }
         }
@@ -264,12 +281,24 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // The test/mapping screens see the physical key; the UI sees the
+        // remapped one.
         if (rawInput.isListening) rawInput.onKey(event)
-        return super.dispatchKeyEvent(event)
+        return super.dispatchKeyEvent(inputConfig.remap(event))
     }
 
     override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
-        if (rawInput.isListening) rawInput.onMotion(ev)
+        if (rawInput.isListening) {
+            rawInput.onMotion(ev)
+            stickNavigator.release()
+        } else if (stickNavigator.onMotion(ev)) {
+            return true
+        }
         return super.dispatchGenericMotionEvent(ev)
+    }
+
+    override fun onPause() {
+        stickNavigator.release()
+        super.onPause()
     }
 }

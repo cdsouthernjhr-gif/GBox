@@ -144,6 +144,18 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             onChanged: (v) => s.settings.set(SettingsKeys.defaultConsole, v == 'none' ? '' : v),
           ),
           const SizedBox(height: 12),
+          const SectionHeader('Controllers'),
+          _Toggle(
+            title: 'Navigate with analog stick / hat',
+            subtitle: 'Uses each controller\'s dead zone, so a drifting stick does not move the focus',
+            value: st.stickNavigation,
+            onChanged: (v) => s.settings.set(SettingsKeys.stickNavigation, v),
+          ),
+          _Row(
+            title: 'Controllers',
+            value: 'Mapping, calibration, dead zone, vibration and player slots are under CONTROLLERS',
+          ),
+          const SizedBox(height: 12),
           const SectionHeader('Performance'),
           _Choice<LowMemoryMode>(
             title: 'Low memory mode',
@@ -179,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 .push(MaterialPageRoute(builder: (_) => const LogsScreen())),
             action: 'View',
           ),
-          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 3 emulator launching)'),
+          const _Row(title: 'Application version', value: '$appName $appVersion (Phase 4 controllers)'),
           const _Row(
               title: 'Backup & restore',
               value: 'Library and save backup are part of the Save Manager (Phase 7).'),

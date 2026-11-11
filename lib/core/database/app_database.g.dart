@@ -10282,6 +10282,17 @@ class $ControllerProfilesTable extends ControllerProfiles
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _calibrationJsonMeta = const VerificationMeta(
+    'calibrationJson',
+  );
+  @override
+  late final GeneratedColumn<String> calibrationJson = GeneratedColumn<String>(
+    'calibration_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10292,6 +10303,7 @@ class $ControllerProfilesTable extends ControllerProfiles
     triggerThreshold,
     vibrationEnabled,
     isDefault,
+    calibrationJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10361,6 +10373,15 @@ class $ControllerProfilesTable extends ControllerProfiles
         isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
       );
     }
+    if (data.containsKey('calibration_json')) {
+      context.handle(
+        _calibrationJsonMeta,
+        calibrationJson.isAcceptableOrUnknown(
+          data['calibration_json']!,
+          _calibrationJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10402,6 +10423,10 @@ class $ControllerProfilesTable extends ControllerProfiles
         DriftSqlType.bool,
         data['${effectivePrefix}is_default'],
       )!,
+      calibrationJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calibration_json'],
+      ),
     );
   }
 
@@ -10421,6 +10446,9 @@ class ControllerProfileRow extends DataClass
   final double triggerThreshold;
   final bool vibrationEnabled;
   final bool isDefault;
+
+  /// Per-axis centre/min/max captured by the calibration screen (schema v3).
+  final String? calibrationJson;
   const ControllerProfileRow({
     required this.id,
     required this.name,
@@ -10430,6 +10458,7 @@ class ControllerProfileRow extends DataClass
     required this.triggerThreshold,
     required this.vibrationEnabled,
     required this.isDefault,
+    this.calibrationJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10446,6 +10475,9 @@ class ControllerProfileRow extends DataClass
     map['trigger_threshold'] = Variable<double>(triggerThreshold);
     map['vibration_enabled'] = Variable<bool>(vibrationEnabled);
     map['is_default'] = Variable<bool>(isDefault);
+    if (!nullToAbsent || calibrationJson != null) {
+      map['calibration_json'] = Variable<String>(calibrationJson);
+    }
     return map;
   }
 
@@ -10463,6 +10495,9 @@ class ControllerProfileRow extends DataClass
       triggerThreshold: Value(triggerThreshold),
       vibrationEnabled: Value(vibrationEnabled),
       isDefault: Value(isDefault),
+      calibrationJson: calibrationJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calibrationJson),
     );
   }
 
@@ -10482,6 +10517,7 @@ class ControllerProfileRow extends DataClass
       triggerThreshold: serializer.fromJson<double>(json['triggerThreshold']),
       vibrationEnabled: serializer.fromJson<bool>(json['vibrationEnabled']),
       isDefault: serializer.fromJson<bool>(json['isDefault']),
+      calibrationJson: serializer.fromJson<String?>(json['calibrationJson']),
     );
   }
   @override
@@ -10496,6 +10532,7 @@ class ControllerProfileRow extends DataClass
       'triggerThreshold': serializer.toJson<double>(triggerThreshold),
       'vibrationEnabled': serializer.toJson<bool>(vibrationEnabled),
       'isDefault': serializer.toJson<bool>(isDefault),
+      'calibrationJson': serializer.toJson<String?>(calibrationJson),
     };
   }
 
@@ -10508,6 +10545,7 @@ class ControllerProfileRow extends DataClass
     double? triggerThreshold,
     bool? vibrationEnabled,
     bool? isDefault,
+    Value<String?> calibrationJson = const Value.absent(),
   }) => ControllerProfileRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -10519,6 +10557,9 @@ class ControllerProfileRow extends DataClass
     triggerThreshold: triggerThreshold ?? this.triggerThreshold,
     vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
     isDefault: isDefault ?? this.isDefault,
+    calibrationJson: calibrationJson.present
+        ? calibrationJson.value
+        : this.calibrationJson,
   );
   ControllerProfileRow copyWithCompanion(ControllerProfilesCompanion data) {
     return ControllerProfileRow(
@@ -10536,6 +10577,9 @@ class ControllerProfileRow extends DataClass
           ? data.vibrationEnabled.value
           : this.vibrationEnabled,
       isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      calibrationJson: data.calibrationJson.present
+          ? data.calibrationJson.value
+          : this.calibrationJson,
     );
   }
 
@@ -10549,7 +10593,8 @@ class ControllerProfileRow extends DataClass
           ..write('deadZone: $deadZone, ')
           ..write('triggerThreshold: $triggerThreshold, ')
           ..write('vibrationEnabled: $vibrationEnabled, ')
-          ..write('isDefault: $isDefault')
+          ..write('isDefault: $isDefault, ')
+          ..write('calibrationJson: $calibrationJson')
           ..write(')'))
         .toString();
   }
@@ -10564,6 +10609,7 @@ class ControllerProfileRow extends DataClass
     triggerThreshold,
     vibrationEnabled,
     isDefault,
+    calibrationJson,
   );
   @override
   bool operator ==(Object other) =>
@@ -10576,7 +10622,8 @@ class ControllerProfileRow extends DataClass
           other.deadZone == this.deadZone &&
           other.triggerThreshold == this.triggerThreshold &&
           other.vibrationEnabled == this.vibrationEnabled &&
-          other.isDefault == this.isDefault);
+          other.isDefault == this.isDefault &&
+          other.calibrationJson == this.calibrationJson);
 }
 
 class ControllerProfilesCompanion
@@ -10589,6 +10636,7 @@ class ControllerProfilesCompanion
   final Value<double> triggerThreshold;
   final Value<bool> vibrationEnabled;
   final Value<bool> isDefault;
+  final Value<String?> calibrationJson;
   const ControllerProfilesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -10598,6 +10646,7 @@ class ControllerProfilesCompanion
     this.triggerThreshold = const Value.absent(),
     this.vibrationEnabled = const Value.absent(),
     this.isDefault = const Value.absent(),
+    this.calibrationJson = const Value.absent(),
   });
   ControllerProfilesCompanion.insert({
     this.id = const Value.absent(),
@@ -10608,6 +10657,7 @@ class ControllerProfilesCompanion
     this.triggerThreshold = const Value.absent(),
     this.vibrationEnabled = const Value.absent(),
     this.isDefault = const Value.absent(),
+    this.calibrationJson = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ControllerProfileRow> custom({
     Expression<int>? id,
@@ -10618,6 +10668,7 @@ class ControllerProfilesCompanion
     Expression<double>? triggerThreshold,
     Expression<bool>? vibrationEnabled,
     Expression<bool>? isDefault,
+    Expression<String>? calibrationJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -10629,6 +10680,7 @@ class ControllerProfilesCompanion
       if (triggerThreshold != null) 'trigger_threshold': triggerThreshold,
       if (vibrationEnabled != null) 'vibration_enabled': vibrationEnabled,
       if (isDefault != null) 'is_default': isDefault,
+      if (calibrationJson != null) 'calibration_json': calibrationJson,
     });
   }
 
@@ -10641,6 +10693,7 @@ class ControllerProfilesCompanion
     Value<double>? triggerThreshold,
     Value<bool>? vibrationEnabled,
     Value<bool>? isDefault,
+    Value<String?>? calibrationJson,
   }) {
     return ControllerProfilesCompanion(
       id: id ?? this.id,
@@ -10651,6 +10704,7 @@ class ControllerProfilesCompanion
       triggerThreshold: triggerThreshold ?? this.triggerThreshold,
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
       isDefault: isDefault ?? this.isDefault,
+      calibrationJson: calibrationJson ?? this.calibrationJson,
     );
   }
 
@@ -10683,6 +10737,9 @@ class ControllerProfilesCompanion
     if (isDefault.present) {
       map['is_default'] = Variable<bool>(isDefault.value);
     }
+    if (calibrationJson.present) {
+      map['calibration_json'] = Variable<String>(calibrationJson.value);
+    }
     return map;
   }
 
@@ -10696,7 +10753,8 @@ class ControllerProfilesCompanion
           ..write('deadZone: $deadZone, ')
           ..write('triggerThreshold: $triggerThreshold, ')
           ..write('vibrationEnabled: $vibrationEnabled, ')
-          ..write('isDefault: $isDefault')
+          ..write('isDefault: $isDefault, ')
+          ..write('calibrationJson: $calibrationJson')
           ..write(')'))
         .toString();
   }
@@ -24503,6 +24561,7 @@ typedef $$ControllerProfilesTableCreateCompanionBuilder =
       Value<double> triggerThreshold,
       Value<bool> vibrationEnabled,
       Value<bool> isDefault,
+      Value<String?> calibrationJson,
     });
 typedef $$ControllerProfilesTableUpdateCompanionBuilder =
     ControllerProfilesCompanion Function({
@@ -24514,6 +24573,7 @@ typedef $$ControllerProfilesTableUpdateCompanionBuilder =
       Value<double> triggerThreshold,
       Value<bool> vibrationEnabled,
       Value<bool> isDefault,
+      Value<String?> calibrationJson,
     });
 
 final class $$ControllerProfilesTableReferences
@@ -24615,6 +24675,11 @@ class $$ControllerProfilesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get calibrationJson => $composableBuilder(
+    column: $table.calibrationJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ConsolesTableFilterComposer get consoleId {
     final $$ConsolesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -24708,6 +24773,11 @@ class $$ControllerProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get calibrationJson => $composableBuilder(
+    column: $table.calibrationJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ConsolesTableOrderingComposer get consoleId {
     final $$ConsolesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -24767,6 +24837,11 @@ class $$ControllerProfilesTableAnnotationComposer
 
   GeneratedColumn<bool> get isDefault =>
       $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<String> get calibrationJson => $composableBuilder(
+    column: $table.calibrationJson,
+    builder: (column) => column,
+  );
 
   $$ConsolesTableAnnotationComposer get consoleId {
     final $$ConsolesTableAnnotationComposer composer = $composerBuilder(
@@ -24859,6 +24934,7 @@ class $$ControllerProfilesTableTableManager
                 Value<double> triggerThreshold = const Value.absent(),
                 Value<bool> vibrationEnabled = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
+                Value<String?> calibrationJson = const Value.absent(),
               }) => ControllerProfilesCompanion(
                 id: id,
                 name: name,
@@ -24868,6 +24944,7 @@ class $$ControllerProfilesTableTableManager
                 triggerThreshold: triggerThreshold,
                 vibrationEnabled: vibrationEnabled,
                 isDefault: isDefault,
+                calibrationJson: calibrationJson,
               ),
           createCompanionCallback:
               ({
@@ -24879,6 +24956,7 @@ class $$ControllerProfilesTableTableManager
                 Value<double> triggerThreshold = const Value.absent(),
                 Value<bool> vibrationEnabled = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
+                Value<String?> calibrationJson = const Value.absent(),
               }) => ControllerProfilesCompanion.insert(
                 id: id,
                 name: name,
@@ -24888,6 +24966,7 @@ class $$ControllerProfilesTableTableManager
                 triggerThreshold: triggerThreshold,
                 vibrationEnabled: vibrationEnabled,
                 isDefault: isDefault,
+                calibrationJson: calibrationJson,
               ),
           withReferenceMapper: (p0) => p0
               .map(

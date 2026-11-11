@@ -48,6 +48,12 @@
 * Play time is the time GAMEBOX was in the background (an upper bound).
 * Only RetroArch and DuckStation can launch games. The other 8 detected emulators can only be opened (Phase 6).
 
+## Controllers (Phase 4)
+
+* Mapping, dead zone and calibration only affect GAMEBOX. Emulators keep their own input settings (RetroArch export is buttons-only and experimental).
+* Player slots and per-console profiles are stored but not applied to external emulators.
+* Stick navigation replaces Android's joystick→D-pad synthesis. It hasn't been tried on real pads yet.
+
 ## Not yet implemented (by phase)
 
- · button mapping, profiles, calibration (Phase 4) · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.
+ · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.

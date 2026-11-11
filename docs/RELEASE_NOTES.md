@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.4.0+4 — Phase 4 Controllers (pre-release, not for distribution)
+
+**New:** button-mapping wizard (16 actions, axis triggers/hat D-pads, conflict warnings), analog calibration with suggested dead zone, dead zone and trigger threshold settings, vibration on/off and rumble test, Player 1–4 slots, RetroArch autoconfig export, native key remapping, dead-zone-aware stick/hat navigation (Settings → Controllers). Database schema v3.
+
+**Fixed:** setup and controller test screens could pop the navigator twice when closed programmatically (re-entrant pop).
+
+**Status:** controller features are verified by automated tests only. Physical Bluetooth/USB/receiver testing is PENDING.
+
 ## 0.3.0+3 — Phase 3 First emulator integration (pre-release, not for distribution)
 
 **New:** Play and Play with… on the game page. RetroArch launcher (8 systems, core choice) and DuckStation launcher (PS1). Per-console default emulator. Clear blocking reasons (missing file, no emulator, no file path, Android 11+ `Android/data` restriction). FileProvider sharing of GAMEBOX-folder games with content-capable emulators. Play history, Recently played, play count. Image cache cleared before launch. Emulators screen shows which apps can launch games.

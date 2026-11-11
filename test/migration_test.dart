@@ -12,14 +12,16 @@ void main() {
 
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
-  test('upgrade v1 → v2 produces exactly the v2 schema', () async {
-    final connection = await verifier.startAt(1);
-    final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 2);
-    await db.close();
-  });
+  for (final from in [1, 2]) {
+    test('upgrade v$from → v3 produces exactly the v3 schema', () async {
+      final connection = await verifier.startAt(from);
+      final db = AppDatabase(connection);
+      await verifier.migrateAndValidate(db, 3);
+      await db.close();
+    });
+  }
 
-  test('upgrade v1 → v2 keeps existing library data', () async {
+  test('upgrade v1 → v3 keeps existing library data', () async {
     final schema = await verifier.schemaAt(1);
     final old = v1.DatabaseAtV1(schema.newConnection());
     await old.customStatement(

@@ -9,6 +9,8 @@ import '../core/device/device_intelligence_service.dart';
 import '../core/services/platform_gateway.dart';
 import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
+import '../data/repositories/controller_profile_repository.dart';
+import '../features/controller_manager/controller_config_service.dart';
 import '../features/emulator_manager/launch_service.dart';
 import '../features/rom_manager/rom_library_service.dart';
 
@@ -33,6 +35,15 @@ class AppServices {
       settings: settings,
       appRoots: appRoots ?? _defaultAppRoots,
       artworkDir: artworkDir ?? _defaultArtworkDir,
+    );
+    controllerConfig = ControllerConfigService(
+      gateway: gateway,
+      repo: ControllerProfileRepository(db),
+      settings: settings,
+      exportDir: () async {
+        final roots = await (appRoots ?? _defaultAppRoots)();
+        return roots.isEmpty ? null : '${roots.first}/GAMEBOX/Controllers';
+      },
     );
     launcher = LaunchService(
       gateway: gateway,
@@ -64,6 +75,7 @@ class AppServices {
   late final EmulatorDetectionService emulators;
   late final RomLibraryService library;
   late final LaunchService launcher;
+  late final ControllerConfigService controllerConfig;
   AppLifecycleListener? _lifecycle;
   Timer? _autoScanDebounce;
 
@@ -74,6 +86,7 @@ class AppServices {
     _lifecycle = AppLifecycleListener(onResume: () => launcher.onReturned());
     await settings.initialize();
     await device.initialize(rescan: false);
+    await controllerConfig.initialize();
     // Background work; failures are logged and never block the UI.
     () async {
       await Future.wait([
@@ -104,6 +117,7 @@ class AppServices {
     _autoScanDebounce?.cancel();
     _lifecycle?.dispose();
     storage.volumes.removeListener(_onVolumesChanged);
+    controllerConfig.dispose();
     settings.dispose();
     connectivity.dispose();
     controllers.dispose();

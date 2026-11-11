@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/hardware_profile.dart';
+import '../../core/controllers/controller_profile.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import 'controller_setup_screens.dart';
 
 class ControllersScreen extends StatelessWidget {
   const ControllersScreen({super.key});
@@ -32,8 +34,8 @@ class ControllersScreen extends StatelessWidget {
           final other = all.where((d) => !d.isGameController).toList();
           return ListView(children: [
             SectionHeader('Game controllers (${pads.length})',
-                subtitle: 'Android assigns player numbers; per-console mapping and profiles '
-                    'arrive in Phase 4.'),
+                subtitle: 'Mapping, dead zone and calibration apply inside GAMEBOX. Emulators keep their '
+                    'own input settings: use Export for RetroArch to reuse a mapping there.'),
             if (pads.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -62,50 +64,153 @@ class _DeviceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final palette = GameboxPalette.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TvFocusable(
-        scale: 1.01,
-        padding: const EdgeInsets.all(14),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(
-            d.isGameController
-                ? Icons.gamepad_rounded
-                : d.classes.contains('keyboard')
-                    ? Icons.keyboard_rounded
-                    : d.classes.contains('mouse')
-                        ? Icons.mouse_rounded
-                        : Icons.settings_remote_rounded,
-            size: 32,
-            color: d.isGameController ? palette.success : Colors.white60,
+    final info = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(
+        d.isGameController
+            ? Icons.gamepad_rounded
+            : d.classes.contains('keyboard')
+                ? Icons.keyboard_rounded
+                : d.classes.contains('mouse')
+                    ? Icons.mouse_rounded
+                    : Icons.settings_remote_rounded,
+        size: 32,
+        color: d.isGameController ? palette.success : Colors.white60,
+      ),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            Text(d.name, style: t.titleMedium),
+            if (d.controllerNumber != null) StatusChip('Android #${d.controllerNumber}', color: palette.focus),
+          ]),
+          const SizedBox(height: 4),
+          Text(
+            'VID:PID ${d.vendorProductLabel} · ${d.connectionHint} · '
+            'Types: ${d.classes.isEmpty ? 'UNKNOWN' : d.classes.join(', ')} · '
+            'Vibration: ${d.hasVibrator ? 'yes' : 'not reported'}',
+            style: t.bodySmall?.copyWith(color: Colors.white60),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Flexible(child: Text(d.name, style: t.titleMedium, overflow: TextOverflow.ellipsis)),
-                if (d.controllerNumber != null) ...[
-                  const SizedBox(width: 8),
-                  StatusChip('Player ${d.controllerNumber}', color: palette.focus),
-                ],
-              ]),
-              const SizedBox(height: 4),
-              Text(
-                'VID:PID ${d.vendorProductLabel} · ${d.connectionHint} · '
-                'Types: ${d.classes.isEmpty ? 'UNKNOWN' : d.classes.join(', ')} · '
-                'Vibration: ${d.hasVibrator ? 'yes' : 'not reported'}',
-                style: t.bodySmall?.copyWith(color: Colors.white60),
-              ),
-              if (d.isGameController) ...[
-                const SizedBox(height: 4),
-                Text('Buttons: ${d.buttons.isEmpty ? 'not reported' : d.buttons.join(' ')}',
-                    style: t.bodySmall?.copyWith(color: Colors.white70)),
-                Text('Axes: ${d.axes.isEmpty ? 'none reported' : d.axes.join(' ')}',
-                    style: t.bodySmall?.copyWith(color: Colors.white70)),
-              ],
-            ]),
-          ),
+          if (d.isGameController) ...[
+            const SizedBox(height: 4),
+            Text('Buttons: ${d.buttons.isEmpty ? 'not reported' : d.buttons.join(' ')}',
+                style: t.bodySmall?.copyWith(color: Colors.white70)),
+            Text('Axes: ${d.axes.isEmpty ? 'none reported' : d.axes.join(' ')}',
+                style: t.bodySmall?.copyWith(color: Colors.white70)),
+          ],
         ]),
+      ),
+    ]);
+
+    if (!d.isGameController) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: TvFocusable(scale: 1.01, padding: const EdgeInsets.all(14), child: info),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: palette.card, borderRadius: BorderRadius.circular(14)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          info,
+          const SizedBox(height: 10),
+          _ControllerActions(d),
+        ]),
+      ),
+    );
+  }
+}
+
+class _ControllerActions extends StatelessWidget {
+  const _ControllerActions(this.d);
+  final InputDeviceInfo d;
+
+  static const _deadZones = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50];
+  static const _thresholds = [0.30, 0.50, 0.70, 0.90];
+
+  T _next<T>(List<T> values, T current) {
+    final i = values.indexOf(current);
+    return values[(i + 1) % values.length];
+  }
+
+  double _nearest(List<double> values, double v) =>
+      values.reduce((a, b) => (a - v).abs() <= (b - v).abs() ? a : b);
+
+  @override
+  Widget build(BuildContext context) {
+    final s = servicesOf(context);
+    final cfg = s.controllerConfig;
+    void snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+    return ValueListenableBuilder<Map<String, ControllerProfile>>(
+      valueListenable: cfg.profiles,
+      builder: (context, _, _) => ValueListenableBuilder<Map<String, int?>>(
+        valueListenable: cfg.players,
+        builder: (context, players, _) {
+          final p = cfg.profileFor(d);
+          final mapped = p.bindings.length;
+          final calibrated = p.calibration.isNotEmpty;
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              '${mapped == 0 ? 'Default mapping' : '$mapped buttons mapped'} · '
+              '${calibrated ? 'calibrated' : 'not calibrated'} · '
+              'dead zone ${(p.deadZone * 100).round()}% · trigger ${(p.triggerThreshold * 100).round()}%',
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              TvButton(
+                label: 'Map buttons',
+                icon: Icons.tune_rounded,
+                onPressed: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => MappingWizardScreen(device: d))),
+              ),
+              TvButton(
+                label: 'Calibrate',
+                icon: Icons.control_camera_rounded,
+                onPressed: d.axes.isEmpty
+                    ? null
+                    : () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => CalibrationScreen(device: d))),
+              ),
+              TvButton(
+                label: 'Dead zone ${(p.deadZone * 100).round()}%',
+                onPressed: () => cfg.save(p.copyWith(deadZone: _next(_deadZones, _nearest(_deadZones, p.deadZone)))),
+              ),
+              TvButton(
+                label: 'Trigger ${(p.triggerThreshold * 100).round()}%',
+                onPressed: () => cfg.save(p.copyWith(
+                    triggerThreshold: _next(_thresholds, _nearest(_thresholds, p.triggerThreshold)))),
+              ),
+              TvButton(
+                label: 'Vibration ${p.vibration ? 'on' : 'off'}',
+                onPressed: d.hasVibrator ? () => cfg.save(p.copyWith(vibration: !p.vibration)) : null,
+              ),
+              TvButton(
+                label: 'Test rumble',
+                onPressed: d.hasVibrator && p.vibration
+                    ? () async {
+                        final ok = await cfg.testVibration(d);
+                        if (!ok) snack('Android reported that this controller cannot vibrate.');
+                      }
+                    : null,
+              ),
+              TvButton(
+                label: playerLabel(players[d.descriptor]),
+                onPressed: () => cfg.setPlayer(d.descriptor, nextPlayer(players[d.descriptor])),
+              ),
+              TvButton(
+                label: 'Export for RetroArch',
+                onPressed: () async {
+                  final path = await cfg.exportRetroArch(d);
+                  snack(path == null ? 'No storage available for export.' : 'Saved $path (experimental, buttons only).');
+                },
+              ),
+              if (mapped > 0 || calibrated)
+                TvButton(label: 'Reset', onPressed: () => cfg.reset(d.descriptor)),
+            ]),
+          ]);
+        },
       ),
     );
   }
@@ -173,6 +278,7 @@ class _ControllerTestScreenState extends State<ControllerTestScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
         // Every controller button must be testable, so a single BACK (often
         // mapped to button B) does not leave the screen.
         final now = DateTime.now();

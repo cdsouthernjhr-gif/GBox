@@ -34,7 +34,11 @@ class SettingsState {
     this.defaultConsoleId,
     this.romFolders = const [],
     this.autoScan = true,
+    this.stickNavigation = true,
   });
+
+  /// Left stick / hat navigates the launcher using each controller's dead zone.
+  final bool stickNavigation;
 
   /// Rescan game folders at startup and when storage is connected.
   final bool autoScan;
@@ -79,6 +83,7 @@ class SettingsState {
           : m[SettingsKeys.defaultConsole],
       romFolders: folders,
       autoScan: (m[SettingsKeys.autoScan] ?? 'true') == 'true',
+      stickNavigation: (m[SettingsKeys.stickNavigation] ?? 'true') == 'true',
     );
   }
 }
@@ -95,6 +100,7 @@ abstract final class SettingsKeys {
   static const defaultConsole = 'gaming.default_console';
   static const romFolders = 'storage.rom_folders';
   static const autoScan = 'gaming.auto_scan';
+  static const stickNavigation = 'controller.stick_navigation';
 }
 
 class SettingsRepository {

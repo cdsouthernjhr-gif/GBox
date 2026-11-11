@@ -88,6 +88,14 @@ Issue found by tests and fixed: the Emulators screen tile header (name + 3 chips
 
 **Not verified:** no launch has been executed on a real device. Every launch acceptance test stays PENDING.
 
+## Phase 4 — Controllers
+
+Completed: profile model (bindings, calibration, dead zone, trigger threshold, vibration), repository on `controller_profiles`/`controller_mappings`, schema v3 + migration tests (v1/v2 → v3), `InputConfig.kt` (key remap), `StickNavigator` (dead zone, hysteresis, repeat), `ControllerVibration`, `ControllerConfigService`, mapping wizard, calibration screen, per-controller actions, stick-navigation setting, RetroArch autoconfig export. Tests: 113 total (15 new).
+
+Design notes: Android already synthesises D-pad keys from unhandled joystick motion with a fixed threshold. GAMEBOX now handles the motion itself so the per-controller dead zone applies. The wizard avoids the "pressing A also clicks the focused button" trap by having no focusable widgets while capturing.
+
+Issue found by tests and fixed: `PopScope(canPop: false)` callbacks popped a second time after programmatic `Navigator.pop` (setup screens and the Phase 1 controller test screen).
+
 ## Pending features
 
 Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.

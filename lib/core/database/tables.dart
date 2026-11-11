@@ -302,6 +302,9 @@ class ControllerProfiles extends Table {
   BoolColumn get vibrationEnabled =>
       boolean().withDefault(const Constant(true))();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+
+  /// Per-axis centre/min/max captured by the calibration screen (schema v3).
+  TextColumn get calibrationJson => text().nullable()();
 }
 
 @DataClassName('ControllerMappingRow')

@@ -156,6 +156,23 @@ class FakeGateway implements PlatformGateway {
   @override
   Stream<RawInputEvent> rawInput() => raw.stream;
 
+  Map<String, Object?>? lastInputConfig;
+  final vibrations = <int>[];
+
+  @override
+  Future<void> setInputConfig({
+    required Map<String, Map<int, int>> remaps,
+    required Map<String, double> deadZones,
+    required bool stickNavigation,
+  }) async =>
+      lastInputConfig = {'remaps': remaps, 'deadZones': deadZones, 'stickNavigation': stickNavigation};
+
+  @override
+  Future<bool> vibrate(int deviceId, {int durationMs = 250, int amplitude = 200}) async {
+    vibrations.add(deviceId);
+    return true;
+  }
+
   @override
   Future<List<Map<String, dynamic>>> storageVolumes() async =>
       (scan['storageVolumes'] as List).cast<Map<String, dynamic>>();

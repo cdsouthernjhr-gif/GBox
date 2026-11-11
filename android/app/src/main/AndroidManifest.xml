@@ -3,6 +3,8 @@
     <!-- Online/offline status and (from Phase 5) authorised downloads. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Controller rumble test and vibration settings (normal permission). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- TV boxes have no touchscreen; phones/tablets are still allowed. -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />

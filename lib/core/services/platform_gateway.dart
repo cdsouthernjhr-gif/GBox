@@ -80,6 +80,16 @@ abstract class PlatformGateway {
   Stream<Map<String, dynamic>> inputDeviceEvents();
   Stream<RawInputEvent> rawInput();
 
+  /// Pushes key remaps / dead zones (by InputDevice descriptor) to native.
+  Future<void> setInputConfig({
+    required Map<String, Map<int, int>> remaps,
+    required Map<String, double> deadZones,
+    required bool stickNavigation,
+  });
+
+  /// One-shot rumble; false if the controller has no vibrator.
+  Future<bool> vibrate(int deviceId, {int durationMs = 250, int amplitude = 200});
+
   Future<List<Map<String, dynamic>>> storageVolumes();
   Stream<Map<String, dynamic>> storageEvents();
   Future<String?> pickDirectory();
@@ -189,6 +199,24 @@ class MethodChannelGateway implements PlatformGateway {
   @override
   Stream<Map<String, dynamic>> inputDeviceEvents() =>
       _controllerEvents.receiveBroadcastStream().map(_map);
+
+  @override
+  Future<void> setInputConfig({
+    required Map<String, Map<int, int>> remaps,
+    required Map<String, double> deadZones,
+    required bool stickNavigation,
+  }) =>
+      _controllers.invokeMethod<bool>('setInputConfig', {
+        'remaps': remaps,
+        'deadZones': deadZones,
+        'stickNavigation': stickNavigation,
+      });
+
+  @override
+  Future<bool> vibrate(int deviceId, {int durationMs = 250, int amplitude = 200}) async =>
+      await _controllers.invokeMethod<bool>(
+          'vibrate', {'deviceId': deviceId, 'durationMs': durationMs, 'amplitude': amplitude}) ??
+      false;
 
   @override
   Stream<RawInputEvent> rawInput() => _rawInput

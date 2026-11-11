@@ -9,4 +9,6 @@
 **Artifacts** (GitHub Actions → *Android build* → artifact `gamebox-phase1-apks`):
 `app-debug.apk`, `app-armeabi-v7a-release.apk`, `app-arm64-v8a-release.apk`, `app-x86_64-release.apk`, `SHA256SUMS.txt`. Release APKs are signed with the debug key.
 
-**Verification status:** analyzer clean; 43 automated tests pass; CI build status is recorded in DEVELOPMENT_REPORT.md. **No on-device testing has been done yet.**
+**Minimum Android:** 7.0 (API 24). Android 6.0 isn't supported by this build (KNOWN_LIMITATIONS).
+
+**Verification status:** analyzer clean; 43 automated tests pass; APKs build successfully in CI (details and checksums in DEVELOPMENT_REPORT.md). **No on-device testing has been done yet.** The APKs are proven to build, not proven to run.

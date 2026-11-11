@@ -18,7 +18,7 @@ Consequence: Dart analysis and all Dart tests run locally. Gradle/Kotlin compila
 
 | Dependency | Min SDK / requirement | API 23 OK? | ABI | Decision |
 |---|---|---|---|---|
-| Flutter engine 3.47 | officially 24, hard error < 23 | builds with warning; **unverified** | armeabi-v7a, arm64-v8a, x86_64 | use; document |
+| Flutter engine 3.47 + AGP 9.1 | officially 24 | **no**: the built APK declares minSdk 24 even with `minSdk = 23` (CI runs #3/#4) | armeabi-v7a, arm64-v8a, x86_64 | use; minimum is Android 7.0; see KNOWN_LIMITATIONS |
 | drift / drift_flutter | pure Dart + sqlite3 | yes | — | use |
 | sqlite3 3.x (native assets) | prebuilt per-ABI SQLite | yes (NDK-built) | v7a, arm64, x86_64 | use |
 | path_provider | Flutter plugin, API 21+ | yes | — | use |
@@ -46,6 +46,26 @@ Consequence: Dart analysis and all Dart tests run locally. Gradle/Kotlin compila
 * Nav-rail logo row overflowed by 19 px at 960×540 logical. Fixed (found by the widget test).
 * Hardware was scanned twice on first boot. Fixed.
 * Widget-test hang when closing Drift under fake time. Fixed in the test harness.
+
+## Build results (GitHub Actions)
+
+| Run | Commit | Result |
+|---|---|---|
+| #1 | 6f49388 | analyzer, codegen check and 43 tests passed; **Kotlin compile failed** (`IntArray.mapNotNull` doesn't exist) |
+| #2 | 49b0d87 | **all steps passed**: analyze, tests, debug APK, per-ABI release APKs, artifact upload |
+| #3 | f37bdf4 | passed; badging now shows `minSdkVersion:'24'` despite `minSdk = 23` in Gradle |
+| #4 | 3f82f04 | passed; manifest-merger report: minSdkVersion 24 *INJECTED* from the build variant |
+
+APK details from run #2 (`aapt2 dump badging`, `sha256sum`):
+
+| File | Size | versionCode | native-code | SHA-256 |
+|---|---|---|---|---|
+| app-armeabi-v7a-release.apk | 16.8 MB | 1001 | armeabi-v7a | 187857457379b11e7696f6beae5b9014e1718305ffd423ee01d2cc007ea266c6 |
+| app-arm64-v8a-release.apk | 19.5 MB | 2001 | arm64-v8a | 180f7b2a199881afb9fab0f0960137eef896835e2832ff3efdbde39e3bbe6f67 |
+| app-x86_64-release.apk | 20.9 MB | 4001 | x86_64 | 130d25c978fc5590e955c280b7f3be01080dfd44a062611dd2f7ae307e15b48e |
+| app-debug.apk | 161.7 MB | 1 | arm64-v8a, armeabi-v7a, x86_64 | 2f86c9f8b3724dba8a9999456ea63252d41d0a03a279593eca148109a791dc65 |
+
+Every later run rebuilds the APKs, so checksums change per commit; each run's `SHA256SUMS.txt` is inside its artifact. Package `com.gamebox.console`, version 0.1.0, compileSdk/targetSdk 36, label GAMEBOX. Both `launchable-activity` and `leanback-launchable-activity` (with banner) are present. Touchscreen, leanback and gamepad are declared not required. Release APKs are signed with the debug key.
 
 ## Pending features
 

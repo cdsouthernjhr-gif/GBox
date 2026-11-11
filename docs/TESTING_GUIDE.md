@@ -22,7 +22,7 @@ flutter test integration_test/device_smoke_test.dart -d <device-id>
 
 | # | Test | Phase | Status |
 |---|---|---|---|
-| 1 | Installation | 1 | PENDING (needs device) |
+| 1 | Installation | 1 | APK builds (CI); install PENDING (needs Android 7.0+ device) |
 | 2 | Launcher selection (HOME role / Home settings) | 1 | PENDING (needs device) |
 | 3 | Device scanning | 1 | Logic PASSED (unit); on-device PENDING |
 | 4 | Database operations | 1 | PASSED (unit, in-memory SQLite) |

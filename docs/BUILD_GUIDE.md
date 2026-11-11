@@ -10,7 +10,7 @@
 | Kotlin | 2.4.0 | |
 | Gradle | 9.3.1 (wrapper) | |
 | compileSdk / targetSdk | 36 / 36 | Flutter defaults |
-| minSdk | **23 (Android 6.0)** | Flutter warns below 24; see KNOWN_LIMITATIONS |
+| minSdk | **24 (Android 7.0)** | verified via `aapt2 dump badging`; API 23 not achievable with this toolchain (KNOWN_LIMITATIONS) |
 | NDK | 28.2.13676358 | auto-installed by AGP if needed |
 
 ## Local build

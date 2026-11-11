@@ -29,9 +29,11 @@ android {
         applicationId = "com.gamebox.console"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // Android 6.0. Flutter officially supports API 24+; API 23 builds with a
-        // warning and is untested until verified on real hardware.
-        minSdk = 23
+        // Android 7.0 (API 24). Setting 23 here was tried: the build succeeds but
+        // the merged manifest still declares minSdkVersion 24 (injected from the
+        // variant), so API 24 is the real floor of this toolchain. See
+        // docs/KNOWN_LIMITATIONS.md "Android 6.0".
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)

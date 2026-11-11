@@ -6,6 +6,8 @@ GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-scr
 
 ## What works in Phase 1
 
+**Minimum Android version: 7.0 (API 24).** Android 6.0 was requested but isn't achievable with the current toolchain; see [KNOWN_LIMITATIONS](docs/KNOWN_LIMITATIONS.md).
+
 | Area | Implemented |
 |---|---|
 | Launcher | HOME / DEFAULT / LEANBACK_LAUNCHER intent filters, set or change the default launcher (RoleManager on Android 10+, Home settings otherwise), BACK never exits, HOME returns to the dashboard, Android apps drawer and Android Settings shortcut, so you're never locked out |
@@ -25,6 +27,8 @@ flutter pub get
 flutter test                 # 43 unit/database/widget tests
 flutter build apk --debug    # needs the Android SDK (platform 36)
 ```
+
+CI builds the APKs on every push: GitHub → Actions → **Android build** → artifact `gamebox-phase1-apks`.
 
 See [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) for the full toolchain and CI. Installation and launcher setup are covered in [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md).
 

@@ -2,7 +2,10 @@
 
 ## Platform / build
 
-* **Android 6.0 (API 23):** the APK declares `minSdk 23`. Flutter 3.47 officially supports API 24+ and prints a warning at 23. Android 6.0 support is **unverified** until the APK is run on an API 23 device. If the engine fails there, the fallback is an older Flutter release that supported API 23, which would mean re-validating every dependency.
+* **Android 6.0 (API 23) is NOT supported by the current build.** I set `minSdk = 23` in Gradle (Flutter 3.47 only warns at 23). The build succeeded, but `aapt2 dump badging` on every APK showed `minSdkVersion:'24'`. The manifest-merger report says the value was *INJECTED* from the build variant, so something in the AGP 9.1 + Flutter 3.47 build raises the floor to 24. A source search ruled out Flutter's Gradle plugin; the exact component wasn't identified. The Gradle file now states 24 explicitly. Options if Android 6.0 boxes matter:
+  1. Find what injects 24 (print `variant.minSdk` in `androidComponents.onVariants`, test with AGP 8.x), then retest on an API 23 device. Even if the manifest allows 23, the Flutter 3.47 engine is only supported on 24+.
+  2. Build a separate legacy flavour with an older Flutter release whose supported floor included API 23, and re-validate every dependency.
+  3. Accept Android 7.0 as the minimum. Most TV boxes still in use run 7.1 or later, but this is an assumption, not data.
 * **No device testing yet:** Phase 1 was built and tested without an Android device or emulator. All hardware-dependent behaviour is PENDING (see TESTING_GUIDE).
 * **Release signing:** without `key.properties`, the release APK uses the debug key.
 * The dev container couldn't download the Android SDK (`dl.google.com` blocked), so APKs are built in GitHub Actions only.

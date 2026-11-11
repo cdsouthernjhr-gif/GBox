@@ -1,111 +1,137 @@
 /// Universal Emulator Adapter contract (spec Part 9).
 ///
-/// The UI talks to adapters only through the emulator manager, never to
-/// emulator internals. Phase 1 ships the contract plus a generic external-app
-/// adapter that can detect and open an installed emulator. Per-emulator game
-/// launching (each emulator documents different intents/extras) is added in
-/// Phase 3 as one adapter class per emulator, after execution testing.
+/// Adapters are pure: given what is installed and where the game file is,
+/// they produce an [IntentSpec] (an Android intent described as data) or the
+/// reasons the game cannot be launched. The native layer only executes the
+/// spec. This keeps every launch rule unit-testable and keeps the UI away from
+/// emulator internals.
+///
+/// Every adapter states [verifiedOnDevice]. An adapter built from an
+/// emulator's documented launch interface but not yet executed on real
+/// hardware reports `false` and the UI labels it "experimental".
 library;
 
 import '../../core/constants/console_catalog.dart';
-import '../../core/services/platform_gateway.dart';
 
-enum InstallStatus { installed, notInstalled, unknown }
+/// Android intent described as data; executed by `gamebox/emulator` channel.
+class IntentSpec {
+  const IntentSpec({
+    required this.packageName,
+    this.className,
+    this.action,
+    this.categories = const [],
+    this.data,
+    this.mimeType,
+    this.extras = const {},
+    this.flags = const [],
+    this.grantReadUris = const [],
+  });
 
-class LaunchResult {
-  const LaunchResult.success() : ok = true, error = null;
-  const LaunchResult.failure(this.error) : ok = false;
-  final bool ok;
-  final String? error;
+  final String packageName;
+
+  /// Fully-qualified activity class, or null to let Android resolve it.
+  final String? className;
+  final String? action;
+  final List<String> categories;
+  final String? data;
+  final String? mimeType;
+  final Map<String, String> extras;
+
+  /// Names: newTask, clearTask, clearTop, noHistory.
+  final List<String> flags;
+
+  /// content:// URIs GAMEBOX holds read access to and passes on to the
+  /// emulator for this launch only (FLAG_GRANT_READ_URI_PERMISSION).
+  final List<String> grantReadUris;
+
+  Map<String, Object?> toMap() => {
+        'package': packageName,
+        'className': className,
+        'action': action,
+        'categories': categories,
+        'data': data,
+        'mimeType': mimeType,
+        'extras': extras,
+        'flags': flags,
+        'grantReadUris': grantReadUris,
+      };
 }
 
-abstract class EmulatorAdapter {
-  String get emulatorName;
-  List<String> get consoleIds;
-  IntegrationStrategy get strategy;
-  String? get installedVersion;
-  InstallStatus get installStatus;
-  int? get minAndroidSdk;
-  List<String> get supportedAbis;
-  List<String> supportedExtensions(String consoleId);
+/// Where the game file is, in every form the platform could provide.
+class LaunchTarget {
+  const LaunchTarget({
+    required this.consoleId,
+    required this.originalUri,
+    required this.extension,
+    this.filesystemPath,
+    this.contentUri,
+  });
+
+  final String consoleId;
+
+  /// URI/path stored in the library.
+  final String originalUri;
+  final String extension;
+
+  /// Real path, if one could be derived.
+  final String? filesystemPath;
+
+  /// content:// URI GAMEBOX may grant to the emulator, if any.
+  final String? contentUri;
+}
+
+class LaunchEnvironment {
+  const LaunchEnvironment({required this.installedPackage, required this.sdkInt});
+
+  /// Package of the installed emulator build being used.
+  final String installedPackage;
+  final int sdkInt;
+}
+
+/// A user-selectable option, e.g. a RetroArch core.
+class LaunchOption {
+  const LaunchOption({required this.key, required this.label, required this.values, required this.defaultValue});
+  final String key;
+  final String label;
+
+  /// value → human label
+  final Map<String, String> values;
+  final String defaultValue;
+}
+
+sealed class LaunchPlan {
+  const LaunchPlan();
+}
+
+class LaunchReady extends LaunchPlan {
+  const LaunchReady(this.spec, {this.notes = const []});
+  final IntentSpec spec;
+  final List<String> notes;
+}
+
+class LaunchBlocked extends LaunchPlan {
+  const LaunchBlocked(this.reasons);
+  final List<String> reasons;
+}
+
+abstract class GameLauncherAdapter {
+  /// Matches [KnownEmulator.id] in the catalogue.
+  String get emulatorId;
+  Set<String> get consoleIds;
+
+  /// True only after a successful launch on real hardware has been recorded
+  /// in docs/EMULATOR_INTEGRATION.md.
+  bool get verifiedOnDevice;
+
+  /// How the game file is handed over, for display.
   String get launchMechanism;
-  bool get supportsSaveStates;
-  bool get supportsControllers;
   List<String> get knownLimitations;
 
-  /// Re-checks installation status.
-  Future<InstallStatus> refresh();
+  List<LaunchOption> options(String consoleId) => const [];
 
-  /// Opens the emulator app itself (its own UI).
-  Future<LaunchResult> openEmulator();
+  LaunchPlan plan(LaunchTarget target, LaunchEnvironment env, Map<String, String> options);
 
-  /// Launches a specific game. Adapters that have not been execution-tested
-  /// must return a failure instead of guessing an intent.
-  Future<LaunchResult> launchGame({required String gameUri, required String consoleId});
-}
+  KnownEmulator get emulator => knownEmulators.firstWhere((e) => e.id == emulatorId);
 
-/// Generic adapter for a user-installed external emulator app.
-class ExternalAppAdapter implements EmulatorAdapter {
-  ExternalAppAdapter(this.emulator, this._gateway);
-
-  final KnownEmulator emulator;
-  final PlatformGateway _gateway;
-  String? _package;
-  String? _version;
-  InstallStatus _status = InstallStatus.unknown;
-
-  @override
-  String get emulatorName => emulator.name;
-  @override
-  List<String> get consoleIds => emulator.consoleIds;
-  @override
-  IntegrationStrategy get strategy => emulator.strategy;
-  @override
-  String? get installedVersion => _version;
-  @override
-  InstallStatus get installStatus => _status;
-  @override
-  int? get minAndroidSdk => emulator.minSdk;
-  @override
-  List<String> get supportedAbis =>
-      emulator.requiresArm64 ? const ['arm64-v8a'] : const ['armeabi-v7a', 'arm64-v8a'];
-  @override
-  List<String> supportedExtensions(String consoleId) =>
-      consoleById(consoleId)?.extensions ?? const [];
-  @override
-  String get launchMechanism => 'Android launch intent (package ${_package ?? emulator.packageIds.first})';
-  @override
-  bool get supportsSaveStates => true;
-  @override
-  bool get supportsControllers => true;
-  @override
-  List<String> get knownLimitations => [
-        'Direct game launch not yet implemented for this emulator (Phase 3).',
-        if (emulator.notes != null) emulator.notes!,
-      ];
-
-  @override
-  Future<InstallStatus> refresh() async {
-    final versions = await _gateway.installedVersions(emulator.packageIds);
-    _package = emulator.packageIds.where(versions.containsKey).firstOrNull;
-    _version = _package == null ? null : versions[_package];
-    _status = _package == null ? InstallStatus.notInstalled : InstallStatus.installed;
-    return _status;
-  }
-
-  @override
-  Future<LaunchResult> openEmulator() async {
-    if (_status == InstallStatus.unknown) await refresh();
-    final pkg = _package;
-    if (pkg == null) return const LaunchResult.failure('Emulator is not installed');
-    final ok = await _gateway.launchApp(pkg);
-    return ok
-        ? const LaunchResult.success()
-        : const LaunchResult.failure('Android could not start the emulator');
-  }
-
-  @override
-  Future<LaunchResult> launchGame({required String gameUri, required String consoleId}) async =>
-      const LaunchResult.failure(
-          'Game launching for this emulator is planned for Phase 3 and has not been tested yet.');
+  bool supports(String consoleId) => consoleIds.contains(consoleId);
 }

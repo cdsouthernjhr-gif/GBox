@@ -8,6 +8,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import com.gamebox.console.controllers.ControllerManager
 import com.gamebox.console.controllers.RawInputStream
+import com.gamebox.console.emulator.EmulatorLauncher
 import com.gamebox.console.hardware.HardwareScanner
 import com.gamebox.console.launcher.LauncherBridge
 import com.gamebox.console.services.Background
@@ -145,6 +146,19 @@ class MainActivity : FlutterActivity() {
                         result.success(false)
                     }
                 }
+                else -> result.notImplemented()
+            }
+        }
+
+        val emulatorLauncher = EmulatorLauncher(this)
+        MethodChannel(messenger, "gamebox/emulator").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "launch" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val spec = call.arguments as? Map<String, Any?>
+                    result.success(if (spec == null) mapOf("ok" to false, "error" to "No spec") else emulatorLauncher.launch(spec))
+                }
+                "shareableUri" -> result.success(emulatorLauncher.shareableUri(call.argument<String>("path")!!))
                 else -> result.notImplemented()
             }
         }

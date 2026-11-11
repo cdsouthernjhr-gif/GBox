@@ -107,6 +107,13 @@ abstract class PlatformGateway {
   Future<List<String>> pickFiles();
   Future<String?> pickImage();
 
+  // ---- Emulator launching (Phase 3) ----
+  /// Starts an intent spec (see IntentSpec.toMap). `{ok, code?, error?}`.
+  Future<Map<String, dynamic>> launchIntent(Map<String, Object?> spec);
+
+  /// FileProvider URI for a file in the GAMEBOX game folders, or null.
+  Future<String?> shareableUri(String path);
+
   Future<bool> isDefaultLauncher();
   Future<String> requestDefaultLauncher();
   Future<String> openHomeSettings();
@@ -132,6 +139,7 @@ class MethodChannelGateway implements PlatformGateway {
   static const _launcher = MethodChannel('gamebox/launcher');
   static const _controllers = MethodChannel('gamebox/controllers');
   static const _storage = MethodChannel('gamebox/storage');
+  static const _emulator = MethodChannel('gamebox/emulator');
   static const _controllerEvents = EventChannel('gamebox/controller_events');
   static const _rawInput = EventChannel('gamebox/raw_input');
   static const _connectivity = EventChannel('gamebox/connectivity');
@@ -260,6 +268,13 @@ class MethodChannelGateway implements PlatformGateway {
     final r = (await _storage.invokeMethod<List<Object?>>('pickImage')) ?? const [];
     return r.isEmpty ? null : r.first as String;
   }
+
+  @override
+  Future<Map<String, dynamic>> launchIntent(Map<String, Object?> spec) async =>
+      _map(await _emulator.invokeMethod<Object?>('launch', spec));
+
+  @override
+  Future<String?> shareableUri(String path) => _emulator.invokeMethod<String>('shareableUri', {'path': path});
 
   @override
   Future<bool> isDefaultLauncher() async =>

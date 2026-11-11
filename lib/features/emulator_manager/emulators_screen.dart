@@ -4,6 +4,7 @@ import '../../core/constants/console_catalog.dart';
 import '../../core/services/system_services.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../../integrations/emulator_adapters/launcher_registry.dart';
 import '../game_library/game_detail_screen.dart' show ratingColor;
 
 /// Lists supported external emulator apps and whether they are installed.
@@ -34,8 +35,9 @@ class EmulatorsScreen extends StatelessWidget {
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
                     'Install emulators from their official sources (e.g. the developer website or '
-                    'your app store). Game launching through these apps is added and tested in '
-                    'Phase 3 (NES, SNES, Game Boy, GBA, PS1) and Phase 6 (others).',
+                    'your app store). Phase 3: RetroArch (NES, SNES, Master System, Mega Drive, Game Boy, '
+                    'GBA, PS1) and DuckStation (PS1) can launch games. These launch methods are '
+                    'experimental until verified on a TV box. Other emulators follow in Phase 6.',
                     style: TextStyle(color: Colors.white60),
                   ),
                 );
@@ -78,13 +80,16 @@ class _EmulatorTile extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Text(e.name, style: t.titleLarge),
-              const SizedBox(width: 10),
+            // Wrap, not Row: name + chips exceed a 1080p tile width.
+            Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              Padding(padding: const EdgeInsets.only(right: 4), child: Text(e.name, style: t.titleLarge)),
               StatusChip(inst.isInstalled ? 'Installed ${inst.version ?? ''}'.trim() : 'Not installed',
                   color: inst.isInstalled ? Colors.greenAccent : Colors.white54),
-              const SizedBox(width: 6),
               StatusChip(e.strategy.name, color: Colors.white54),
+              if (launcherFor(e.id) != null)
+                const StatusChip('Launches games (experimental)', color: Colors.orangeAccent)
+              else
+                const StatusChip('Open only', color: Colors.white38),
             ]),
             const SizedBox(height: 4),
             Text('Licence: ${e.license}${e.requiresArm64 ? ' · 64-bit Android only' : ''}'

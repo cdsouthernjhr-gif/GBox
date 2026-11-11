@@ -78,6 +78,16 @@ Issues found by tests and fixed in Phase 2:
 * Game cards overflowed the grid cell by 4–19 px (fixed 4:3 artwork). Artwork now takes the remaining height.
 * `.chd`/`.pbp` signature checks were unreachable for PSP/PS2/GameCube/Wii. Moved before the console switch.
 
+## Phase 3 — First emulator integration
+
+Completed: adapter contract rewritten as pure launch planning (`IntentSpec` / `LaunchReady` / `LaunchBlocked`), RetroArch and DuckStation adapters, SAF→path resolver, `EmulatorLauncher.kt` + FileProvider, LaunchService (selection, history, session close on resume), per-console default profiles, Play / Play with… UI, Emulators screen capability chips. Tests: 98 total (18 new).
+
+Design finding: RetroArch takes file paths only, and Android 11+ hides `Android/data` from other apps. So RetroArch can't play games stored in the GAMEBOX folders created in Phase 2. GAMEBOX now detects this and explains it instead of launching into an error. DuckStation receives a FileProvider URI instead.
+
+Issue found by tests and fixed: the Emulators screen tile header (name + 3 chips) overflowed by 197 px at 960 px width.
+
+**Not verified:** no launch has been executed on a real device. Every launch acceptance test stays PENDING.
+
 ## Pending features
 
 Phases 2–8 as listed in KNOWN_LIMITATIONS → "Not yet implemented". All hardware acceptance tests are PENDING.

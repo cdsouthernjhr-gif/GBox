@@ -39,6 +39,15 @@
 * On Android 11+, some file managers can't open `Android/data/…`, where the GAMEBOX folders live. Copy games over USB from a PC (MTP shows the folder), or register your own folder instead.
 * Metadata and artwork are local/manual only until Phase 5.
 
+## Emulator launching (Phase 3)
+
+* **Experimental:** the RetroArch and DuckStation launch intents follow those emulators' published Android interfaces but haven't been executed on a device yet.
+* RetroArch needs a real file path. On Android 11+ it can't read GAMEBOX's own folders (`Android/data`). Keep RetroArch games in a regular folder (e.g. `ROMs/`) registered under STORAGE.
+* GAMEBOX can't check which RetroArch cores are installed. A missing core is reported by RetroArch itself.
+* The FileProvider only covers GAMEBOX folders on the **primary** volume. GAMEBOX folders on SD/USB are passed as paths.
+* Play time is the time GAMEBOX was in the background (an upper bound).
+* Only RetroArch and DuckStation can launch games. The other 8 detected emulators can only be opened (Phase 6).
+
 ## Not yet implemented (by phase)
 
-Game launching (Phase 3) · button mapping, profiles, calibration (Phase 4) · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.
+ · button mapping, profiles, calibration (Phase 4) · online sources, downloads, scraping (Phase 5) · additional emulators (Phase 6) · save manager, backups, benchmarks, compatibility import/submission, custom image wallpapers, temperature/CPU/FPS monitoring (Phase 7) · languages other than English.

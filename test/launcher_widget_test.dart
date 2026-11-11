@@ -28,7 +28,8 @@ void main() {
   late FakeGateway gateway;
   late AppServices services;
 
-  Future<void> boot(WidgetTester tester, {Map<String, dynamic>? scan, void Function(String appRoot)? prepare}) async {
+  Future<void> boot(WidgetTester tester,
+      {Map<String, dynamic>? scan, void Function(String appRoot)? prepare, void Function(FakeGateway)? configure}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
     tester.view.physicalSize = const Size(1920, 1080);
@@ -36,6 +37,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     gateway = FakeGateway(scan: scan);
+    configure?.call(gateway);
     final temp = Directory.systemTemp.createTempSync('gamebox_widget');
     addTearDown(() => temp.deleteSync(recursive: true));
     prepare?.call('${temp.path}/ext0');
@@ -180,6 +182,33 @@ void main() {
     await settle(tester);
     expect(find.text('Farm Life'), findsWidgets);
     expect(find.text('Space Quest'), findsNothing);
+    await shutdown(tester);
+  });
+
+  testWidgets('Play on the game page launches RetroArch and records the session', (tester) async {
+    await boot(
+      tester,
+      configure: (g) => g.installed['com.retroarch'] = '1.20.0',
+      prepare: (root) => File('$root/GAMEBOX/Games/NES/Space Quest.nes')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom()),
+    );
+    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    await tester.tap(find.text('Space Quest').last);
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Play with…'), findsOneWidget);
+
+    await tester.tap(find.text('Play'));
+    await settle(tester);
+    await settle(tester);
+    // The synthetic device is Android 9 (API 28), so RetroArch may read the
+    // GAMEBOX folder path directly.
+    expect(gateway.launchedSpecs, hasLength(1));
+    expect(gateway.launchedSpecs.single['className'], 'com.retroarch.browser.retroactivity.RetroActivityFuture');
+    expect(find.textContaining('Starting Space Quest in RetroArch'), findsOneWidget);
+    final game = (await tester.runAsync(() => services.db.select(services.db.games).get()))!.single;
+    expect(game.playCount, 1);
     await shutdown(tester);
   });
 }

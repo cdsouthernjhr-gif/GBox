@@ -458,6 +458,63 @@ class AppDatabase extends _$AppDatabase {
         ));
       });
 
+  // ------------------------------------------------- launching (Phase 3) --
+
+  /// Default emulator (and options such as the RetroArch core) for a console.
+  Future<EmulatorProfileRow?> defaultLaunchProfile(String consoleId) =>
+      (select(emulatorProfiles)
+            ..where((p) => p.consoleId.equals(consoleId) & p.isDefault.equals(true))
+            ..limit(1))
+          .getSingleOrNull();
+
+  Future<void> setDefaultLaunchProfile(String consoleId, String emulatorId, Map<String, String> options) =>
+      transaction(() async {
+        await (delete(emulatorProfiles)..where((p) => p.consoleId.equals(consoleId) & p.isDefault.equals(true))).go();
+        await into(emulatorProfiles).insert(EmulatorProfilesCompanion.insert(
+          emulatorId: emulatorId,
+          consoleId: Value(consoleId),
+          name: 'Default for $consoleId',
+          settingsJson: Value(jsonEncode(options)),
+          isDefault: const Value(true),
+        ));
+      });
+
+  Stream<List<EmulatorProfileRow>> watchDefaultLaunchProfiles() =>
+      (select(emulatorProfiles)..where((p) => p.isDefault.equals(true))).watch();
+
+  /// Records a launch: history row + last played + play count.
+  Future<int> startPlaySession(int gameId, String emulatorId, DateTime at) => transaction(() async {
+        final id = await into(gameHistory).insert(GameHistoryCompanion.insert(
+          gameId: gameId,
+          emulatorId: Value(emulatorId),
+          startedAt: at,
+        ));
+        await customStatement(
+          'UPDATE games SET last_played_at = ?, play_count = play_count + 1 WHERE id = ?',
+          [at.millisecondsSinceEpoch ~/ 1000, gameId],
+        );
+        return id;
+      });
+
+  /// Closes a session when the user returns to GAMEBOX. The duration is the
+  /// time GAMEBOX was in the background, i.e. an upper bound of play time.
+  Future<void> endPlaySession(int sessionId, DateTime at, {String exitStatus = 'returned'}) async {
+    final row = await (select(gameHistory)..where((h) => h.id.equals(sessionId))).getSingleOrNull();
+    if (row == null || row.endedAt != null) return;
+    await (update(gameHistory)..where((h) => h.id.equals(sessionId))).write(GameHistoryCompanion(
+      endedAt: Value(at),
+      durationSeconds: Value(at.difference(row.startedAt).inSeconds.clamp(0, 1 << 31)),
+      exitStatus: Value(exitStatus),
+    ));
+  }
+
+  Future<List<GameHistoryRow>> historyForGame(int gameId, {int limit = 10}) =>
+      (select(gameHistory)
+            ..where((h) => h.gameId.equals(gameId))
+            ..orderBy([(h) => OrderingTerm.desc(h.startedAt)])
+            ..limit(limit))
+          .get();
+
   /// Local cover artwork path per game (cached files only; never remote).
   Stream<Map<int, String>> watchCoverPaths() =>
       (select(gameArtworks)..where((a) => a.type.equals('cover')))

@@ -262,6 +262,24 @@ class FakeGateway implements PlatformGateway {
   @override
   Future<String?> pickImage() async => nextPickedImage;
 
+  // ---- launching fakes ----
+  final launchedSpecs = <Map<String, Object?>>[];
+  Map<String, dynamic> nextLaunchResult = {'ok': true};
+  String? fileProviderBase;
+
+  @override
+  Future<Map<String, dynamic>> launchIntent(Map<String, Object?> spec) async {
+    launchedSpecs.add(spec);
+    return nextLaunchResult;
+  }
+
+  @override
+  Future<String?> shareableUri(String path) async {
+    final base = fileProviderBase;
+    if (base == null || !path.startsWith(base)) return null;
+    return 'content://com.gamebox.console.files/gamebox/${path.substring(base.length)}';
+  }
+
   @override
   Future<bool> isDefaultLauncher() async => false;
 

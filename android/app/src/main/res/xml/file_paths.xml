@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only GAMEBOX game folders on the primary volume are shareable, and only
+     with a per-launch read grant to the chosen emulator. -->
+<paths>
+    <external-files-path name="gamebox" path="GAMEBOX/Games/" />
+</paths>

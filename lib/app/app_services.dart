@@ -9,6 +9,7 @@ import '../core/device/device_intelligence_service.dart';
 import '../core/services/platform_gateway.dart';
 import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
+import '../features/emulator_manager/launch_service.dart';
 import '../features/rom_manager/rom_library_service.dart';
 
 /// Dependency container. Built once at startup and exposed to widgets via
@@ -33,6 +34,13 @@ class AppServices {
       appRoots: appRoots ?? _defaultAppRoots,
       artworkDir: artworkDir ?? _defaultArtworkDir,
     );
+    launcher = LaunchService(
+      gateway: gateway,
+      db: db,
+      emulators: emulators,
+      device: device,
+      beforeLaunch: () => PaintingBinding.instance.imageCache.clear(),
+    );
   }
 
   /// App-specific external directories on every mounted volume (internal,
@@ -55,11 +63,15 @@ class AppServices {
   late final StorageService storage;
   late final EmulatorDetectionService emulators;
   late final RomLibraryService library;
+  late final LaunchService launcher;
+  AppLifecycleListener? _lifecycle;
   Timer? _autoScanDebounce;
 
   /// Settings load first (theme), then the cached hardware profile; slower
   /// scans continue in the background so the launcher appears quickly.
   Future<void> initialize() async {
+    // Returning from an emulator ends the play session.
+    _lifecycle = AppLifecycleListener(onResume: () => launcher.onReturned());
     await settings.initialize();
     await device.initialize(rescan: false);
     // Background work; failures are logged and never block the UI.
@@ -90,6 +102,7 @@ class AppServices {
 
   void dispose() {
     _autoScanDebounce?.cancel();
+    _lifecycle?.dispose();
     storage.volumes.removeListener(_onVolumesChanged);
     settings.dispose();
     connectivity.dispose();

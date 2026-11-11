@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utilities/formatters.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../emulator_manager/launch_dialogs.dart';
 import 'my_games_screen.dart' show headerLabel;
 
 /// Dedicated game information page.
@@ -230,11 +231,19 @@ class _BodyState extends State<_Body> {
                 ),
               const SizedBox(height: 16),
               Wrap(spacing: 10, runSpacing: 10, children: [
-                // Disabled until an execution-tested emulator adapter exists
-                // (Phase 3). No fake launch.
-                const TvButton(label: 'Play (Phase 3)', icon: Icons.play_arrow_rounded, onPressed: null),
                 TvButton(
                   autofocus: true,
+                  primary: true,
+                  label: 'Play',
+                  icon: Icons.play_arrow_rounded,
+                  onPressed: g.isMissing || _busy ? null : () => playGame(context, g),
+                ),
+                TvButton(
+                  label: 'Play with…',
+                  icon: Icons.tune_rounded,
+                  onPressed: g.isMissing || _busy ? null : () => playGameWith(context, g),
+                ),
+                TvButton(
                   label: widget.entry.isFavorite ? 'Remove favourite' : 'Add to favourites',
                   icon: widget.entry.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
                   onPressed: () => s.db.setFavorite(g.id, !widget.entry.isFavorite),

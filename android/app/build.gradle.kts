@@ -74,3 +74,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // FileProvider (Apache-2.0); minSdk 21.
+    implementation("androidx.core:core:1.13.1")
+}

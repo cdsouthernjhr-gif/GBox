@@ -79,7 +79,9 @@ With the secrets set, the **Android build** workflow signs the release APKs with
 1. Bump `version:` in `pubspec.yaml` and `appVersion` in `lib/core/constants/app_info.dart`. Update `docs/RELEASE_NOTES.md`.
 2. Make sure the **Android build** run for that commit is green, including both `device-tests` jobs.
 3. Dry run: Actions → **Release** → *Run workflow*. It checks the version and release notes, builds with your key, refuses debug-signed APKs and uploads them as the `gamebox-release-apks` artifact, **without publishing**. Install one on a box to make sure it works.
-4. Tag and push: `git tag v0.8.0 && git push origin v0.8.0`.
+4. Publish, either way:
+   * Actions → **Release** → *Run workflow* with **Publish** ticked. The workflow creates the tag `v<version>` on the selected commit and the release (it refuses if that tag already exists), or
+   * push a tag yourself: `git tag v0.8.0 && git push origin v0.8.0`.
 5. `.github/workflows/release.yml` checks the tag matches the pubspec version and `appVersion`, requires the signing secrets, runs the analyzer and tests, builds signed per-ABI APKs, **refuses to publish if they're debug-signed**, and creates a GitHub Release (marked pre-release for `v0.*`) with the APKs, `SHA256SUMS.txt` and this version's section of `docs/RELEASE_NOTES.md` as the description.
 
 ### Release checklist

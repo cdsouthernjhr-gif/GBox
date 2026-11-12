@@ -150,12 +150,17 @@ void main() {
       ],
     };
 
-    test('only licensed, secure, known-console entries are accepted', () {
+    test('secure, known-console entries are accepted; a missing licence is recorded, not rejected', () {
       final r = parseCatalog(jsonEncode(good));
       expect(r.name, 'Test Homebrew');
-      expect(r.entries.map((e) => e.title), ['Ok']);
-      expect(r.rejected, hasLength(4));
-      expect(r.rejected.join(), contains('no licence'));
+      expect(r.entries.map((e) => e.title), ['Ok', 'NoLicence']);
+      expect(r.entries.first.license, 'CC0-1.0');
+      expect(r.entries.first.licenseStated, isTrue);
+      expect(r.entries.last.license, isNull);
+      expect(r.entries.last.licenseStated, isFalse);
+      expect(r.entries.last.toJson()['license'], isNull);
+      expect(r.rejected, hasLength(3));
+      expect(r.rejected.join(), isNot(contains('licence')));
     });
 
     test('wrong format is rejected', () {

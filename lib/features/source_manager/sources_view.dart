@@ -128,7 +128,7 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
             ? Text(r.error!, style: const TextStyle(color: Colors.redAccent))
             : ListView(children: [
                 if (r.rejected.isNotEmpty)
-                  Text('${r.rejected.length} entries hidden (no licence, insecure link or unknown console).',
+                  Text('${r.rejected.length} entries hidden (insecure link, invalid checksum or unknown console).',
                       style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
                 for (final (i, CatalogEntry e) in r.entries.indexed)
                   Padding(
@@ -138,6 +138,7 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
                       scale: 1.01,
                       padding: const EdgeInsets.all(10),
                       onSelect: () async {
+                        if (!e.licenseStated && !await _confirmUnlicensed(c, e)) return;
                         await s.downloads.enqueue(url: e.url.toString(), sourceId: src.id, entry: e);
                         if (c.mounted) {
                           ScaffoldMessenger.of(context)
@@ -147,7 +148,7 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(e.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                         Text(
-                          '${consoleById(e.consoleId)?.name} · Licence: ${e.license} · '
+                          '${consoleById(e.consoleId)?.name} · ${e.licenseStated ? 'Licence: ${e.license}' : 'Licence not stated'} · '
                           '${e.size == null ? 'size unknown' : formatBytes(e.size)}'
                           '${e.sha256 != null ? ' · SHA-256 verified' : ''}',
                           style: const TextStyle(fontSize: 12, color: Colors.white70),
@@ -162,6 +163,30 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
       actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close'))],
     ),
   );
+}
+
+/// Entries whose catalogue states no licence need the user's own
+/// confirmation before downloading: GAMEBOX cannot verify the right to
+/// download them.
+Future<bool> _confirmUnlicensed(BuildContext context, CatalogEntry e) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text('${e.title}: licence not stated'),
+      content: const SizedBox(
+        width: 520,
+        child: Text('This catalogue does not say under which licence this game is distributed, so GAMEBOX '
+            'cannot tell whether downloading it is allowed.\n\n'
+            'Only continue if you own it, the developer offers it as a free download, or it is otherwise '
+            'legal for you to download.'),
+      ),
+      actions: [
+        TextButton(autofocus: true, onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('I am allowed, download')),
+      ],
+    ),
+  );
+  return ok == true;
 }
 
 Future<void> showAddSourceDialog(BuildContext context) async {
@@ -193,7 +218,7 @@ Future<void> showAddSourceDialog(BuildContext context) async {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   type.isCatalog
-                      ? 'The URL must return a GAMEBOX catalogue (JSON). Entries without a licence are hidden.'
+                      ? 'The URL must return a GAMEBOX catalogue (JSON). Entries without a licence are shown as "Licence not stated".'
                       : 'The URL must point directly to one file (not a web page).',
                   style: const TextStyle(fontSize: 12, color: Colors.white60),
                 ),

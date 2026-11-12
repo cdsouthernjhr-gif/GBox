@@ -354,7 +354,7 @@ class DownloadService {
           gameId,
           provider: 'catalog',
           providerId: row.url,
-          description: [?desc, if (licence != null) 'Licence: $licence'].join('\n\n'),
+          description: [?desc, licence != null ? 'Licence: $licence' : 'Licence not stated by the source'].join('\n\n'),
           developer: m['developer'] as String?,
           releaseDate: m['year'] as String?,
         );

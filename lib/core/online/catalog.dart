@@ -14,8 +14,9 @@
 /// }
 /// ```
 ///
-/// Every entry MUST state a licence; entries without one are rejected, so
-/// only distribution the publisher explicitly authorises is offered.
+/// `license` is optional. Entries without one are accepted and shown as
+/// "Licence not stated"; downloading such an entry asks the user to confirm
+/// they are allowed to download it, because GAMEBOX cannot check that.
 library;
 
 import 'dart:convert';
@@ -28,7 +29,7 @@ class CatalogEntry {
     required this.title,
     required this.consoleId,
     required this.url,
-    required this.license,
+    this.license,
     this.size,
     this.sha256,
     this.description,
@@ -40,7 +41,10 @@ class CatalogEntry {
   final String title;
   final String consoleId;
   final Uri url;
-  final String license;
+  /// Licence as stated by the catalogue, or null when it states none.
+  final String? license;
+
+  bool get licenseStated => license != null;
   final int? size;
   final String? sha256;
   final String? description;
@@ -100,10 +104,6 @@ CatalogParseResult parseCatalog(String body, {bool allowHttp = false}) {
     }
     final title = str(raw, 'title') ?? '#${i + 1}';
     final license = str(raw, 'license');
-    if (license == null) {
-      rejected.add('$title: no licence stated');
-      continue;
-    }
     final console = str(raw, 'console');
     if (console == null || consoleById(console) == null) {
       rejected.add('$title: unknown console "${raw['console']}"');

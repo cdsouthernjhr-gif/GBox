@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.8.1+9 — Sources without a licence (pre-release)
+
+**Changed:** GAMEBOX catalogue entries no longer need a `license` field. Entries without one are listed as "Licence not stated" instead of being hidden. Downloading one asks you to confirm you're allowed to download it (you own it, the developer offers it free, or it's otherwise legal for you). GAMEBOX can't verify this. Direct-link downloads are unchanged: they already needed your confirmation and no licence.
+
+**Unchanged:** HTTPS only, web pages and executables refused, SHA-256/size checks, safe ZIP extraction. No scraping, and no bypassing of logins, DRM or paywalls.
+
+**Downloads:** `app-arm64-v8a-release.apk` (64-bit Android), `app-armeabi-v7a-release.apk` (32-bit Android), `app-x86_64-release.apk`, checked with `SHA256SUMS.txt`. Signed with the same key as 0.8.0, so it installs over 0.8.0 without uninstalling. Still not tested on a physical TV box.
+
 ## 0.8.0+8 — Phase 8 Testing and release preparation (pre-release)
 
 **New:** on-device integration tests (`integration_test/device_test.dart`) and adb HOME-launcher checks, run in CI on Android emulators. Release signing from GitHub secrets. Tag-triggered release workflow that refuses debug-signed builds. Signing, release and checklist documentation.

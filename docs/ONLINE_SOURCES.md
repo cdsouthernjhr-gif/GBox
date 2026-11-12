@@ -42,7 +42,8 @@ Sources that need a login aren't supported in this phase. URLs with embedded cre
 }
 ```
 
-* `license` is **required**. Entries without it are hidden. That's how a publisher states that distribution is authorised.
+* `license` is **optional** (since 0.8.1). Entries without it are listed as **"Licence not stated"**. Before such an entry is downloaded, GAMEBOX asks you to confirm that you own the game, that the developer offers it as a free download, or that downloading it is otherwise legal for you. GAMEBOX can't check this, so the responsibility is yours. Imported games get "Licence not stated by the source" in their description.
+* Everything else is unchanged: HTTPS only, no embedded credentials, web pages and executables refused, SHA-256 and size checks, safe ZIP extraction. GAMEBOX still doesn't scrape web pages or bypass logins, DRM or paywalls.
 * `console` must be a GAMEBOX console id (`nes`, `snes`, `sms`, `megadrive`, `gb`, `gbc`, `gba`, `ps1`, `n64`, `saturn`, `nds`, `psp`, `dreamcast`, `gamecube`, `ps2`, `wii`).
 * `url` and `cover` must be `https://`. `sha256`, when given, is verified, and a mismatch deletes the file.
 * Catalogue size limit: 2 MB.

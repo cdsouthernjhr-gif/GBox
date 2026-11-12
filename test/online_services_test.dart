@@ -124,6 +124,29 @@ void main() {
     expect((await db.watchDownloadHistory().first).single.status, 'completed');
   });
 
+  test('catalogue entry without a licence is offered, downloaded and labelled "not stated"', () async {
+    final rom = nesRom();
+    srv.files['/free.nes'] = rom;
+    srv.files['/catalog.json'] = Uint8List.fromList(utf8.encode(jsonEncode({
+      'format': 'gamebox-catalog',
+      'version': 1,
+      'games': [
+        {'title': 'Free Demo', 'console': 'nes', 'url': srv.url('/free.nes').toString()},
+      ],
+    })));
+    final sid = await sources.add(
+        name: 'NoLic', url: srv.url('/catalog.json').toString(), type: SourceType.homebrewRepo, confirmedAuthorized: true);
+    final entry = (await sources.browse(sid)).entries.single;
+    expect(entry.licenseStated, isFalse);
+
+    final id = await downloads.enqueue(url: entry.url.toString(), sourceId: sid, entry: entry);
+    await downloads.idle();
+    final r = await row(id);
+    expect(r.status, 'completed', reason: r.errorMessage);
+    final meta = (await db.metadataForGame(r.importedGameId!))!;
+    expect(meta.description, contains('Licence not stated'));
+  });
+
   test('waits while offline and starts when back online', () async {
     srv.files['/a.gba'] = payload(2000);
     net.value = ConnectivityStatus.offline;

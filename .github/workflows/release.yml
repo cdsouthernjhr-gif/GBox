@@ -4,9 +4,13 @@ name: Release
 # (e.g. `git tag v0.8.0 && git push origin v0.8.0`). Requires the signing
 # secrets described in docs/BUILD_GUIDE.md; refuses to publish debug-signed
 # builds.
+# Run it by hand (Actions → Release → Run workflow) for a dry run: it builds
+# and verifies the signed APKs and uploads them as an artifact, but publishes
+# nothing. Use that to check the signing secrets before pushing a tag.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -29,13 +33,26 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Check tag matches pubspec version
+      - name: Check version and release notes
         run: |
-          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')
-          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([^+ ]+).*/\1/')
+          echo "pubspec version: $VERSION"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
             echo "Tag $GITHUB_REF_NAME does not match pubspec version v$VERSION" >&2
             exit 1
           fi
+          grep -q "appVersion = '$VERSION'" lib/core/constants/app_info.dart \
+            || { echo "lib/core/constants/app_info.dart appVersion is not $VERSION" >&2; exit 1; }
+          # Only this version's section of RELEASE_NOTES.md becomes the release text.
+          awk -v v="$VERSION" '
+            /^## / { if (found) exit; if (index($0, "## " v "+") == 1 || index($0, "## " v " ") == 1) found=1 }
+            found { print }
+          ' docs/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
+            echo "docs/RELEASE_NOTES.md has no section for $VERSION" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/notes.md"
 
       - name: Configure release signing (required)
         env:
@@ -75,11 +92,21 @@ jobs:
           done
           sha256sum *-release.apk | tee SHA256SUMS.txt
 
+      - name: Upload signed APKs (dry run and tag runs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamebox-release-apks
+          path: |
+            build/app/outputs/flutter-apk/*-release.apk
+            build/app/outputs/flutter-apk/SHA256SUMS.txt
+          if-no-files-found: error
+
       - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             build/app/outputs/flutter-apk/*-release.apk
             build/app/outputs/flutter-apk/SHA256SUMS.txt
-          body_path: docs/RELEASE_NOTES.md
+          body_path: ${{ runner.temp }}/notes.md
           prerelease: ${{ contains(github.ref_name, '-') || startsWith(github.ref_name, 'v0.') }}

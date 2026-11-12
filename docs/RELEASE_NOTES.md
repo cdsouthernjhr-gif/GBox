@@ -8,7 +8,9 @@
 
 **Still PENDING:** every physical TV-box test, all emulator (RetroArch, DuckStation, …) launches, controllers, USB/SD. Android 6.0 isn't supported.
 
-**Artifacts:** the `gamebox-apks` CI artifact. No GitHub Release has been published; publishing needs the signing secrets and a version tag (BUILD_GUIDE).
+**Downloads:** `app-arm64-v8a-release.apk` for 64-bit Android, `app-armeabi-v7a-release.apk` for 32-bit Android (common on budget boxes even with a 64-bit CPU), `app-x86_64-release.apk` for x86 boxes and emulators. Check them against `SHA256SUMS.txt`. Installation: docs/INSTALLATION_GUIDE.md. This is a **pre-release** for testers: it has been run on Android emulators, not yet on a TV box.
+
+**Upgrading from earlier test builds:** builds before 0.8.0 were signed with a debug key. Android won't update an app signed with a different key, so uninstall the old GAMEBOX first. This deletes its local library database; game files in your own folders are kept, and files inside `Android/data/com.gamebox.console/` are deleted.
 
 ## 0.7.0+7 — Phase 7 Advanced features (pre-release, not for distribution)
 

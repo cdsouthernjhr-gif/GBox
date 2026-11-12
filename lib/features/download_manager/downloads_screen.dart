@@ -223,7 +223,6 @@ Future<void> showAddDownloadDialog(BuildContext context) async {
   final url = TextEditingController();
   final sha = TextEditingController();
   String? console;
-  var confirmed = false;
   String? error;
   await showDialog<void>(
     context: context,
@@ -251,20 +250,6 @@ Future<void> showAddDownloadDialog(BuildContext context) async {
                   console = ids[(ids.indexOf(console) + 1) % ids.length];
                 }),
               ),
-              const SizedBox(height: 8),
-              TvFocusable(
-                scale: 1.0,
-                color: Colors.transparent,
-                padding: const EdgeInsets.all(6),
-                onSelect: () => setState(() => confirmed = !confirmed),
-                child: Row(children: [
-                  Icon(confirmed ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text('I own this file or it is licensed to me / freely distributable (homebrew, public domain).'),
-                  ),
-                ]),
-              ),
               if (error != null) Text(error!, style: const TextStyle(color: Colors.redAccent)),
             ]),
           ),
@@ -273,10 +258,6 @@ Future<void> showAddDownloadDialog(BuildContext context) async {
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              if (!confirmed) {
-                setState(() => error = 'Please confirm you are allowed to download this file.');
-                return;
-              }
               try {
                 await s.downloads.enqueue(url: url.text, consoleId: console, expectedSha256: sha.text.isEmpty ? null : sha.text);
                 if (c.mounted) Navigator.pop(c);

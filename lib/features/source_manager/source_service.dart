@@ -48,16 +48,12 @@ class SourceService {
     required String name,
     required String url,
     required SourceType type,
-    required bool confirmedAuthorized,
     String? category,
     String? description,
   }) async {
     if (name.trim().isEmpty) throw ArgumentError('Enter a name');
-    final check = validateUrl(url, allowHttp: _engine.allowHttp);
+    final check = validateUrl(url, allowHttp: _engine.httpAllowed);
     if (!check.ok) throw ArgumentError(check.error);
-    if (!confirmedAuthorized) {
-      throw ArgumentError('Please confirm that you are allowed to download the games from this source.');
-    }
     return _db.addSource(GameSourcesCompanion.insert(
       name: name.trim(),
       url: check.uri.toString(),
@@ -96,7 +92,7 @@ class SourceService {
     }
     try {
       final body = await _engine.fetchText(Uri.parse(s.url));
-      final r = parseCatalog(body, allowHttp: _engine.allowHttp);
+      final r = parseCatalog(body, allowHttp: _engine.httpAllowed);
       return BrowseResult(name: r.name, entries: r.entries, rejected: r.rejected, error: r.error);
     } catch (e) {
       return BrowseResult(error: 'Could not load the catalogue: $e');

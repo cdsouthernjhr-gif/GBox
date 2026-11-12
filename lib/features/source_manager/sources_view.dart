@@ -138,7 +138,6 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
                       scale: 1.01,
                       padding: const EdgeInsets.all(10),
                       onSelect: () async {
-                        if (!e.licenseStated && !await _confirmUnlicensed(c, e)) return;
                         await s.downloads.enqueue(url: e.url.toString(), sourceId: src.id, entry: e);
                         if (c.mounted) {
                           ScaffoldMessenger.of(context)
@@ -165,37 +164,12 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
   );
 }
 
-/// Entries whose catalogue states no licence need the user's own
-/// confirmation before downloading: GAMEBOX cannot verify the right to
-/// download them.
-Future<bool> _confirmUnlicensed(BuildContext context, CatalogEntry e) async {
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (c) => AlertDialog(
-      title: Text('${e.title}: licence not stated'),
-      content: const SizedBox(
-        width: 520,
-        child: Text('This catalogue does not say under which licence this game is distributed, so GAMEBOX '
-            'cannot tell whether downloading it is allowed.\n\n'
-            'Only continue if you own it, the developer offers it as a free download, or it is otherwise '
-            'legal for you to download.'),
-      ),
-      actions: [
-        TextButton(autofocus: true, onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('I am allowed, download')),
-      ],
-    ),
-  );
-  return ok == true;
-}
-
 Future<void> showAddSourceDialog(BuildContext context) async {
   final s = servicesOf(context);
   final name = TextEditingController();
   final url = TextEditingController();
   final desc = TextEditingController();
   var type = SourceType.homebrewRepo;
-  var confirmed = false;
   String? error;
   await showDialog<void>(
     context: context,
@@ -223,18 +197,6 @@ Future<void> showAddSourceDialog(BuildContext context) async {
                   style: const TextStyle(fontSize: 12, color: Colors.white60),
                 ),
               ),
-              const SizedBox(height: 8),
-              TvFocusable(
-                scale: 1.0,
-                color: Colors.transparent,
-                padding: const EdgeInsets.all(6),
-                onSelect: () => setState(() => confirmed = !confirmed),
-                child: Row(children: [
-                  Icon(confirmed ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded),
-                  const SizedBox(width: 8),
-                  const Expanded(child: Text('I am allowed to download the games this source offers.')),
-                ]),
-              ),
               if (error != null) Text(error!, style: const TextStyle(color: Colors.redAccent)),
             ]),
           ),
@@ -245,7 +207,7 @@ Future<void> showAddSourceDialog(BuildContext context) async {
             onPressed: () async {
               try {
                 final id = await s.sources.add(
-                    name: name.text, url: url.text, type: type, confirmedAuthorized: confirmed, description: desc.text);
+                    name: name.text, url: url.text, type: type, description: desc.text);
                 if (c.mounted) Navigator.pop(c);
                 await s.sources.check(id);
               } on ArgumentError catch (e) {

@@ -122,6 +122,16 @@ void main() {
       final from = Uri.parse('https://a.org/x');
       expect(validateRedirect(from, Uri.parse('https://b.org/y')).ok, isTrue);
       expect(validateRedirect(from, Uri.parse('http://b.org/y'), allowHttp: true).ok, isFalse);
+      // Only when the user allowed http:// downloads.
+      expect(validateRedirect(from, Uri.parse('http://b.org/y'), allowDowngrade: true).ok, isTrue);
+    });
+
+    test('http:// only when the user allows it', () {
+      final e = DownloadEngine();
+      expect(e.httpAllowed, isFalse);
+      expect(validateUrl('http://a.org/x.nes', allowHttp: e.httpAllowed).ok, isFalse);
+      e.userAllowsHttp = true;
+      expect(validateUrl('http://a.org/x.nes', allowHttp: e.httpAllowed).ok, isTrue);
     });
 
     test('file names are sanitised', () {

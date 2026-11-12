@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.8.2+10 — Downloads without restrictions (pre-release)
+
+**Changed:** no more confirmations. Sources are added, catalogue entries (with or without a licence) and direct links are downloaded without asking you to confirm you're allowed to. Whether you may download a game is your responsibility.
+
+**New settings (Settings → Downloads):** *Allow http:// downloads* (off by default) accepts unencrypted http:// sources, links and redirects. *Largest allowed download* goes up to 64 GB or **No limit**.
+
+**Kept, for your device's safety:** web pages are refused (GAMEBOX needs a direct file link and doesn't scrape sites), apps/executables are never downloaded or run, free space is checked, ZIP archives are checked for path traversal and archive bombs, and SHA-256 is verified when known. GAMEBOX doesn't bypass logins, DRM or paywalls.
+
+**Downloads:** per-ABI APKs and `SHA256SUMS.txt`, signed with the same key as 0.8.0 (installs over it). Not yet tested on a physical TV box.
+
 ## 0.8.1+9 — Sources without a licence (pre-release)
 
 **Changed:** GAMEBOX catalogue entries no longer need a `license` field. Entries without one are listed as "Licence not stated" instead of being hidden. Downloading one asks you to confirm you're allowed to download it (you own it, the developer offers it free, or it's otherwise legal for you). GAMEBOX can't verify this. Direct-link downloads are unchanged: they already needed your confirmation and no licence.

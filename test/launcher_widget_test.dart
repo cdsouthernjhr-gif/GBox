@@ -355,6 +355,9 @@ void main() {
     }
     await tester.scrollUntilVisible(find.text('Performance & benchmarks'), 200,
         scrollable: find.byType(Scrollable).last);
+    // Bring the whole row on screen (scrollUntilVisible can stop at the edge).
+    await tester.ensureVisible(find.text('Performance & benchmarks'));
+    await settle(tester);
     await tester.tap(find.text('Performance & benchmarks'));
     await settle(tester);
     await settle(tester);

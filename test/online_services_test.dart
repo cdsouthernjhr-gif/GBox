@@ -99,7 +99,7 @@ void main() {
         Uint8List.fromList(utf8.encode(jsonEncode(catalog(sha: sha256.convert(rom).toString()))));
 
     final sid = await sources.add(
-        name: 'Test', url: srv.url('/catalog.json').toString(), type: SourceType.homebrewRepo, confirmedAuthorized: true);
+        name: 'Test', url: srv.url('/catalog.json').toString(), type: SourceType.homebrewRepo);
     expect(await sources.check(sid), contains('1 games'));
     final browse = await sources.browse(sid);
     final entry = browse.entries.single;
@@ -135,7 +135,7 @@ void main() {
       ],
     })));
     final sid = await sources.add(
-        name: 'NoLic', url: srv.url('/catalog.json').toString(), type: SourceType.homebrewRepo, confirmedAuthorized: true);
+        name: 'NoLic', url: srv.url('/catalog.json').toString(), type: SourceType.homebrewRepo);
     final entry = (await sources.browse(sid)).entries.single;
     expect(entry.licenseStated, isFalse);
 
@@ -261,17 +261,13 @@ void main() {
     expect(() => downloads.enqueue(url: srv.url('/a.nes').toString(), expectedSha256: 'abc'), throwsArgumentError);
   });
 
-  test('sources: authorisation confirmation, web pages flagged, removal', () async {
-    expect(
-      () => sources.add(name: 'X', url: srv.url('/a.nes').toString(), type: SourceType.directUrl, confirmedAuthorized: false),
-      throwsArgumentError,
-    );
+  test('sources: added without any confirmation, web pages flagged, removal', () async {
     final page = await sources.add(
-        name: 'Page', url: srv.url('/page').toString(), type: SourceType.userHosting, confirmedAuthorized: true);
+        name: 'Page', url: srv.url('/page').toString(), type: SourceType.userHosting);
     expect(await sources.check(page), contains('web page'));
     srv.files['/bad.json'] = Uint8List.fromList(utf8.encode('{"format":"nope"}'));
     final bad = await sources.add(
-        name: 'Bad', url: srv.url('/bad.json').toString(), type: SourceType.customHttpApi, confirmedAuthorized: true);
+        name: 'Bad', url: srv.url('/bad.json').toString(), type: SourceType.customHttpApi);
     expect(await sources.check(bad), contains('Not a GAMEBOX catalogue'));
     await sources.remove(bad);
     expect((await db.watchSources().first).map((s) => s.name), ['Page']);

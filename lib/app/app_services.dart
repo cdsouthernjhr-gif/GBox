@@ -63,6 +63,9 @@ class AppServices {
       },
     );
     final engine = downloadEngine ?? DownloadEngine(freeSpace: gateway.freeSpace);
+    void applyHttpSetting() => engine.userAllowsHttp = settings.state.value.allowHttpDownloads;
+    settings.state.addListener(applyHttpSetting);
+    applyHttpSetting();
     sources = SourceService(db, engine);
     Future<String> gameboxRoot() async {
       final roots = await (appRoots ?? _defaultAppRoots)();

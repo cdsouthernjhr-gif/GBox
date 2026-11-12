@@ -106,8 +106,15 @@ class DownloadEngine {
   DownloadEngine({this.allowHttp = false, this.freeSpace, HttpClient Function()? clientFactory})
       : _clientFactory = clientFactory ?? HttpClient.new;
 
-  /// Tests against a local server only.
+  /// Accept http:// (tests against a local server).
   final bool allowHttp;
+
+  /// The user's "Allow http:// downloads" setting: accepts http:// URLs and
+  /// https → http redirects. Off by default.
+  bool userAllowsHttp = false;
+
+  /// Whether http:// addresses are accepted right now.
+  bool get httpAllowed => allowHttp || userAllowsHttp;
 
   /// Free bytes at a directory, or null if unknown.
   final Future<int?> Function(String dir)? freeSpace;
@@ -136,7 +143,7 @@ class DownloadEngine {
         await res.drain<void>().catchError((_) {});
         if (loc == null) throw _Fail('Redirect without a target');
         final next = current.resolve(loc);
-        final check = validateRedirect(current, next, allowHttp: allowHttp);
+        final check = validateRedirect(current, next, allowHttp: allowHttp, allowDowngrade: userAllowsHttp);
         if (!check.ok) throw _Fail(check.error!);
         current = next;
         continue;
@@ -148,7 +155,7 @@ class DownloadEngine {
 
   /// HEAD (falling back to a 1-byte GET) to check that a source answers.
   Future<ProbeResult> probe(Uri url) async {
-    final check = validateUrl(url.toString(), allowHttp: allowHttp);
+    final check = validateUrl(url.toString(), allowHttp: httpAllowed);
     if (!check.ok) return ProbeResult(error: check.error);
     final client = _client();
     try {
@@ -177,7 +184,7 @@ class DownloadEngine {
 
   /// Downloads a small text document (e.g. a catalogue), max [maxBytes].
   Future<String> fetchText(Uri url, {int maxBytes = 2 * 1024 * 1024}) async {
-    final check = validateUrl(url.toString(), allowHttp: allowHttp);
+    final check = validateUrl(url.toString(), allowHttp: httpAllowed);
     if (!check.ok) throw _Fail(check.error!);
     final client = _client();
     try {
@@ -201,7 +208,7 @@ class DownloadEngine {
     void Function(String destinationPath)? onDestination,
     CancelToken? token,
   }) async {
-    final check = validateUrl(r.url.toString(), allowHttp: allowHttp);
+    final check = validateUrl(r.url.toString(), allowHttp: httpAllowed);
     if (!check.ok) return DownloadOutcome(OutcomeKind.failed, error: check.error);
     token ??= CancelToken();
     final client = _client();

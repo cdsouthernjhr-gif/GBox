@@ -38,6 +38,7 @@ class SettingsState {
     this.pauseDownloadsWhilePlaying = true,
     this.autoImportDownloads = true,
     this.downloadMaxGb = 8,
+    this.allowHttpDownloads = false,
     this.saveFolders = const [],
     this.accentColor,
     this.wallpaperImagePath,
@@ -60,6 +61,9 @@ class SettingsState {
 
   /// Largest single download allowed.
   final int downloadMaxGb;
+
+  /// Accept plain http:// sources and downloads (unencrypted).
+  final bool allowHttpDownloads;
 
   /// Left stick / hat navigates the launcher using each controller's dead zone.
   final bool stickNavigation;
@@ -111,6 +115,7 @@ class SettingsState {
       pauseDownloadsWhilePlaying: (m[SettingsKeys.pauseDownloadsWhilePlaying] ?? 'true') == 'true',
       autoImportDownloads: (m[SettingsKeys.autoImportDownloads] ?? 'true') == 'true',
       downloadMaxGb: int.tryParse(m[SettingsKeys.downloadMaxGb] ?? '') ?? 8,
+      allowHttpDownloads: (m[SettingsKeys.allowHttpDownloads] ?? 'false') == 'true',
       saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
       accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
       wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
@@ -156,6 +161,7 @@ abstract final class SettingsKeys {
   static const pauseDownloadsWhilePlaying = 'downloads.pause_while_playing';
   static const autoImportDownloads = 'downloads.auto_import';
   static const downloadMaxGb = 'downloads.max_size_gb';
+  static const allowHttpDownloads = 'downloads.allow_http';
   static const saveFolders = 'saves.folders';
   static const accentColor = 'theme.accent_color';
   static const wallpaperImage = 'theme.wallpaper_image';

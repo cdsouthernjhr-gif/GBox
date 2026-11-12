@@ -187,11 +187,18 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             value: st.autoImportDownloads,
             onChanged: (v) => s.settings.set(SettingsKeys.autoImportDownloads, v),
           ),
+          _Toggle(
+            title: 'Allow http:// downloads',
+            subtitle: 'Also accept unencrypted http:// sources and links. The connection is not private and '
+                'the file can be altered on the way; prefer https:// or a SHA-256 checksum',
+            value: st.allowHttpDownloads,
+            onChanged: (v) => s.settings.set(SettingsKeys.allowHttpDownloads, v),
+          ),
           _Choice<int>(
             title: 'Largest allowed download',
             value: st.downloadMaxGb,
-            values: const [1, 2, 4, 8, 16],
-            label: (v) => '$v GB',
+            values: const [1, 2, 4, 8, 16, 32, 64, 0],
+            label: (v) => v == 0 ? 'No limit (free space is still checked)' : '$v GB',
             onChanged: (v) => s.settings.set(SettingsKeys.downloadMaxGb, v),
           ),
           const SizedBox(height: 12),

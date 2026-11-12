@@ -93,7 +93,7 @@ class DownloadService {
     String? expectedSha256,
     CatalogEntry? entry,
   }) async {
-    final check = validateUrl(url, allowHttp: _engine.allowHttp);
+    final check = validateUrl(url, allowHttp: _engine.httpAllowed);
     if (!check.ok) throw ArgumentError(check.error);
     final sha = (expectedSha256 ?? entry?.sha256)?.trim().toLowerCase();
     if (sha != null && sha.isNotEmpty && !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) {
@@ -169,7 +169,8 @@ class DownloadService {
         allowedExtensions: _allowedExtensions,
         expectedSha256: row.expectedHash,
         expectedSize: row.catalogJson == null ? null : row.totalBytes,
-        maxBytes: maxGb * 1024 * 1024 * 1024,
+        // 0 = no limit (free space is still checked).
+        maxBytes: maxGb <= 0 ? 1 << 62 : maxGb * 1024 * 1024 * 1024,
       ),
       token: token,
       onDestination: (path) =>

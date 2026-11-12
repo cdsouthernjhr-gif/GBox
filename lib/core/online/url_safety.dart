@@ -15,9 +15,10 @@ class UrlCheck {
 
 /// Validates a user-supplied source or download URL.
 ///
-/// * HTTPS only (certificates are verified by the platform; GAMEBOX never
-///   disables verification). [allowHttp] exists for tests against a local
-///   server only.
+/// * HTTPS by default (certificates are verified by the platform; GAMEBOX
+///   never disables verification). Plain http:// is accepted when
+///   [allowHttp] is set: by the user's "Allow http:// downloads" setting, or
+///   by tests against a local server.
 /// * No embedded credentials (`user:pass@host`) — GAMEBOX does not handle
 ///   authentication in this phase and never bypasses it.
 /// * No control characters, sane length, a real host.
@@ -32,7 +33,7 @@ UrlCheck validateUrl(String input, {bool allowHttp = false}) {
   if (uri == null || !uri.hasScheme || uri.host.isEmpty) return const UrlCheck.bad('Not a valid web address');
   final scheme = uri.scheme.toLowerCase();
   if (scheme != 'https' && !(allowHttp && scheme == 'http')) {
-    return const UrlCheck.bad('Only secure https:// addresses are allowed');
+    return const UrlCheck.bad('Only https:// addresses are allowed. To use http://, turn on Settings → Downloads → Allow http:// downloads');
   }
   if (uri.userInfo.isNotEmpty) {
     return const UrlCheck.bad('Addresses with a user name or password are not supported');
@@ -40,12 +41,13 @@ UrlCheck validateUrl(String input, {bool allowHttp = false}) {
   return UrlCheck.ok(uri);
 }
 
-/// A redirect is followed only if the target is itself valid and does not
-/// downgrade from https to http.
-UrlCheck validateRedirect(Uri from, Uri to, {bool allowHttp = false}) {
-  final check = validateUrl(to.toString(), allowHttp: allowHttp);
+/// A redirect is followed only if the target is itself valid and, unless
+/// [allowDowngrade] (the user allowed http://), does not downgrade from https
+/// to http.
+UrlCheck validateRedirect(Uri from, Uri to, {bool allowHttp = false, bool allowDowngrade = false}) {
+  final check = validateUrl(to.toString(), allowHttp: allowHttp || allowDowngrade);
   if (!check.ok) return check;
-  if (from.scheme == 'https' && to.scheme != 'https') {
+  if (!allowDowngrade && from.scheme == 'https' && to.scheme != 'https') {
     return const UrlCheck.bad('Redirect from https to an insecure address was blocked');
   }
   return check;

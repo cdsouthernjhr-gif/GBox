@@ -48,7 +48,20 @@ if [ "$STATUS" != 0 ]; then
 fi
 
 echo "== Install debug APK for launcher checks"
-timeout 300 adb install -r -g build/app/outputs/flutter-apk/app-debug.apk
+# The API 24 emulator sometimes hangs on install (runs #18 and #23): bounded
+# attempts, restarting adb in between.
+for attempt in 1 2 3; do
+  if timeout 180 adb install -r -g build/app/outputs/flutter-apk/app-debug.apk; then
+    break
+  fi
+  if [ "$attempt" = 3 ]; then
+    echo "adb install failed 3 times" >&2
+    exit 1
+  fi
+  echo "adb install attempt $attempt failed or hung; restarting adb"
+  adb kill-server; adb start-server
+  wait_for_package_manager
+done
 
 echo "== HOME intent resolves to GAMEBOX as a candidate"
 adb shell dumpsys package com.gamebox.console | tr -d '\r' > /tmp/pkg.txt

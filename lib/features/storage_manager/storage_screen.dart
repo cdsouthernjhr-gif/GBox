@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/constants/console_catalog.dart';
+import '../../core/storage/gamebox_layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utilities/formatters.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -12,6 +13,7 @@ import '../../shared/widgets/tv_widgets.dart';
 import '../game_library/my_games_screen.dart' show ScanStatusBanner;
 import '../rom_manager/rom_library_service.dart';
 import '../save_manager/save_widgets.dart';
+import 'library_location_widgets.dart';
 
 class StorageScreen extends StatelessWidget {
   const StorageScreen({super.key});
@@ -60,6 +62,8 @@ class StorageScreen extends StatelessWidget {
       ],
       child: ListView(children: [
         const ScanStatusBanner(),
+        const LibraryLocationSection(),
+        const SizedBox(height: 18),
         const SectionHeader('Storage devices'),
         ValueListenableBuilder<List<StorageVolumeInfo>>(
           valueListenable: s.storage.volumes,
@@ -102,7 +106,11 @@ class StorageScreen extends StatelessWidget {
         const SizedBox(height: 18),
         const SaveFoldersSection(),
         const SizedBox(height: 18),
-        const SectionHeader('GAMEBOX folders',
+        const EmulatorSaveFoldersSection(),
+        const SizedBox(height: 18),
+        const BiosSection(),
+        const SizedBox(height: 18),
+        const SectionHeader('GAMEBOX app folders',
             subtitle: 'Created automatically on every connected volume; no permission needed. '
                 'Copy games into Games/<console>/ with a PC (USB cable) or a file manager.'),
         FutureBuilder<List<LibraryRoot>>(
@@ -122,7 +130,9 @@ class StorageScreen extends StatelessWidget {
           'GAMEBOX/\n'
           '  Games/  ${consoleCatalog.map((c) => c.folderName).join('/  ')}/\n'
           '  Artwork/  Covers/  Screenshots/  Backgrounds/\n'
-          '  Saves/  Backups/  Downloads/',
+          '  Saves/  ${saveLayouts.map((l) => l.root.substring(6)).join('/  ')}/\n'
+          '  BIOS/  ${[for (final b in biosInfo) consoleById(b.consoleId)!.folderName, 'RetroArch'].join('/  ')}/\n'
+          '  Backups/  Downloads/  Exports/',
           style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5, color: Colors.white70),
         ),
       ]),
@@ -143,7 +153,8 @@ class StorageScreen extends StatelessWidget {
       ),
     );
     if (ok != true) return;
-    await s.gateway.releaseDirectory(uri);
+    // The library location keeps its access; only stop scanning it.
+    if (uri != s.settings.state.value.libraryLocation) await s.gateway.releaseDirectory(uri);
     await s.settings.setRomFolders(s.settings.state.value.romFolders.where((u) => u != uri).toList());
   }
 }

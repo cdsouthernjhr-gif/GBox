@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/constants/console_catalog.dart';
 import '../../core/database/app_database.dart';
 import '../../core/errors/app_logger.dart';
+import '../../core/storage/gamebox_layout.dart';
 import '../../core/rom/console_detector.dart';
 import '../../core/rom/rom_header_validator.dart';
 import '../../core/rom/scan_planner.dart';
@@ -125,11 +126,7 @@ class RomLibraryService {
     for (final base in await _appRoots()) {
       final root = '$base/GAMEBOX';
       try {
-        for (final sub in [
-          for (final c in consoleCatalog) 'Games/${c.folderName}',
-          'Artwork/Covers', 'Artwork/Screenshots', 'Artwork/Backgrounds',
-          'Saves', 'Backups', 'Downloads',
-        ]) {
+        for (final sub in gameboxFolders()) {
           await Directory('$root/$sub').create(recursive: true);
         }
         roots.add(root);
@@ -201,6 +198,7 @@ class RomLibraryService {
       return RootScanResult(root: root, available: false, error: '$e');
     }
 
+    entries = entries.where((e) => !isNonGameFolder(e.dirSegments)).toList();
     final plan = planScan(entries, detector);
     final seen = {for (final e in entries) e.uri};
     final known = {for (final f in await _db.filesUnderRoot(root.uri)) f.uri: f};
@@ -407,11 +405,20 @@ class RomLibraryService {
       entries.add(ScannedEntry(
           uri: path, name: name, dirSegments: dirs, size: st.size, lastModified: st.modified.millisecondsSinceEpoch));
     }
+    return _importEntries(entries, consoleId: consoleId);
+  }
+
+  /// Imports files already placed in a public library folder (SAF tree
+  /// [treeUri]); [entries] carry their folder path relative to the tree.
+  Future<List<int>> importDocuments(List<ScannedEntry> entries, {required String treeUri, String? consoleId}) =>
+      _importEntries(entries, consoleId: consoleId, rootUri: treeUri);
+
+  Future<List<int>> _importEntries(List<ScannedEntry> entries, {String? consoleId, String? rootUri}) async {
     final plan = planScan(entries, detector);
     final ids = <int>[];
     Future<void> add(PlannedGame g) async {
       final known = await _db.fileByUri(g.primary.uri);
-      ids.add(known?.gameId ?? await _importPlanned(g));
+      ids.add(known?.gameId ?? await _importPlanned(g, rootUri: rootUri));
     }
 
     for (final g in plan.games) {

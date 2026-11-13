@@ -35,14 +35,25 @@ class RomFiles(private val context: Context) {
      * is in [extensions] are returned, each with its folder path relative to
      * the tree root. Hidden entries (starting with '.') are skipped.
      */
-    fun scanTree(treeUriString: String, extensions: Set<String>, maxDepth: Int, maxFiles: Int): Map<String, Any?> {
+    fun scanTree(
+        treeUriString: String,
+        extensions: Set<String>,
+        maxDepth: Int,
+        maxFiles: Int,
+        subPath: String? = null,
+    ): Map<String, Any?> {
         val treeUri = Uri.parse(treeUriString)
-        val rootId = DocumentsContract.getTreeDocumentId(treeUri)
+        val treeRoot = DocumentsContract.getTreeDocumentId(treeUri)
+        val prefix = segments(subPath)
+        // Start below the tree root when a sub-folder is given; paths in the
+        // result stay relative to the tree root.
+        val rootId = if (prefix.isEmpty()) treeRoot else (findDir(treeUri, prefix)
+            ?: return mapOf("files" to emptyList<Any>(), "folders" to 0, "truncated" to false))
         val files = ArrayList<Map<String, Any?>>()
         var folders = 0
         var truncated = false
         val queue = ArrayDeque<Pair<String, List<String>>>()
-        queue.add(rootId to emptyList())
+        queue.add(rootId to prefix)
         val projection = arrayOf(
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
@@ -61,7 +72,7 @@ class RomFiles(private val context: Context) {
                     if (name.startsWith(".")) continue
                     val mime = c.getString(2)
                     if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                        if (dir.size < maxDepth) queue.add(id to (dir + name))
+                        if (dir.size - prefix.size < maxDepth) queue.add(id to (dir + name))
                         continue
                     }
                     val ext = name.substringAfterLast('.', "").lowercase()
@@ -84,6 +95,117 @@ class RomFiles(private val context: Context) {
             if (truncated) break
         }
         return mapOf("files" to files, "folders" to folders, "truncated" to truncated)
+    }
+
+    private fun segments(path: String?): List<String> =
+        path?.split('/')?.map { it.trim() }?.filter { it.isNotEmpty() && it != "." && it != ".." } ?: emptyList()
+
+    /** Document id of the child [name] of [parentId], or null. */
+    private fun findChild(treeUri: Uri, parentId: String, name: String): Pair<String, Boolean>? {
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentId)
+        resolver.query(
+            children,
+            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE),
+            null, null, null,
+        )?.use { c ->
+            while (c.moveToNext()) {
+                if (c.getString(1) == name) {
+                    return c.getString(0) to (c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR)
+                }
+            }
+        }
+        return null
+    }
+
+    private fun childNames(treeUri: Uri, parentId: String): List<String> {
+        val names = ArrayList<String>()
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentId)
+        resolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
+            while (c.moveToNext()) c.getString(0)?.let { names.add(it) }
+        }
+        return names
+    }
+
+    /** Existing folder at [path] below the tree root, or null. */
+    private fun findDir(treeUri: Uri, path: List<String>): String? {
+        var id = DocumentsContract.getTreeDocumentId(treeUri)
+        for (name in path) {
+            val child = findChild(treeUri, id, name) ?: return null
+            if (!child.second) return null
+            id = child.first
+        }
+        return id
+    }
+
+    /** Folder at [path] below the tree root, created where missing. */
+    private fun makeDir(treeUri: Uri, path: List<String>): String {
+        var id = DocumentsContract.getTreeDocumentId(treeUri)
+        for (name in path) {
+            val child = findChild(treeUri, id, name)
+            id = if (child != null) {
+                if (!child.second) throw IllegalStateException("$name exists and is not a folder")
+                child.first
+            } else {
+                val parent = DocumentsContract.buildDocumentUriUsingTree(treeUri, id)
+                val created = DocumentsContract.createDocument(resolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, name)
+                    ?: throw IllegalStateException("Cannot create folder $name")
+                DocumentsContract.getDocumentId(created)
+            }
+        }
+        return id
+    }
+
+    /** Creates every folder in [paths] (relative to the tree root). */
+    fun ensureDirs(treeUriString: String, paths: List<String>): Map<String, Any?> {
+        val treeUri = Uri.parse(treeUriString)
+        var ok = 0
+        val failed = ArrayList<String>()
+        for (p in paths) {
+            try {
+                makeDir(treeUri, segments(p))
+                ok++
+            } catch (e: Exception) {
+                failed.add("$p: ${e.message}")
+            }
+        }
+        return mapOf("ok" to ok, "failed" to failed)
+    }
+
+    /**
+     * Copies the local file [srcPath] into the folder [dirPath] of the tree
+     * (created if needed) as [name]; an existing file is never overwritten,
+     * a free name "name (2).ext" is used instead. Returns the document URI.
+     */
+    fun writeToTree(treeUriString: String, dirPath: String, name: String, srcPath: String): String {
+        val treeUri = Uri.parse(treeUriString)
+        val dirId = makeDir(treeUri, segments(dirPath))
+        val existing = childNames(treeUri, dirId).map { it.lowercase() }.toSet()
+        val dot = name.lastIndexOf('.')
+        val stem = if (dot > 0) name.substring(0, dot) else name
+        val ext = if (dot > 0) name.substring(dot) else ""
+        var finalName = name
+        var n = 2
+        while (finalName.lowercase() in existing) finalName = "$stem ($n)$ext".also { n++ }
+        val parent = DocumentsContract.buildDocumentUriUsingTree(treeUri, dirId)
+        val doc = DocumentsContract.createDocument(resolver, parent, "application/octet-stream", finalName)
+            ?: throw IllegalStateException("Cannot create $finalName")
+        try {
+            resolver.openOutputStream(doc, "w")?.use { out ->
+                File(srcPath).inputStream().use { it.copyTo(out, 256 * 1024) }
+            } ?: throw IllegalStateException("Cannot write $finalName")
+        } catch (e: Exception) {
+            try { DocumentsContract.deleteDocument(resolver, doc) } catch (_: Exception) {}
+            throw e
+        }
+        return DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getDocumentId(doc)).toString()
+    }
+
+    /** File names directly inside [dirPath] of the tree (empty if missing). */
+    fun listNames(treeUriString: String, dirPath: String): List<String> {
+        val treeUri = Uri.parse(treeUriString)
+        val id = findDir(treeUri, segments(dirPath)) ?: return emptyList()
+        return childNames(treeUri, id)
     }
 
     /** True when the tree is still granted and its root can be queried. */

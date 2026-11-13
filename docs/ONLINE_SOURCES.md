@@ -80,8 +80,8 @@ During extraction the bytes actually written are counted again, so a lying heade
 * **Offline**: queued items wait and start automatically when the network is back.
 * **While playing** (Settings → Downloads, on by default): the active download pauses when a game launches and continues when you return to GAMEBOX.
 * Downloads interrupted by an app restart resume from the `.part` file.
-* **Auto import** (on by default): finished downloads with a known console (catalogue entries, or a console chosen when adding) are added to the library. Otherwise use *Import into library* and pick the console.
-* Files go to `GAMEBOX/Downloads/` in app storage on the primary volume.
+* **Auto import** (on by default): finished downloads whose console is known (catalogue entries, a console chosen when adding, or a unique file extension such as `.nes`/`.gba`) are moved into their console folder and added to the library. Otherwise use *Import into library* and pick the console.
+* Files are downloaded to `GAMEBOX/Downloads/` in app storage on the primary volume, then moved into `Games/<CONSOLE>/` of the library location when the console is known (see STORAGE_SUPPORT.md → Library location).
 * Downloads run while the GAMEBOX process is alive. There's no foreground service yet, so Android may stop a long download if GAMEBOX stays in the background for a long time. It resumes from the partial file when GAMEBOX runs again.
 
 ## Metadata providers

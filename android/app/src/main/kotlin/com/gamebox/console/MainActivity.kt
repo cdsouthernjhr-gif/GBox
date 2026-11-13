@@ -116,6 +116,7 @@ class MainActivity : FlutterActivity() {
                         (call.argument<List<String>>("extensions") ?: emptyList()).toSet(),
                         call.argument<Int>("maxDepth") ?: 8,
                         call.argument<Int>("maxFiles") ?: 20000,
+                        call.argument<String>("subPath"),
                     )
                 }
                 "treeAccessible" -> Background.run(result) {
@@ -149,6 +150,18 @@ class MainActivity : FlutterActivity() {
                 }
                 "copyToLocal" -> Background.run(result) {
                     RomFiles(applicationContext).copyToLocal(call.argument<String>("uri")!!, call.argument<String>("dest")!!)
+                }
+                "ensureTreeDirs" -> Background.run(result) {
+                    RomFiles(applicationContext).ensureDirs(
+                        call.argument<String>("uri")!!, call.argument<List<String>>("paths") ?: emptyList())
+                }
+                "writeToTree" -> Background.run(result) {
+                    RomFiles(applicationContext).writeToTree(
+                        call.argument<String>("uri")!!, call.argument<String>("dir")!!,
+                        call.argument<String>("name")!!, call.argument<String>("src")!!)
+                }
+                "listTreeNames" -> Background.run(result) {
+                    RomFiles(applicationContext).listNames(call.argument<String>("uri")!!, call.argument<String>("dir")!!)
                 }
                 "copyFromLocal" -> Background.run(result) {
                     RomFiles(applicationContext).copyFromLocal(call.argument<String>("src")!!, call.argument<String>("dest")!!)

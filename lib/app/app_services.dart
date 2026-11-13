@@ -5,11 +5,13 @@ import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/database/app_database.dart';
+import '../core/errors/app_logger.dart';
 import '../core/device/device_intelligence_service.dart';
 import '../core/services/platform_gateway.dart';
 import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
+import '../features/storage_manager/library_location_service.dart';
 import '../features/controller_manager/controller_config_service.dart';
 import '../core/online/download_engine.dart';
 import '../features/download_manager/download_service.dart';
@@ -77,6 +79,16 @@ class AppServices {
     saves = SaveService(gateway: gateway, db: db, settings: settings, gameboxRoot: gameboxRoot);
     compatibility = CompatibilityService(db, device);
     benchmarks = BenchmarkService(db, device);
+    location = LibraryLocationService(
+      gateway: gateway,
+      settings: settings,
+      appRoot: gameboxRoot,
+      saves: saves,
+      installedEmulators: () => [
+        for (final i in emulators.installations.value ?? const <EmulatorInstallation>[])
+          if (i.isInstalled) i.emulator.id,
+      ],
+    );
     downloads = DownloadService(
       db: db,
       engine: engine,
@@ -88,6 +100,7 @@ class AppServices {
         if (roots.isEmpty) throw StateError('No storage available for downloads');
         return '${roots.first}/GAMEBOX/Downloads';
       },
+      location: location,
     );
   }
 
@@ -119,6 +132,9 @@ class AppServices {
   late final CompatibilityService compatibility;
   late final BenchmarkService benchmarks;
 
+  /// Where the GAMEBOX folder lives (app folder or the user's public folder).
+  late final LibraryLocationService location;
+
   /// `<primary app folder>/GAMEBOX`.
   late final Future<String> Function() gameboxRoot;
   AppLifecycleListener? _lifecycle;
@@ -145,6 +161,15 @@ class AppServices {
       ]);
       if (settings.state.value.rescanOnStartup || device.state.value.profile == null) {
         await device.scan();
+      }
+      // Recreate any missing folders of the layout (e.g. deleted by the user,
+      // or new folders added by an update), and register save folders of
+      // newly installed emulators when a public folder is used.
+      try {
+        await location.ensureStructure();
+        if (location.isPublic) await location.registerSaveFolders();
+      } catch (e, st) {
+        AppLogger.instance.error('Preparing the GAMEBOX folders failed', e, st);
       }
       await downloads.initialize();
       if (settings.state.value.autoScan) await library.scanAll();

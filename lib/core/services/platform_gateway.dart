@@ -99,9 +99,23 @@ abstract class PlatformGateway {
   // ---- ROM manager (Phase 2) ----
   /// Recursively lists files under a SAF tree whose extension is in
   /// [extensions]. Returns `{files: [...], folders: n, truncated: bool}`.
+  ///
+  /// [subPath] starts the walk at that folder below the tree root (returned
+  /// `dir` values stay relative to the root); a missing folder gives no files.
   Future<Map<String, dynamic>> scanTree(String treeUri, Set<String> extensions,
-      {int maxDepth = 8, int maxFiles = 20000});
+      {int maxDepth = 8, int maxFiles = 20000, String? subPath});
   Future<bool> treeAccessible(String treeUri);
+
+  /// Creates the folders [paths] (relative to the tree root) where missing.
+  /// Returns `{ok: n, failed: [...]}`.
+  Future<Map<String, dynamic>> ensureTreeDirs(String treeUri, List<String> paths);
+
+  /// Copies a local file into [dir] of the tree as [name] (a free name is
+  /// chosen if it exists; nothing is overwritten). Returns the document URI.
+  Future<String> writeToTree(String treeUri, String dir, String name, String srcPath);
+
+  /// Names of the entries directly inside [dir] of the tree.
+  Future<List<String>> listTreeNames(String treeUri, String dir);
   Future<List<bool>> existsMany(List<String> uris);
 
   /// `{sha1, crc32, size}` of the whole file.
@@ -260,13 +274,27 @@ class MethodChannelGateway implements PlatformGateway {
 
   @override
   Future<Map<String, dynamic>> scanTree(String treeUri, Set<String> extensions,
-          {int maxDepth = 8, int maxFiles = 20000}) async =>
+          {int maxDepth = 8, int maxFiles = 20000, String? subPath}) async =>
       _map(await _storage.invokeMethod<Object?>('scanTree', {
         'uri': treeUri,
         'extensions': extensions.toList(),
         'maxDepth': maxDepth,
         'maxFiles': maxFiles,
+        'subPath': ?subPath,
       }));
+
+  @override
+  Future<Map<String, dynamic>> ensureTreeDirs(String treeUri, List<String> paths) async =>
+      _map(await _storage.invokeMethod<Object?>('ensureTreeDirs', {'uri': treeUri, 'paths': paths}));
+
+  @override
+  Future<String> writeToTree(String treeUri, String dir, String name, String srcPath) async =>
+      (await _storage.invokeMethod<String>('writeToTree', {'uri': treeUri, 'dir': dir, 'name': name, 'src': srcPath}))!;
+
+  @override
+  Future<List<String>> listTreeNames(String treeUri, String dir) async =>
+      ((await _storage.invokeMethod<List<Object?>>('listTreeNames', {'uri': treeUri, 'dir': dir})) ?? const [])
+          .cast<String>();
 
   @override
   Future<bool> treeAccessible(String treeUri) async =>

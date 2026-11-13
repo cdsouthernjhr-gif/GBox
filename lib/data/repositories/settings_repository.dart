@@ -39,6 +39,7 @@ class SettingsState {
     this.autoImportDownloads = true,
     this.downloadMaxGb = 8,
     this.allowHttpDownloads = false,
+    this.libraryLocation,
     this.saveFolders = const [],
     this.accentColor,
     this.wallpaperImagePath,
@@ -64,6 +65,10 @@ class SettingsState {
 
   /// Accept plain http:// sources and downloads (unencrypted).
   final bool allowHttpDownloads;
+
+  /// SAF tree URI of a user-chosen public GAMEBOX folder, or null for the
+  /// app-specific folder (`Android/data/com.gamebox.console/files/GAMEBOX`).
+  final String? libraryLocation;
 
   /// Left stick / hat navigates the launcher using each controller's dead zone.
   final bool stickNavigation;
@@ -116,6 +121,7 @@ class SettingsState {
       autoImportDownloads: (m[SettingsKeys.autoImportDownloads] ?? 'true') == 'true',
       downloadMaxGb: int.tryParse(m[SettingsKeys.downloadMaxGb] ?? '') ?? 8,
       allowHttpDownloads: (m[SettingsKeys.allowHttpDownloads] ?? 'false') == 'true',
+      libraryLocation: (m[SettingsKeys.libraryLocation]?.isEmpty ?? true) ? null : m[SettingsKeys.libraryLocation],
       saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
       accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
       wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
@@ -162,6 +168,7 @@ abstract final class SettingsKeys {
   static const autoImportDownloads = 'downloads.auto_import';
   static const downloadMaxGb = 'downloads.max_size_gb';
   static const allowHttpDownloads = 'downloads.allow_http';
+  static const libraryLocation = 'storage.library_location';
   static const saveFolders = 'saves.folders';
   static const accentColor = 'theme.accent_color';
   static const wallpaperImage = 'theme.wallpaper_image';

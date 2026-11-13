@@ -74,6 +74,13 @@ void main() {
       // FileProvider must expose GAMEBOX game files to emulators.
       final shared = await gateway.shareableUri(rom.path);
       expect(shared, startsWith('content://com.gamebox.console.files/'));
+
+      // The full folder layout (games, saves, BIOS) exists on device storage.
+      expect(await services.location.ensureStructure(), isEmpty);
+      final root = await services.gameboxRoot();
+      for (final f in ['Games/PS1', 'Saves/RetroArch/saves', 'BIOS/PS1', 'BIOS/RetroArch', 'Exports']) {
+        expect(Directory('$root/$f').existsSync(), isTrue, reason: f);
+      }
     } finally {
       rom.deleteSync();
       await services.db.close();

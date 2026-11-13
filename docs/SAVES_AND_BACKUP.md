@@ -14,6 +14,24 @@ Emulators keep saves in **their own folders**. GAMEBOX doesn't move them. You re
 
 Emulators that keep saves inside `Android/data/<their package>` can't be registered on Android 11+. Android blocks it. Configure such emulators to use a normal folder.
 
+### Suggested save folders (0.9.0)
+
+GAMEBOX can't change where an emulator saves; each emulator has its own setting. STORAGE → **Emulator save folders** shows one suggested folder per emulator inside the GAMEBOX folder and how to point the emulator at it:
+
+| Emulator | Folder | How |
+|---|---|---|
+| RetroArch | `Saves/RetroArch/saves`, `Saves/RetroArch/states` | Settings → Directory → Save Files / Save States |
+| PPSSPP | `Saves/PPSSPP` | Settings → System → Memory Stick folder (saves then live in `PSP/SAVEDATA` inside it) |
+| DuckStation, Mupen64Plus FZ, melonDS, DraStic, Flycast, Redream, Dolphin, AetherSX2 | `Saves/<name>` | generic advice: use the emulator's save/memory-card/data folder setting if it has one; menu names differ between versions, so none are claimed |
+
+With a **public** library folder, the folders of installed emulators are registered with the Save Manager automatically (at startup and when the folder is chosen). They're stored as `<tree URI>#Saves/<Emulator>`, and only that part of the tree is scanned. With the app folder, register them by hand with **Register for installed emulators**; note that on Android 11+ emulators can't write into the app folder, so use a public folder for saves.
+
+Backups (`Backups/saves`) and exports (`Exports/`) are still written to the app folder.
+
+### BIOS (0.9.0)
+
+GAMEBOX never provides BIOS files. STORAGE → **BIOS** lists `BIOS/<CONSOLE>/` per console, which file names the emulators commonly look for (e.g. `scph5501.bin` for RetroArch Beetle PSX, `dc_boot.bin` for Flycast), whether one is present, and whether it's required or optional (built-in replacement available). Point the emulator at that folder; for RetroArch set Settings → Directory → System/BIOS to `BIOS/RetroArch` and copy the files there (Dreamcast files in `dc/`). File names come from the emulators' documentation as commonly published; check your emulator's documentation if one isn't recognised.
+
 ### Kinds (kept strictly separate)
 
 | Kind | Examples | Note |

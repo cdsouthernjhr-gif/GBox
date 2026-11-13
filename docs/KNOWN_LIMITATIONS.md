@@ -79,6 +79,14 @@
 * System-wide CPU load can't be read by apps on Android 8+.
 * Library restore applies at the next start.
 
+## Library location (0.9.0)
+
+* Creating folders and writing files in a public folder (SAF) is unit-tested against a simulated tree only. Some firmwares' document providers may behave differently; on-device verification is PENDING.
+* Firmwares without the system folder picker can only use the app folder.
+* GAMEBOX can't set emulators' save or BIOS folders; you point each emulator at them once. Only RetroArch and PPSSPP get specific menu directions.
+* Changing the library location doesn't move existing games.
+* Save backups and exports are still kept in the app folder (deleted with GAMEBOX).
+
 ## Not yet implemented (by phase)
 
  · languages other than English.

@@ -16,7 +16,10 @@ import '../../core/rom/scan_planner.dart' show imageExtensions;
 import '../../core/rom/title_normalizer.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../core/rom/scan_planner.dart' show ScannedEntry, planScan;
+import '../../core/storage/gamebox_layout.dart';
 import '../rom_manager/rom_library_service.dart';
+import '../storage_manager/library_location_service.dart';
 
 class ImportOutcome {
   const ImportOutcome({this.gameIds = const [], this.needsConsole = false, this.error});
@@ -40,7 +43,12 @@ class DownloadService {
     required this._connectivity,
     required this._downloadsDir,
     this.retryBaseDelay = const Duration(seconds: 2),
+    this._location,
   });
+
+  /// When set, imported downloads are moved into `Games/<CONSOLE>/` of the
+  /// library location (app folder or the user's public GAMEBOX folder).
+  final LibraryLocationService? _location;
 
   final AppDatabase _db;
   final DownloadEngine _engine;
@@ -207,8 +215,15 @@ class DownloadService {
         await _history(row, 'completed', path: o.path, size: o.size, sha: o.sha256);
         AppLogger.instance.info('Download completed: ${o.path}');
         final fresh = await _db.downloadById(row.id);
-        if (_settings.state.value.autoImportDownloads && fresh.consoleId != null) {
-          await importIntoLibrary(row.id);
+        // With a library location, files whose console can be detected (or
+        // ZIPs of one console) are sorted in as well; otherwise only files
+        // whose console is known.
+        if (_settings.state.value.autoImportDownloads && (fresh.consoleId != null || _location != null)) {
+          try {
+            await importIntoLibrary(row.id);
+          } catch (e, s) {
+            AppLogger.instance.error('Importing download ${row.id} failed', e, s);
+          }
         }
       case OutcomeKind.paused:
         // A gameplay pause re-queues so the download continues afterwards.
@@ -286,9 +301,12 @@ class DownloadService {
   Future<void> remove(int id) async {
     if (_activeId == id) _token?.stop(StopReason.cancel);
     final row = await _db.downloadById(id);
-    if (row.filePath != null) {
-      await _deleteQuietly(row.filePath!);
-      await _deleteQuietly('${row.filePath}.part');
+    final path = row.filePath;
+    if (path != null && path.startsWith('content://')) {
+      await _location?.delete(path);
+    } else if (path != null) {
+      await _deleteQuietly(path);
+      await _deleteQuietly('$path.part');
     }
     await _db.deleteDownload(id);
   }
@@ -317,24 +335,71 @@ class DownloadService {
   Future<ImportOutcome> importIntoLibrary(int id, {String? consoleId}) async {
     final row = await _db.downloadById(id);
     final path = row.filePath;
+    if (path != null && path.startsWith('content://') && row.importedGameId != null) {
+      return ImportOutcome(gameIds: [row.importedGameId!]); // already placed and imported
+    }
     if (row.status != 'completed' || path == null || !await File(path).exists()) {
       return const ImportOutcome(error: 'The download is not complete or the file was removed.');
     }
-    final console = consoleId ?? row.consoleId;
-    var files = [path];
-    String? root;
+    var console = consoleId ?? row.consoleId;
+    final location = _location;
+
+    if (extensionOf(path) == '7z') {
+      return const ImportOutcome(error: '.7z archives cannot be extracted by GAMEBOX. Some emulators open them directly.');
+    }
+
     if (extensionOf(path) == 'zip') {
       final dir = '${stripExtension(path)}_files';
       final r = await extractZip(path, dir);
       if (!r.ok) return ImportOutcome(error: 'Archive rejected: ${r.error}');
-      files = r.files;
-      root = dir;
-    } else if (extensionOf(path) == '7z') {
-      return const ImportOutcome(error: '.7z archives cannot be extracted by GAMEBOX. Some emulators open them directly.');
+      // One console for the whole archive: the chosen/catalogue console, or
+      // the one every game inside was detected as.
+      console ??= _singleConsole(r.files, dir);
+      if (location != null && console != null) {
+        final stem = stripExtension(path).split('/').last;
+        final placed = await location.placeFolder(dir, '${gamesDirFor(console)}/$stem');
+        await _deleteQuietly(path);
+        return _importPlaced(row, placed, console);
+      }
+      // Mixed or unknown consoles: import where it was extracted.
+      return _finishImport(row, await _library.importLocalFiles(r.files, root: dir, consoleId: console), console);
     }
-    final ids = await _library.importLocalFiles(files, root: root, consoleId: console);
+
+    console ??= _library.detector.detect(path.split('/').last, const [])?.consoleId;
+    if (location != null && console != null) {
+      final placed = await location.place(path, gamesDirFor(console));
+      return _importPlaced(row, [placed], console);
+    }
+    return _finishImport(row, await _library.importLocalFiles([path], consoleId: console), console);
+  }
+
+  String? _singleConsole(List<String> files, String root) {
+    final entries = [
+      for (final f in files)
+        () {
+          final rel = f.substring(root.length + 1).split('/');
+          return ScannedEntry(uri: f, name: rel.last, dirSegments: rel.sublist(0, rel.length - 1));
+        }(),
+    ];
+    final plan = planScan(entries, _library.detector);
+    final consoles = {for (final g in plan.games) g.consoleId};
+    return plan.unresolved.isEmpty && consoles.length == 1 ? consoles.single : null;
+  }
+
+  Future<ImportOutcome> _importPlaced(DownloadQueueRow row, List<PlacedFile> placed, String console) async {
+    final location = _location!;
+    final docs = placed.where((p) => p.isDocument).toList();
+    final ids = docs.isNotEmpty
+        ? await _library.importDocuments([for (final p in docs) p.toEntry()], treeUri: location.treeUri!, consoleId: console)
+        : await _library.importLocalFiles([for (final p in placed) p.location], consoleId: console);
+    // Point the download entry at the file's new home.
+    await _db.updateDownload(row.id, DownloadQueueCompanion(filePath: Value(placed.first.location)));
+    return _finishImport(row, ids, console);
+  }
+
+  Future<ImportOutcome> _finishImport(DownloadQueueRow row, List<int> ids, String? console) async {
     if (ids.isEmpty) return ImportOutcome(needsConsole: console == null);
-    await _db.updateDownload(id, DownloadQueueCompanion(importedGameId: Value(ids.first), consoleId: Value(console)));
+    await _db.updateDownload(row.id, DownloadQueueCompanion(importedGameId: Value(ids.first), consoleId: Value(console)));
     if (row.catalogJson != null) await _applyCatalogMetadata(ids.first, row);
     return ImportOutcome(gameIds: ids);
   }

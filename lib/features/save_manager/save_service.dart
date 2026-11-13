@@ -63,6 +63,20 @@ class SaveService {
     await _settings.set(SettingsKeys.saveFolders, SaveFolder.encodeList(list));
   }
 
+  /// Adds several folders in one settings write (consecutive [addFolder]
+  /// calls could overwrite each other before the settings stream updates).
+  Future<void> addFolders(List<SaveFolder> folders) async {
+    if (folders.isEmpty) return;
+    final uris = {for (final f in folders) f.uri};
+    final list = [..._settings.state.value.saveFolders.where((f) => !uris.contains(f.uri)), ...folders];
+    await _settings.set(SettingsKeys.saveFolders, SaveFolder.encodeList(list));
+    for (var i = 0; i < 50; i++) {
+      final now = {for (final f in _settings.state.value.saveFolders) f.uri};
+      if (now.containsAll(uris)) break;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  }
+
   Future<void> removeFolder(String uri) async {
     await _settings.set(
         SettingsKeys.saveFolders, SaveFolder.encodeList(_settings.state.value.saveFolders.where((f) => f.uri != uri).toList()));
@@ -90,11 +104,15 @@ class SaveService {
       List<ScannedEntry> entries;
       try {
         if (folder.uri.startsWith('content://')) {
-          if (!await _gateway.treeAccessible(folder.uri)) {
+          // `<tree>#<sub-folder>`: a folder inside the public GAMEBOX folder.
+          final hash = folder.uri.indexOf('#');
+          final tree = hash < 0 ? folder.uri : folder.uri.substring(0, hash);
+          final sub = hash < 0 ? null : folder.uri.substring(hash + 1);
+          if (!await _gateway.treeAccessible(tree)) {
             unavailable.add(folder.uri);
             continue;
           }
-          final r = await _gateway.scanTree(folder.uri, saveScanExtensions, maxDepth: 4, maxFiles: 5000);
+          final r = await _gateway.scanTree(tree, saveScanExtensions, maxDepth: 6, maxFiles: 5000, subPath: sub);
           entries = ((r['files'] as List?) ?? const [])
               .map((e) => ScannedEntry.fromMap(Map<String, dynamic>.from(e as Map)))
               .toList();

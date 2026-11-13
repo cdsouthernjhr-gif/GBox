@@ -211,15 +211,64 @@ class FakeGateway implements PlatformGateway {
 
   @override
   Future<Map<String, dynamic>> scanTree(String treeUri, Set<String> extensions,
-          {int maxDepth = 8, int maxFiles = 20000}) async =>
-      {
-        'files': [
-          for (final f in trees[treeUri] ?? const <Map<String, dynamic>>[])
-            if (extensions.contains((f['name'] as String).split('.').last.toLowerCase())) f,
-        ],
-        'folders': 1,
-        'truncated': false,
-      };
+      {int maxDepth = 8, int maxFiles = 20000, String? subPath}) async {
+    final prefix = (subPath ?? '').split('/').where((p) => p.isNotEmpty).toList();
+    bool under(List dir) =>
+        dir.length >= prefix.length && [for (var i = 0; i < prefix.length; i++) dir[i] == prefix[i]].every((b) => b);
+    return {
+      'files': [
+        for (final f in trees[treeUri] ?? const <Map<String, dynamic>>[])
+          if (extensions.contains((f['name'] as String).split('.').last.toLowerCase()) &&
+              under((f['dir'] as List?) ?? const []))
+            f,
+      ],
+      'folders': 1,
+      'truncated': false,
+    };
+  }
+
+  /// Folders created in simulated trees: tree URI → relative paths.
+  final treeDirs = <String, Set<String>>{};
+
+  @override
+  Future<Map<String, dynamic>> ensureTreeDirs(String treeUri, List<String> paths) async {
+    if (!trees.containsKey(treeUri)) return {'ok': 0, 'failed': paths};
+    (treeDirs[treeUri] ??= {}).addAll(paths);
+    return {'ok': paths.length, 'failed': const <String>[]};
+  }
+
+  @override
+  Future<String> writeToTree(String treeUri, String dir, String name, String srcPath) async {
+    final files = trees[treeUri];
+    if (files == null) throw StateError('No such tree $treeUri');
+    final segs = dir.split('/').where((p) => p.isNotEmpty).toList();
+    final taken = {
+      for (final f in files)
+        if ((f['dir'] as List).join('/') == segs.join('/')) (f['name'] as String).toLowerCase(),
+    };
+    final dot = name.lastIndexOf('.');
+    final stem = dot > 0 ? name.substring(0, dot) : name;
+    final ext = dot > 0 ? name.substring(dot) : '';
+    var finalName = name;
+    for (var n = 2; taken.contains(finalName.toLowerCase()); n++) {
+      finalName = '$stem ($n)$ext';
+    }
+    final uri = '$treeUri/document/${[...segs, finalName].join('%2F')}';
+    final bytes = File(srcPath).readAsBytesSync();
+    documents[uri] = bytes;
+    files.add({'uri': uri, 'name': finalName, 'dir': segs, 'size': bytes.length});
+    (treeDirs[treeUri] ??= {}).add(segs.join('/'));
+    return uri;
+  }
+
+  @override
+  Future<List<String>> listTreeNames(String treeUri, String dir) async {
+    final segs = dir.split('/').where((p) => p.isNotEmpty).join('/');
+    return [
+      for (final f in trees[treeUri] ?? const <Map<String, dynamic>>[])
+        if ((f['dir'] as List).join('/') == segs) f['name'] as String,
+    ];
+  }
 
   @override
   Future<bool> treeAccessible(String treeUri) async =>

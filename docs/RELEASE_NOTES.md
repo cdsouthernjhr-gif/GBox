@@ -1,5 +1,18 @@
 # Release notes
 
+## 0.9.0+11 — Organised folders: games, saves, BIOS (pre-release)
+
+**New:**
+* **Library location** (STORAGE): keep the GAMEBOX folder in the app folder or, recommended, in a **public folder** you pick (e.g. `Internal storage/GAMEBOX` or a USB drive). A public folder survives uninstalling GAMEBOX, and RetroArch can read it.
+* The full layout is created automatically: `Games/<console>`, `Artwork/…`, `Saves/<emulator>`, `BIOS/<console>` and `BIOS/RetroArch`, `Backups`, `Downloads`, `Exports`.
+* **Downloads go straight to their console folder:** files with a known console (catalogue, chosen, or a unique extension such as `.nes`) are moved into `Games/<console>/`. ZIPs are extracted into `Games/<console>/<name>/` and then removed. Files with an unknown console wait in `Downloads/` until you pick the console. Nothing is ever overwritten.
+* **Emulator save folders:** one suggested folder per emulator, with directions for RetroArch and PPSSPP. With a public folder they are registered with the Save Manager automatically.
+* **BIOS:** a per-console checklist of the files emulators commonly need, showing which are present. BIOS files are never imported as games. GAMEBOX still never provides BIOS.
+
+**Status:** the public-folder (SAF) operations are new native code, unit-tested against a simulated folder only. They haven't run on a TV box yet.
+
+**Downloads:** per-ABI APKs and `SHA256SUMS.txt`, same signing key (installs over 0.8.x).
+
 ## 0.8.2+10 — Downloads without restrictions (pre-release)
 
 **Changed:** no more confirmations. Sources are added, catalogue entries (with or without a licence) and direct links are downloaded without asking you to confirm you're allowed to. Whether you may download a game is your responsibility.

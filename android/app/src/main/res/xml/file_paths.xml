@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only GAMEBOX game folders on the primary volume are shareable, and only
-     with a per-launch read grant to the chosen emulator. -->
+<!-- Only game folders are shareable, and only with a per-launch read grant
+     to the chosen emulator:
+     * ROMs/ in the app folder (no storage access) and the 0.9.0 GAMEBOX/Games/
+     * ROMs/ on shared storage (with storage access) -->
 <paths>
     <external-files-path name="gamebox" path="GAMEBOX/Games/" />
+    <external-files-path name="roms_app" path="ROMs/" />
+    <external-path name="roms" path="ROMs/" />
 </paths>

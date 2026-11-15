@@ -61,9 +61,17 @@ void main() {
   testWidgets('library: GAMEBOX folder scan, native header read and hashing', (tester) async {
     final services = AppServices(gateway: gateway, db: AppDatabase(NativeDatabase.memory()));
     await services.settings.initialize();
-    final roots = await services.library.ensureAppFolders();
-    expect(roots, isNotEmpty);
-    final rom = File('${roots.first}/Games/NES/ci_test_homebrew.nes')..writeAsBytesSync(syntheticNes());
+    expect(await services.library.ensureAppFolders(), isNotEmpty);
+    // The full folder layout (games, saves, BIOS) exists on device storage.
+    final access = await services.location.refreshAccess();
+    expect(access.sdkInt, greaterThanOrEqualTo(24));
+    expect(access.publicRoot, isNotNull);
+    expect(await services.location.ensureStructure(), isEmpty);
+    final base = (await services.location.localBase())!;
+    for (final f in ['ROMs/psx', 'ROMs/nes', 'GAMEBOX/Saves/RetroArch/saves', 'GAMEBOX/BIOS/PS1', 'GAMEBOX/Playlists']) {
+      expect(Directory('$base/$f').existsSync(), isTrue, reason: f);
+    }
+    final rom = File('$base/ROMs/nes/ci_test_homebrew.nes')..writeAsBytesSync(syntheticNes());
     try {
       await services.library.scanAll();
       final files = await services.db.select(services.db.gameFiles).get();
@@ -71,19 +79,9 @@ void main() {
       expect(f.headerStatus, 'valid', reason: f.headerDetail);
       expect(f.sha1, hasLength(40), reason: 'hashed by the native layer');
 
-      // FileProvider must expose GAMEBOX game files to emulators.
+      // FileProvider must expose the game folder to emulators.
       final shared = await gateway.shareableUri(rom.path);
       expect(shared, startsWith('content://com.gamebox.console.files/'));
-
-      // The full folder layout (games, saves, BIOS) exists on device storage.
-      final access = await services.location.refreshAccess();
-      expect(access.sdkInt, greaterThanOrEqualTo(24));
-      expect(access.publicRoot, isNotNull);
-      expect(await services.location.ensureStructure(), isEmpty);
-      final base = (await services.location.localBase())!;
-      for (final f in ['ROMs/psx', 'ROMs/nes', 'GAMEBOX/Saves/RetroArch/saves', 'GAMEBOX/BIOS/PS1', 'GAMEBOX/Playlists']) {
-        expect(Directory('$base/$f').existsSync(), isTrue, reason: f);
-      }
     } finally {
       rom.deleteSync();
       await services.db.close();

@@ -138,8 +138,8 @@ class _MyGamesScreenState extends State<MyGamesScreen> {
               title: _query.isNotEmpty || _favoritesOnly || _missingOnly || _console != null
                   ? 'No games match'
                   : 'No games in your library yet',
-              message: 'Copy legally owned games into the GAMEBOX/Games/<console> folders '
-                  '(see STORAGE), register your own folders, or use "Import files".',
+              message: 'Open "Set up GAMEBOX" on HOME: find the games already on this device, or copy games into '
+                  'Internal storage/ROMs/<system> (nes, snes, gba, psx, …). You can also use "Import files".',
             ),
           ),
         ),
@@ -261,7 +261,7 @@ Future<void> importFiles(BuildContext context) async {
   } on PlatformException catch (e) {
     messenger.showSnackBar(SnackBar(
         content: Text(e.code == 'saf_unavailable'
-            ? 'This device has no system file picker. Copy games into the GAMEBOX/Games folders instead (see STORAGE).'
+            ? 'This device has no system file picker. Copy games into the ROMs/<system> folders instead (see STORAGE).'
             : 'Import failed: ${e.message}')));
   }
 }

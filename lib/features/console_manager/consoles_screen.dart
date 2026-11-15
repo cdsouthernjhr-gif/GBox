@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/storage/gamebox_layout.dart';
 import '../../core/constants/console_catalog.dart';
 import '../../core/device/device_intelligence_service.dart';
 import '../../integrations/emulator_adapters/launcher_registry.dart';
@@ -87,7 +88,7 @@ class _ConsoleTile extends StatelessWidget {
         title: Text(console.name),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            InfoRow('Games folder', 'GAMEBOX/Games/${console.folderName}/'),
+            InfoRow('Games folder', '${gamesDirFor(console.id)}/'),
             InfoRow('File types', console.extensions.map((e) => '.$e').join('  ')),
             InfoRow('Estimated minimum', console.minTier.label),
             InfoRow('Estimated recommended', console.recommendedTier.label),

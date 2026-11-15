@@ -28,7 +28,8 @@ class ConsoleDefinition {
   final String manufacturer;
   final ConsoleCategory category;
 
-  /// Folder name inside `GAMEBOX/Games/`.
+  /// Display folder name (BIOS folders, 0.9.0 `GAMEBOX/Games/`). Game
+  /// folders use the standard names in `gamebox_layout.dart` (`ROMs/<system>`).
   final String folderName;
 
   /// Lower-case extensions without dot. Extensions shared between consoles

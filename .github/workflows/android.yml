@@ -147,7 +147,7 @@ jobs:
           profile: tv_1080p
           ram-size: 2048M
           disk-size: 4096M
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           disable-animations: true
           script: ./tool/ci_device_tests.sh
 

@@ -27,6 +27,11 @@ wait_for_package_manager() {
 echo "== Waiting for the package manager"
 wait_for_package_manager
 
+# Package verification can make installs wait forever on emulators (no UI
+# to answer it). Turn it off for this test device only.
+adb shell settings put global verifier_verify_adb_installs 0 || true
+adb shell settings put global package_verifier_enable 0 || true
+
 echo "== Integration tests"
 # Bounded so an emulator hang fails fast instead of using the job timeout.
 # A timeout (exit 124) is retried once after restarting adb; a test

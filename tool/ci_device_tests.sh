@@ -32,6 +32,13 @@ wait_for_package_manager
 adb shell settings put global verifier_verify_adb_installs 0 || true
 adb shell settings put global package_verifier_enable 0 || true
 
+echo "== Pre-install the debug APK (diagnostics if it hangs)"
+if ! timeout 300 adb install -r -t -g build/app/outputs/flutter-apk/app-debug.apk; then
+  echo "Pre-install failed or hung. PackageManager log:"
+  adb logcat -d | grep -iE "PackageManager|PackageInstaller|installd|dex2oat|INSTALL_" | tail -60 || true
+  adb shell df /data || true
+fi
+
 echo "== Integration tests"
 # Bounded so an emulator hang fails fast instead of using the job timeout.
 # A timeout (exit 124) is retried once after restarting adb; a test

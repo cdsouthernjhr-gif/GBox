@@ -11,6 +11,9 @@ import '../core/services/platform_gateway.dart';
 import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
+import '../features/emulator_manager/retroarch_playlist_service.dart';
+import '../features/rom_manager/rom_search_service.dart';
+import '../features/storage_manager/roms_migration_service.dart';
 import '../features/storage_manager/library_location_service.dart';
 import '../features/controller_manager/controller_config_service.dart';
 import '../core/online/download_engine.dart';
@@ -88,7 +91,12 @@ class AppServices {
         for (final i in emulators.installations.value ?? const <EmulatorInstallation>[])
           if (i.isInstalled) i.emulator.id,
       ],
+      appBases: appRoots ?? _defaultAppRoots,
     );
+    library.extraLocalRoots = location.localScanRoots;
+    romSearch = RomSearchService(db: db, library: library, location: location);
+    migration = RomsMigrationService(db, location);
+    playlists = RetroArchPlaylistService(db, location);
     downloads = DownloadService(
       db: db,
       engine: engine,
@@ -101,6 +109,7 @@ class AppServices {
         return '${roots.first}/GAMEBOX/Downloads';
       },
       location: location,
+      onImported: refreshPlaylistsSoon,
     );
   }
 
@@ -132,8 +141,28 @@ class AppServices {
   late final CompatibilityService compatibility;
   late final BenchmarkService benchmarks;
 
-  /// Where the GAMEBOX folder lives (app folder or the user's public folder).
+  /// Where games (ROMs/) and GAMEBOX data live.
   late final LibraryLocationService location;
+  late final RomSearchService romSearch;
+  late final RomsMigrationService migration;
+  late final RetroArchPlaylistService playlists;
+  Timer? _playlistDebounce;
+
+  /// Rewrites the RetroArch playlists shortly after the library changed.
+  void refreshPlaylistsSoon() {
+    _playlistDebounce?.cancel();
+    _playlistDebounce = Timer(const Duration(seconds: 2), () async {
+      try {
+        await playlists.writeAll();
+      } catch (e, st) {
+        AppLogger.instance.error('RetroArch playlists failed', e, st);
+      }
+    });
+  }
+
+  void _onScanProgress() {
+    if (!library.progress.value.running && library.progress.value.finishedAt != null) refreshPlaylistsSoon();
+  }
 
   /// `<primary app folder>/GAMEBOX`.
   late final Future<String> Function() gameboxRoot;
@@ -147,6 +176,7 @@ class AppServices {
     _lifecycle = AppLifecycleListener(onResume: () {
       launcher.onReturned();
       downloads.resumeAfterGameplay();
+      unawaited(_onStorageAccessMaybeChanged());
     });
     await settings.initialize();
     await device.initialize(rescan: false);
@@ -166,6 +196,7 @@ class AppServices {
       // or new folders added by an update), and register save folders of
       // newly installed emulators when a public folder is used.
       try {
+        await location.refreshAccess();
         await location.ensureStructure();
         if (location.isPublic) await location.registerSaveFolders();
       } catch (e, st) {
@@ -173,9 +204,26 @@ class AppServices {
       }
       await downloads.initialize();
       if (settings.state.value.autoScan) await library.scanAll();
+      library.progress.addListener(_onScanProgress);
       // Storage connected/removed: recheck files and rescan (debounced).
       storage.volumes.addListener(_onVolumesChanged);
     }();
+  }
+
+  /// Returning from Android's "All files access" screen: when access was
+  /// just granted, create ROMs/ and the GAMEBOX folders and scan them.
+  Future<void> _onStorageAccessMaybeChanged() async {
+    final before = location.access.value.granted;
+    final now = (await location.refreshAccess()).granted;
+    if (now && !before) {
+      try {
+        await location.ensureStructure();
+        await location.registerSaveFolders();
+        await library.scanAll();
+      } catch (e, st) {
+        AppLogger.instance.error('Preparing ROMs folders failed', e, st);
+      }
+    }
   }
 
   void _onVolumesChanged() {
@@ -189,6 +237,8 @@ class AppServices {
 
   void dispose() {
     _autoScanDebounce?.cancel();
+    _playlistDebounce?.cancel();
+    library.progress.removeListener(_onScanProgress);
     _lifecycle?.dispose();
     storage.volumes.removeListener(_onVolumesChanged);
     controllerConfig.dispose();

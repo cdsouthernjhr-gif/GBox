@@ -227,6 +227,19 @@ class FakeGateway implements PlatformGateway {
     };
   }
 
+  /// Simulated broad storage access; [publicRoot] is a temp folder in tests.
+  StorageAccessStatus storageStatus = StorageAccessStatus.unknown;
+  int storageRequests = 0;
+
+  @override
+  Future<StorageAccessStatus> storageAccess() async => storageStatus;
+
+  @override
+  Future<String> requestStorageAccess() async {
+    storageRequests++;
+    return storageStatus.settingsAvailable ? 'opened' : 'unavailable';
+  }
+
   /// Folders created in simulated trees: tree URI → relative paths.
   final treeDirs = <String, Set<String>>{};
 

@@ -403,6 +403,16 @@ class AppDatabase extends _$AppDatabase {
   Future<GameFileRow?> fileByUri(String uri) =>
       (select(gameFiles)..where((f) => f.uri.equals(uri))).getSingleOrNull();
 
+  /// Points a library file at its new location after it was moved
+  /// (e.g. into ROMs/); the game, its history and saves stay linked.
+  Future<void> moveFile(int fileId, {required String uri, required String displayPath, String? rootUri}) =>
+      (update(gameFiles)..where((f) => f.id.equals(fileId))).write(GameFilesCompanion(
+        uri: Value(uri),
+        displayPath: Value(displayPath),
+        rootUri: Value(rootUri),
+        fileExists: const Value(true),
+      ));
+
   Future<List<GameFileRow>> filesPendingVerification() =>
       (select(gameFiles)..where((f) => f.headerStatus.isNull() & f.fileExists.equals(true))).get();
 

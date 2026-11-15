@@ -1,5 +1,23 @@
 # Release notes
 
+## 0.10.0+12 — Easy setup, shared ROMs folder, ROM search, RetroArch playlists (pre-release)
+
+Based on testing on a phone with RetroArch: Play failed and RetroArch's own menu was empty, because games were kept in GAMEBOX's app folder (unreadable for RetroArch on Android 11+) and RetroArch only lists games it scanned itself.
+
+**New:**
+* **Setup wizard** (banner on HOME, or STORAGE → Setup wizard): allow storage access → put games in ROMs/ → get RetroArch ready → optional BIOS/saves, each step with ✓/✗.
+* **Shared game folder `Internal storage/ROMs/<system>`** with standard names (`nes`, `snes`, `gba`, `psx`, `n64`, `psp`, …) also used by frontends such as ES-DE and Daijishou. GAMEBOX's own data is in `Internal storage/GAMEBOX/` (BIOS, Saves, Playlists, …). Needs "All files access" on Android 11+ (storage permission on older Android).
+* **Find ROMs on this device:** searches internal storage, SD and USB (Download, WhatsApp, Telegram, …), identifies games by file header, extension and folder, and copies or moves them into `ROMs/<system>/`. Disc games keep their track files.
+* **RetroArch playlists** "GAMEBOX - <console>" are written automatically, so games appear in RetroArch's own menu (RetroArch offers the installed cores on first start).
+* **Move games to ROMs:** games from earlier versions (app folder) are moved with their history, favourites and saves kept.
+* Downloads go straight to `ROMs/<system>/`.
+
+**Changed:** the 0.9.0 layout (`GAMEBOX/Games/<CONSOLE>`) is replaced; old folders are still scanned. Clearer message when RetroArch can't read a game.
+
+**Status:** storage access, the shared folder, the search on real storage and RetroArch reading the playlists are unit-tested only and not yet verified on a device.
+
+**Downloads:** per-ABI APKs and `SHA256SUMS.txt`, same signing key (installs over 0.8/0.9).
+
 ## 0.9.0+11 — Organised folders: games, saves, BIOS (pre-release)
 
 **New:**

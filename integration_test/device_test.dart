@@ -76,10 +76,13 @@ void main() {
       expect(shared, startsWith('content://com.gamebox.console.files/'));
 
       // The full folder layout (games, saves, BIOS) exists on device storage.
+      final access = await services.location.refreshAccess();
+      expect(access.sdkInt, greaterThanOrEqualTo(24));
+      expect(access.publicRoot, isNotNull);
       expect(await services.location.ensureStructure(), isEmpty);
-      final root = await services.gameboxRoot();
-      for (final f in ['Games/PS1', 'Saves/RetroArch/saves', 'BIOS/PS1', 'BIOS/RetroArch', 'Exports']) {
-        expect(Directory('$root/$f').existsSync(), isTrue, reason: f);
+      final base = (await services.location.localBase())!;
+      for (final f in ['ROMs/psx', 'ROMs/nes', 'GAMEBOX/Saves/RetroArch/saves', 'GAMEBOX/BIOS/PS1', 'GAMEBOX/Playlists']) {
+        expect(Directory('$base/$f').existsSync(), isTrue, reason: f);
       }
     } finally {
       rom.deleteSync();

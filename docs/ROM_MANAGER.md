@@ -6,7 +6,7 @@ GAMEBOX only **references** game files. It never copies, moves, extracts or runs
 
 | Source | How | Permission |
 |---|---|---|
-| **GAMEBOX folders** | `Android/data/com.gamebox.console/files/GAMEBOX/Games/<CONSOLE>/` is created automatically on every mounted volume (internal, SD, USB) | none (app-specific storage) |
+| **GAMEBOX folders** | `ROMs/<system>/` (shared storage, see STORAGE_SUPPORT.md) is created automatically; the 0.9.0 app-folder `GAMEBOX/Games/<CONSOLE>/` is still scanned. Created on every mounted volume (internal, SD, USB) | none (app-specific storage) |
 | **Registered folders** | STORAGE → *Add game folder* (Storage Access Framework tree); access persists across reboots | user grants per folder |
 | **Manual import** | MY GAMES → *Import files* (system file picker, multi-select) | user grants per file |
 

@@ -79,13 +79,16 @@
 * System-wide CPU load can't be read by apps on Android 8+.
 * Library restore applies at the next start.
 
-## Library location (0.9.0)
+## Game folder, storage access, ROM search (0.10.0)
 
-* Creating folders and writing files in a public folder (SAF) is unit-tested against a simulated tree only. Some firmwares' document providers may behave differently; on-device verification is PENDING.
-* Firmwares without the system folder picker can only use the app folder.
-* GAMEBOX can't set emulators' save or BIOS folders; you point each emulator at them once. Only RetroArch and PPSSPP get specific menu directions.
-* Changing the library location doesn't move existing games.
-* Save backups and exports are still kept in the app folder (deleted with GAMEBOX).
+* "All files access", the shared `ROMs/` folder, the ROM search on real storage and RetroArch reading the playlists are unit-tested only (temporary folders); on-device verification is PENDING.
+* Some Android TV firmwares have no "All files access" screen; then use adb (shown in the wizard) or a picked folder.
+* "All files access" doesn't include other apps' `Android/data`: playlists can't be written into a RetroArch that keeps its data there; set RetroArch's playlist folder to `GAMEBOX/Playlists` instead.
+* GAMEBOX can't install RetroArch cores or check which are installed; a missing core is reported by RetroArch when a game starts.
+* The search ignores files under 8 KB and archives/track files nothing identifies; games in `.zip` outside a console-named folder are not found.
+* 0.9.0 picked-folder games in `Games/<CONSOLE>` stay where they are (still scanned and playable); *Move games to ROMs* only moves games from the app folder.
+* GAMEBOX can't set emulators' save or BIOS folders; you point each emulator at them once.
+* Save backups and exports are kept in the app folder (deleted with GAMEBOX).
 
 ## Not yet implemented (by phase)
 

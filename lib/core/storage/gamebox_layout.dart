@@ -1,21 +1,54 @@
-/// The GAMEBOX folder layout, shared by the app-storage location
-/// (`Android/data/com.gamebox.console/files/GAMEBOX`) and a user-chosen
-/// public folder (Storage Access Framework tree).
+/// The GAMEBOX folder layout. Paths are relative to a *base*: the device
+/// storage root (with all-files access, e.g. `/storage/emulated/0`), a folder
+/// the user picked (SAF tree), or GAMEBOX's app folder as a last resort.
 ///
 /// ```
-/// GAMEBOX/
-///   Games/<CONSOLE>/          downloads land here, sorted by console
-///   Artwork/Covers|Screenshots|Backgrounds
-///   Saves/<Emulator>/...      suggested save folders, one per emulator
-///   BIOS/<CONSOLE>/, BIOS/RetroArch/   user-supplied BIOS dumps (none bundled)
-///   Backups/  Downloads/  Exports/
+/// <base>/
+///   ROMs/<system>/            games, shared with RetroArch and other apps
+///                             (nes, snes, psx, … — ES-DE / RetroPie names)
+///   GAMEBOX/
+///     Saves/<Emulator>/...    suggested save folders, one per emulator
+///     BIOS/<CONSOLE>/, BIOS/RetroArch/   user-supplied BIOS (none bundled)
+///     Playlists/              RetroArch playlists written by GAMEBOX
+///     Artwork/  Backups/  Downloads/  Exports/
 /// ```
 library;
 
 import '../constants/console_catalog.dart';
 
-/// Relative path of a console's game folder.
-String gamesDirFor(String consoleId) => 'Games/${consoleById(consoleId)!.folderName}';
+/// Folder of GAMEBOX's own data inside the base.
+const dataDir = 'GAMEBOX';
+
+/// Games folder inside the base.
+const romsDir = 'ROMs';
+
+/// Standard system folder names (the convention of ES-DE, RetroPie and
+/// Daijishou), so other frontends and emulators find the same folders.
+const romFolderNames = <String, String>{
+  'nes': 'nes',
+  'snes': 'snes',
+  'sms': 'mastersystem',
+  'megadrive': 'megadrive',
+  'gb': 'gb',
+  'gbc': 'gbc',
+  'gba': 'gba',
+  'ps1': 'psx',
+  'n64': 'n64',
+  'saturn': 'saturn',
+  'nds': 'nds',
+  'psp': 'psp',
+  'dreamcast': 'dreamcast',
+  'gamecube': 'gc',
+  'ps2': 'ps2',
+  'wii': 'wii',
+};
+
+/// Relative path of a console's game folder, e.g. `ROMs/psx`.
+String gamesDirFor(String consoleId) =>
+    '$romsDir/${romFolderNames[consoleId] ?? consoleById(consoleId)!.folderName.toLowerCase()}';
+
+/// Folder of the RetroArch playlists GAMEBOX writes.
+const playlistsDir = '$dataDir/Playlists';
 
 /// Suggested save folder(s) for an emulator, and how to point the emulator
 /// at them. Menu names are given only where they are well known; other
@@ -24,15 +57,16 @@ class SaveLayout {
   const SaveLayout({required this.emulatorId, required this.dirs, required this.howTo, this.specific = false});
   final String emulatorId;
 
-  /// Relative to the GAMEBOX root. The first entry is registered with the
-  /// Save Manager (sub-folders are scanned too).
+  /// Relative to the base. The first entry's emulator folder is registered
+  /// with the Save Manager (sub-folders are scanned too).
   final List<String> dirs;
   final String howTo;
 
   /// True when [howTo] names actual menu entries.
   final bool specific;
 
-  String get root => dirs.first.split('/').take(2).join('/');
+  /// `GAMEBOX/Saves/<Emulator>`.
+  String get root => dirs.first.split('/').take(3).join('/');
 }
 
 const _generic = 'Open the emulator\'s settings and look for a save, memory-card or data folder option. '
@@ -42,26 +76,26 @@ const _generic = 'Open the emulator\'s settings and look for a save, memory-card
 const saveLayouts = <SaveLayout>[
   SaveLayout(
     emulatorId: 'retroarch',
-    dirs: ['Saves/RetroArch/saves', 'Saves/RetroArch/states'],
-    howTo: 'RetroArch → Settings → Directory → Save Files: choose Saves/RetroArch/saves. '
-        'Save States: choose Saves/RetroArch/states.',
+    dirs: ['$dataDir/Saves/RetroArch/saves', '$dataDir/Saves/RetroArch/states'],
+    howTo: 'RetroArch → Settings → Directory → Save Files: choose GAMEBOX/Saves/RetroArch/saves. '
+        'Save States: choose GAMEBOX/Saves/RetroArch/states.',
     specific: true,
   ),
   SaveLayout(
     emulatorId: 'ppsspp',
-    dirs: ['Saves/PPSSPP'],
-    howTo: 'PPSSPP → Settings → System → Memory Stick folder: choose Saves/PPSSPP. PPSSPP then keeps all its '
+    dirs: ['$dataDir/Saves/PPSSPP'],
+    howTo: 'PPSSPP → Settings → System → Memory Stick folder: choose GAMEBOX/Saves/PPSSPP. PPSSPP then keeps all its '
         'data there; saves go to PSP/SAVEDATA and states to PSP/PPSSPP_STATE inside it.',
     specific: true,
   ),
-  SaveLayout(emulatorId: 'duckstation', dirs: ['Saves/DuckStation'], howTo: _generic),
-  SaveLayout(emulatorId: 'mupen64plus_fz', dirs: ['Saves/Mupen64PlusFZ'], howTo: _generic),
-  SaveLayout(emulatorId: 'melonds', dirs: ['Saves/melonDS'], howTo: _generic),
-  SaveLayout(emulatorId: 'drastic', dirs: ['Saves/DraStic'], howTo: _generic),
-  SaveLayout(emulatorId: 'flycast', dirs: ['Saves/Flycast'], howTo: _generic),
-  SaveLayout(emulatorId: 'redream', dirs: ['Saves/Redream'], howTo: _generic),
-  SaveLayout(emulatorId: 'dolphin', dirs: ['Saves/Dolphin'], howTo: _generic),
-  SaveLayout(emulatorId: 'aethersx2', dirs: ['Saves/AetherSX2'], howTo: _generic),
+  SaveLayout(emulatorId: 'duckstation', dirs: ['$dataDir/Saves/DuckStation'], howTo: _generic),
+  SaveLayout(emulatorId: 'mupen64plus_fz', dirs: ['$dataDir/Saves/Mupen64PlusFZ'], howTo: _generic),
+  SaveLayout(emulatorId: 'melonds', dirs: ['$dataDir/Saves/melonDS'], howTo: _generic),
+  SaveLayout(emulatorId: 'drastic', dirs: ['$dataDir/Saves/DraStic'], howTo: _generic),
+  SaveLayout(emulatorId: 'flycast', dirs: ['$dataDir/Saves/Flycast'], howTo: _generic),
+  SaveLayout(emulatorId: 'redream', dirs: ['$dataDir/Saves/Redream'], howTo: _generic),
+  SaveLayout(emulatorId: 'dolphin', dirs: ['$dataDir/Saves/Dolphin'], howTo: _generic),
+  SaveLayout(emulatorId: 'aethersx2', dirs: ['$dataDir/Saves/AetherSX2'], howTo: _generic),
 ];
 
 SaveLayout? saveLayoutFor(String emulatorId) {
@@ -100,7 +134,7 @@ class BiosInfo {
   /// The emulator accepts any dump; file names don't matter.
   final bool anyDump;
 
-  String get dir => 'BIOS/${consoleById(consoleId)!.folderName}';
+  String get dir => '$dataDir/BIOS/${consoleById(consoleId)!.folderName}';
 }
 
 const biosInfo = <BiosInfo>[
@@ -168,21 +202,26 @@ const biosInfo = <BiosInfo>[
 ];
 
 /// Folder RetroArch's System/BIOS directory can be pointed at.
-const retroArchBiosDir = 'BIOS/RetroArch';
+const retroArchBiosDir = '$dataDir/BIOS/RetroArch';
 
 /// Every folder of the layout, relative to the GAMEBOX root.
 List<String> gameboxFolders() => [
-      for (final c in consoleCatalog) 'Games/${c.folderName}',
-      'Artwork/Covers',
-      'Artwork/Screenshots',
-      'Artwork/Backgrounds',
+      for (final c in consoleCatalog) gamesDirFor(c.id),
+      '$dataDir/Artwork/Covers',
+      '$dataDir/Artwork/Screenshots',
+      '$dataDir/Artwork/Backgrounds',
       for (final l in saveLayouts) ...l.dirs,
       for (final b in biosInfo) b.dir,
       retroArchBiosDir,
-      'Backups',
-      'Downloads',
-      'Exports',
+      playlistsDir,
+      '$dataDir/Backups',
+      '$dataDir/Downloads',
+      '$dataDir/Exports',
     ];
+
+/// Folders of the 0.9.0 layout (`Games/<CONSOLE>` inside the GAMEBOX
+/// folder), moved into `ROMs/<system>` by the migration.
+String legacyGamesDir(String consoleId) => 'Games/${consoleById(consoleId)!.folderName}';
 
 /// Status of one console's BIOS folder.
 class BiosStatus {
@@ -199,9 +238,15 @@ class BiosStatus {
 }
 
 /// Folders that never contain games: BIOS dumps (anywhere, e.g. RetroArch's
-/// System/BIOS) and GAMEBOX's own Saves/Backups/Exports. The library scan
-/// skips them so BIOS `.bin` files are not imported as PS1 games.
+/// System/BIOS) and GAMEBOX's own data folders. The library scan skips them
+/// so BIOS `.bin` files are not imported as PS1 games.
 bool isNonGameFolder(List<String> dirSegments) {
-  if (dirSegments.any((d) => d.toLowerCase() == 'bios')) return true;
-  return dirSegments.isNotEmpty && const {'saves', 'backups', 'exports'}.contains(dirSegments.first.toLowerCase());
+  const data = {'saves', 'backups', 'exports', 'playlists'};
+  final segs = [for (final d in dirSegments) d.toLowerCase()];
+  if (segs.contains('bios')) return true;
+  if (segs.isNotEmpty && data.contains(segs.first)) return true; // relative to a GAMEBOX folder
+  for (var i = 0; i + 1 < segs.length; i++) {
+    if (segs[i] == 'gamebox' && data.contains(segs[i + 1])) return true;
+  }
+  return false;
 }

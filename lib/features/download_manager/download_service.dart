@@ -44,7 +44,11 @@ class DownloadService {
     required this._downloadsDir,
     this.retryBaseDelay = const Duration(seconds: 2),
     this._location,
+    this.onImported,
   });
+
+  /// Called after a download was added to the library.
+  final void Function()? onImported;
 
   /// When set, imported downloads are moved into `Games/<CONSOLE>/` of the
   /// library location (app folder or the user's public GAMEBOX folder).
@@ -399,6 +403,7 @@ class DownloadService {
 
   Future<ImportOutcome> _finishImport(DownloadQueueRow row, List<int> ids, String? console) async {
     if (ids.isEmpty) return ImportOutcome(needsConsole: console == null);
+    onImported?.call();
     await _db.updateDownload(row.id, DownloadQueueCompanion(importedGameId: Value(ids.first), consoleId: Value(console)));
     if (row.catalogJson != null) await _applyCatalogMetadata(ids.first, row);
     return ImportOutcome(gameIds: ids);

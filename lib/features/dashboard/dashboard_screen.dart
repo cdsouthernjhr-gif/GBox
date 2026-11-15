@@ -12,6 +12,7 @@ import '../compatibility/device_report_screen.dart';
 import '../game_library/game_detail_screen.dart';
 import '../game_library/library_screens.dart';
 import '../launcher/launcher_shell.dart';
+import '../setup/setup_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key, required this.onNavigate});
@@ -23,6 +24,7 @@ class DashboardScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
       children: [
+        const SetupBanner(),
         _ContinuePlaying(onNavigate: onNavigate),
         const SizedBox(height: 18),
         _StatusWidgets(onNavigate: onNavigate),

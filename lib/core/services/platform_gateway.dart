@@ -106,6 +106,14 @@ abstract class PlatformGateway {
       {int maxDepth = 8, int maxFiles = 20000, String? subPath});
   Future<bool> treeAccessible(String treeUri);
 
+  /// Broad storage access ("All files access" on Android 11+, storage
+  /// permission before) and the device's primary storage root.
+  Future<StorageAccessStatus> storageAccess();
+
+  /// Opens the system screen (Android 11+) or asks for the permission.
+  /// Returns `opened`, `requested` or `unavailable`.
+  Future<String> requestStorageAccess();
+
   /// Creates the folders [paths] (relative to the tree root) where missing.
   /// Returns `{ok: n, failed: [...]}`.
   Future<Map<String, dynamic>> ensureTreeDirs(String treeUri, List<String> paths);
@@ -284,6 +292,14 @@ class MethodChannelGateway implements PlatformGateway {
       }));
 
   @override
+  Future<StorageAccessStatus> storageAccess() async =>
+      StorageAccessStatus.fromMap(_map(await _storage.invokeMethod<Object?>('storageAccess')));
+
+  @override
+  Future<String> requestStorageAccess() async =>
+      await _storage.invokeMethod<String>('requestStorageAccess') ?? 'unavailable';
+
+  @override
   Future<Map<String, dynamic>> ensureTreeDirs(String treeUri, List<String> paths) async =>
       _map(await _storage.invokeMethod<Object?>('ensureTreeDirs', {'uri': treeUri, 'paths': paths}));
 
@@ -413,4 +429,38 @@ class MethodChannelGateway implements PlatformGateway {
 
   @override
   Stream<void> homePressed() => _home.stream;
+}
+
+
+/// Broad storage access state.
+class StorageAccessStatus {
+  const StorageAccessStatus({
+    required this.sdkInt,
+    required this.granted,
+    required this.allFilesMode,
+    required this.settingsAvailable,
+    this.publicRoot,
+  });
+
+  factory StorageAccessStatus.fromMap(Map<String, dynamic> m) => StorageAccessStatus(
+        sdkInt: (m['sdk'] as num?)?.toInt() ?? 0,
+        granted: m['granted'] == true,
+        allFilesMode: m['mode'] == 'all_files',
+        settingsAvailable: m['settingsAvailable'] != false,
+        publicRoot: m['publicRoot'] as String?,
+      );
+
+  static const unknown = StorageAccessStatus(sdkInt: 0, granted: false, allFilesMode: false, settingsAvailable: false);
+
+  final int sdkInt;
+  final bool granted;
+
+  /// Android 11+: "All files access" (system settings), else runtime permission.
+  final bool allFilesMode;
+
+  /// False on firmwares without the "All files access" settings screen.
+  final bool settingsAvailable;
+
+  /// Primary shared storage, e.g. `/storage/emulated/0`.
+  final String? publicRoot;
 }

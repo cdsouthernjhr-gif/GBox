@@ -126,9 +126,9 @@ class RomLibraryService {
     for (final base in await _appRoots()) {
       final root = '$base/GAMEBOX';
       try {
-        for (final sub in gameboxFolders()) {
-          await Directory('$root/$sub').create(recursive: true);
-        }
+        // The full layout (ROMs/, GAMEBOX/BIOS, …) is created by the library
+        // location; here only what downloads need.
+        await Directory('$root/Downloads').create(recursive: true);
         roots.add(root);
       } catch (e) {
         AppLogger.instance.warn('Cannot create GAMEBOX folders in $base: $e');
@@ -137,9 +137,15 @@ class RomLibraryService {
     return roots;
   }
 
+  /// Additional local game folders (the shared `ROMs/` folders of the
+  /// library location); set by the app after construction.
+  Future<List<String>> Function()? extraLocalRoots;
+
   Future<List<LibraryRoot>> roots() async {
     final list = <LibraryRoot>[
       for (final r in await ensureAppFolders()) LibraryRoot(r, RootKind.appFolder, r),
+      for (final r in await (extraLocalRoots ?? () async => <String>[])())
+        if (await Directory(r).exists()) LibraryRoot(r, RootKind.appFolder, r),
       for (final t in _settings.state.value.romFolders) LibraryRoot(t, RootKind.safTree, _treeLabel(t)),
     ];
     return list;

@@ -60,20 +60,20 @@ void main() {
 
   Future<void> waitForSettings() => Future<void>.delayed(const Duration(milliseconds: 50));
 
-  test('creates the recommended GAMEBOX folder layout', () async {
+  test('app folders: the GAMEBOX folder and its Downloads folder exist on every volume', () async {
+    // The full layout (ROMs/, GAMEBOX/BIOS, …) is created by the library
+    // location (library_location_test.dart).
     final roots = await library.ensureAppFolders();
     expect(roots, ['$appRoot/GAMEBOX']);
-    for (final sub in ['Games/NES', 'Games/PS2', 'Artwork/Covers', 'Saves', 'Backups', 'Downloads']) {
-      expect(Directory('$appRoot/GAMEBOX/$sub').existsSync(), isTrue, reason: sub);
-    }
+    expect(Directory('$appRoot/GAMEBOX/Downloads').existsSync(), isTrue);
   });
 
   test('scans app folders: imports, verifies headers, hashes small files', () async {
     await library.ensureAppFolders();
-    File('$appRoot/GAMEBOX/Games/NES/alpha (USA).nes').writeAsBytesSync(nesRom());
-    File('$appRoot/GAMEBOX/Games/GAMEBOY/beta.gb').writeAsBytesSync(gbRom());
-    File('$appRoot/GAMEBOX/Games/GAMEBOY/broken.gb').writeAsBytesSync(gbRom(corruptChecksum: true));
-    File('$appRoot/GAMEBOX/Games/PS2/unknown-folder-iso.iso').writeAsBytesSync(Uint8List(64));
+    mk('$appRoot/GAMEBOX/Games/NES/alpha (USA).nes').writeAsBytesSync(nesRom());
+    mk('$appRoot/GAMEBOX/Games/GAMEBOY/beta.gb').writeAsBytesSync(gbRom());
+    mk('$appRoot/GAMEBOX/Games/GAMEBOY/broken.gb').writeAsBytesSync(gbRom(corruptChecksum: true));
+    mk('$appRoot/GAMEBOX/Games/PS2/unknown-folder-iso.iso').writeAsBytesSync(Uint8List(64));
 
     await library.scanAll();
 
@@ -93,7 +93,7 @@ void main() {
 
   test('rescans are idempotent and detect missing files', () async {
     await library.ensureAppFolders();
-    final f = File('$appRoot/GAMEBOX/Games/GBA/gamma.gba')..writeAsBytesSync(gbaRom());
+    final f = mk('$appRoot/GAMEBOX/Games/GBA/gamma.gba')..writeAsBytesSync(gbaRom());
     await library.scanAll();
     await library.scanAll();
     expect(await db.select(db.games).get(), hasLength(1));
@@ -143,8 +143,8 @@ void main() {
 
   test('exact duplicates are detected by hash', () async {
     await library.ensureAppFolders();
-    File('$appRoot/GAMEBOX/Games/NES/one.nes').writeAsBytesSync(nesRom());
-    File('$appRoot/GAMEBOX/Games/NES/copy of one.nes').writeAsBytesSync(nesRom());
+    mk('$appRoot/GAMEBOX/Games/NES/one.nes').writeAsBytesSync(nesRom());
+    mk('$appRoot/GAMEBOX/Games/NES/copy of one.nes').writeAsBytesSync(nesRom());
     await library.scanAll();
     final files = await db.select(db.gameFiles).get();
     final result = await library.verifyFile(files.first);
@@ -172,7 +172,7 @@ void main() {
 
   test('delete removes the files and then the library entry', () async {
     await library.ensureAppFolders();
-    final f = File('$appRoot/GAMEBOX/Games/NES/zeta.nes')..writeAsBytesSync(nesRom());
+    final f = mk('$appRoot/GAMEBOX/Games/NES/zeta.nes')..writeAsBytesSync(nesRom());
     await library.scanAll();
     final id = (await db.select(db.games).get()).single.id;
 
@@ -184,9 +184,9 @@ void main() {
 
   test('search, filters and sorting', () async {
     await library.ensureAppFolders();
-    File('$appRoot/GAMEBOX/Games/NES/Space Quest.nes').writeAsBytesSync(nesRom());
-    File('$appRoot/GAMEBOX/Games/GBA/Space Race.gba').writeAsBytesSync(gbaRom());
-    File('$appRoot/GAMEBOX/Games/GBA/Farm Life.gba').writeAsBytesSync(gbaRom());
+    mk('$appRoot/GAMEBOX/Games/NES/Space Quest.nes').writeAsBytesSync(nesRom());
+    mk('$appRoot/GAMEBOX/Games/GBA/Space Race.gba').writeAsBytesSync(gbaRom());
+    mk('$appRoot/GAMEBOX/Games/GBA/Farm Life.gba').writeAsBytesSync(gbaRom());
     await library.scanAll();
 
     Future<List<String>> titles({String q = '', String? console, bool fav = false}) async =>
@@ -206,7 +206,7 @@ void main() {
 
   test('manual metadata editing is kept and flagged', () async {
     await library.ensureAppFolders();
-    File('$appRoot/GAMEBOX/Games/NES/eta.nes').writeAsBytesSync(nesRom());
+    mk('$appRoot/GAMEBOX/Games/NES/eta.nes').writeAsBytesSync(nesRom());
     await library.scanAll();
     final id = (await db.select(db.games).get()).single.id;
     await db.saveManualMetadata(id, title: 'Eta Remix', sortTitle: 'eta remix', genre: 'Puzzle', developer: ' ');
@@ -218,3 +218,6 @@ void main() {
     expect(m.editedManually, isTrue);
   });
 }
+
+/// A file whose folder exists (0.9.0 `Games/<CONSOLE>` folders are still scanned).
+File mk(String path) => File(path)..parent.createSync(recursive: true);

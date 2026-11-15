@@ -18,6 +18,7 @@ import com.gamebox.console.services.Background
 import com.gamebox.console.services.ConnectivityMonitor
 import com.gamebox.console.services.StorageEvents
 import com.gamebox.console.storage.RomFiles
+import com.gamebox.console.storage.StorageAccess
 import com.gamebox.console.storage.StorageScanner
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -151,6 +152,8 @@ class MainActivity : FlutterActivity() {
                 "copyToLocal" -> Background.run(result) {
                     RomFiles(applicationContext).copyToLocal(call.argument<String>("uri")!!, call.argument<String>("dest")!!)
                 }
+                "storageAccess" -> result.success(StorageAccess(this).status())
+                "requestStorageAccess" -> result.success(StorageAccess(this).request())
                 "ensureTreeDirs" -> Background.run(result) {
                     RomFiles(applicationContext).ensureDirs(
                         call.argument<String>("uri")!!, call.argument<List<String>>("paths") ?: emptyList())

@@ -22,32 +22,44 @@ Some Android TV firmwares ship **without the DocumentsUI folder picker**. GAMEBO
 
 See [ROM_MANAGER.md](ROM_MANAGER.md): GAMEBOX folders on every volume, recursive SAF scanning, missing vs. disconnected detection, automatic rescan when storage is connected.
 
-## Library location and folder layout (0.9.0)
+## Game folder, setup wizard and ROM search (0.10.0)
 
-STORAGE → **GAMEBOX library location** chooses where the GAMEBOX folder lives:
+Feedback on 0.9.0 (phone + RetroArch): **Play failed and RetroArch's own menu was empty.** Cause: games lived in GAMEBOX's app folder (`Android/data/…`), which RetroArch can't read on Android 11+, a public folder had to be picked by hand, and RetroArch only lists games it scanned itself. 0.10.0 changes the model:
 
-| Location | Kept when GAMEBOX is uninstalled | RetroArch / path-only emulators (Android 11+) | Emulators can write saves there |
-|---|---|---|---|
-| App folder `Android/data/com.gamebox.console/files/GAMEBOX` (default) | no | no | no |
-| **Public folder** picked with the system folder picker (recommended), e.g. `Internal storage/GAMEBOX` or a folder on a USB drive / SD card | yes | yes (folder on primary storage resolved to a path) | yes |
-
-In the picker, create a folder named `GAMEBOX` and select it. GAMEBOX takes persistent read/write access (no broad storage permission), creates the layout and adds the folder to the game folders.
-
-Layout (`lib/core/storage/gamebox_layout.dart`), created automatically at startup and with **Create missing folders**:
+**Layout** (`lib/core/storage/gamebox_layout.dart`), relative to a *base*:
 
 ```
-GAMEBOX/
-  Games/<CONSOLE>/                 NES, SNES, …, PS1, PS2, WII
-  Artwork/Covers|Screenshots|Backgrounds
-  Saves/RetroArch/saves|states, Saves/PPSSPP, Saves/DuckStation, … (one per emulator)
-  BIOS/PS1|PS2|SATURN|DREAMCAST|NDS|GBA|GAMECUBE, BIOS/RetroArch
-  Backups/  Downloads/  Exports/
+<base>/
+  ROMs/nes, snes, mastersystem, megadrive, gb, gbc, gba, psx, n64,
+       saturn, nds, psp, dreamcast, gc, ps2, wii      ← games
+  GAMEBOX/Saves/<Emulator>/…, BIOS/<CONSOLE>/, BIOS/RetroArch/,
+          Playlists/, Artwork/, Backups/, Downloads/, Exports/
 ```
 
-**Downloads are sorted automatically:** a finished download whose console is known (catalogue, chosen when adding, or a unique file extension) is moved into `Games/<CONSOLE>/` and imported there. A ZIP is extracted into `Games/<CONSOLE>/<archive name>/` (keeping its folders) when its console is known or all games inside are of one console; the ZIP is then deleted. Existing files are never overwritten (`name (2).ext`). Files whose console can't be determined wait in `Downloads/` until you choose the console (Downloads → *Import into library*); they are moved then. Downloads are always written to the app folder first and moved after verification.
+`ROMs/<system>` uses the folder names of ES-DE, RetroPie and Daijishou, so other frontends find the same games. The old names (`NES`, `PS1`, `GAMEBOY`, …) are still recognised.
 
-The library scan skips `BIOS/` folders (anywhere) and GAMEBOX's `Saves/`, `Backups/` and `Exports/`, so BIOS `.bin` dumps are never imported as PS1 games.
+**Base**, chosen automatically:
 
-**Removing** the library folder from *Registered game folders* only stops scanning it; its access is kept while it is the library location.
+| Mode | When | Base | RetroArch can read | Kept on uninstall |
+|---|---|---|---|---|
+| Shared storage (recommended) | storage access granted | `/storage/emulated/0` (Internal storage) | yes | yes |
+| Picked folder | user chose a folder (e.g. on USB) | that folder (SAF) | yes, if on primary storage or the emulator accepts it | yes |
+| App folder | no access | `Android/data/com.gamebox.console/files` | **no** (Android 11+) | no |
 
-Implementation: native `ensureTreeDirs`, `writeToTree` (creates the folder path, picks a free name, never overwrites) and `listTreeNames`, plus `scanTree(subPath:)` in `RomFiles.kt`. **These SAF operations are unit-tested against a simulated tree only; on-device verification with a real folder picker is PENDING** (TESTING_GUIDE step 20).
+**Storage access:** Android 11+ "All files access" (`MANAGE_EXTERNAL_STORAGE`, opened from the wizard; GAMEBOX is distributed as an APK, not through Play); Android 7–10 the storage permission (`requestLegacyExternalStorage` for Android 10). Some Android TV firmwares have no "All files access" screen: the wizard then shows `adb shell appops set --uid com.gamebox.console MANAGE_EXTERNAL_STORAGE allow`, or the user picks a folder instead. Returning from the settings screen re-checks access and, when granted, creates the folders, registers save folders and scans.
+
+**Setup wizard** (dashboard banner until finished; STORAGE → Setup wizard), each step with ✓/✗ and one action:
+1. Allow storage access (or pick a USB/SD folder).
+2. Put games in `ROMs/`: *Find ROMs on this device*, and *Move N games to ROMs* for games still in the app folder.
+3. Get RetroArch ready: install cores (Online Updater → Core Downloader), allow its storage access, write playlists, open RetroArch.
+4. Optional: BIOS still needed, save folders.
+
+**Find ROMs on this device** (`rom_search_service.dart`) walks every volume's shared storage (skipping `Android/`, media folders, emulator data such as `system`, `saves`, `states`, BIOS folders and `ROMs/` itself; max depth 12, 30,000 candidate files). Recognition: the file's header first (NES, GB/GBC, GBA, N64, Mega Drive, PSP "PSP GAME" / PS2 "PLAYSTATION" ISO volume ids, GameCube/Wii disc magic, …), then a unique extension or the folder name. Files under 8 KB, and archives or track files that nothing identifies, are ignored. Ambiguous files (e.g. `.iso` without a recognisable header) are listed under *Needs a console*. `.cue`/`.gdi` games carry the track files they reference. **Copy** (default; original kept) or **Move** puts each game in `ROMs/<system>/` (multi-file games in `ROMs/<system>/<name>/`), never overwriting, and adds it to the library. Files already in the library, or copied there before (same name and size), aren't offered again.
+
+**Move games to ROMs** (`roms_migration_service.dart`) moves every library game whose files are in the app folder (0.9.0 `GAMEBOX/Games/<CONSOLE>`, `ROMs/` of the app folder, old downloads) into `ROMs/<system>/` and updates the library entry in place, so history, favourites, artwork and saves stay linked.
+
+**Downloads** are moved into `ROMs/<system>/` of the current base when the console is known or detectable (ZIPs of one console extracted into `ROMs/<system>/<name>/`); others wait in `GAMEBOX/Downloads/` until the console is chosen.
+
+The library scans `ROMs/` of shared storage (and of removable volumes that have one), the app folder, and picked folders. `BIOS` folders anywhere and GAMEBOX's `Saves/`, `Backups/`, `Exports/`, `Playlists/` are skipped, so BIOS dumps are never imported as games.
+
+**Verification:** unit-tested with temporary folders laid out like Android storage and a simulated SAF tree (`test/library_location_test.dart`). The emulator CI checks the layout on Android 7 and 14 *without* storage access (app folder). "All files access", the shared `ROMs/` folder and RetroArch reading it are **PENDING on a real device** (TESTING_GUIDE step 20).

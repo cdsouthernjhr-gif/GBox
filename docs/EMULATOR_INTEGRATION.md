@@ -97,3 +97,8 @@ New RetroArch cores: N64 mupen64plus_next / parallel_n64 · NDS melonds / desmum
 ## BIOS
 
 Some systems (PS1 optional, Saturn, PS2) need user-supplied BIOS dumps. GAMEBOX will only point users to the emulator's own BIOS setting. It never downloads or ships BIOS files.
+
+## RetroArch playlists (0.10.0)
+
+GAMEBOX writes one playlist per console, `GAMEBOX - <console>.lpl` (RetroArch 1.7.6+ JSON format, `version` 1.5), to `GAMEBOX/Playlists/` and, when it exists, RetroArch's `RetroArch/playlists/` on shared storage. Entries carry the game's real path, its title and the libretro database name (for thumbnails); the core is `DETECT`, so RetroArch offers the installed cores the first time. Playlists RetroArch made itself are never touched. Games RetroArch can't read (app folder, no path) are left out and counted. Playlists are rewritten after scans, downloads, ROM search and moves. If RetroArch doesn't show them: Settings → Directory → Playlists → `GAMEBOX/Playlists`, or Import Content → Scan Directory → `ROMs`. **Unverified on a device.**
+

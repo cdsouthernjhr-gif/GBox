@@ -6,7 +6,8 @@
    * `app-debug.apk` is universal but larger and slower.
 2. Copy it to the box (USB drive, or `adb install <file>.apk`) and install it with a file manager. Allow "install unknown apps" for that file manager.
 3. Open **GAMEBOX** from the app list or the TV apps row.
-4. To make it the console home screen: **Settings → Default HOME app → Set as default**. Android shows its own chooser or Home settings.
-5. To undo: **Settings → Default HOME app → Change**, or Android Settings → Apps → Default apps → Home app. You can always reach Android Settings from GAMEBOX (Settings or ANDROID APPS). No root, firmware change or device-owner mode is used.
+4. Press **Set up GAMEBOX** on HOME and follow the steps: allow "All files access" (Android 11+) so games live in `Internal storage/ROMs/<system>`, where RetroArch can read them; *Find ROMs on this device* to collect games you already have; install RetroArch cores and open RetroArch, where the "GAMEBOX - <console>" playlists list your games.
+5. To make it the console home screen: **Settings → Default HOME app → Set as default**. Android shows its own chooser or Home settings.
+6. To undo: **Settings → Default HOME app → Change**, or Android Settings → Apps → Default apps → Home app. You can always reach Android Settings from GAMEBOX (Settings or ANDROID APPS). No root, firmware change or device-owner mode is used.
 
 Note: some Google TV builds ignore third-party HOME apps. GAMEBOX then works as a normal app (see KNOWN_LIMITATIONS).

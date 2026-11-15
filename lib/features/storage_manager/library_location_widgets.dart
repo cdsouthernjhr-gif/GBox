@@ -1,122 +1,95 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/constants/console_catalog.dart';
+import '../../core/services/platform_gateway.dart';
 import '../../core/services/system_services.dart';
 import '../../core/storage/gamebox_layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../setup/rom_search_screen.dart';
+import '../setup/setup_screen.dart';
+import 'library_location_service.dart';
 
-/// Where the GAMEBOX folder lives, with the choice between the app folder
-/// and a public folder picked by the user.
+/// Where games and GAMEBOX data live, with shortcuts to the setup wizard
+/// and the ROM search.
 class LibraryLocationSection extends StatelessWidget {
   const LibraryLocationSection({super.key});
-
-  Future<void> _choose(BuildContext context) async {
-    final s = servicesOf(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final uri = await s.gateway.pickDirectory();
-      if (uri == null) return;
-      final failed = await s.location.choose(uri);
-      messenger.showSnackBar(SnackBar(
-        content: Text(failed.isEmpty
-            ? 'GAMEBOX folders created in ${await s.location.describe()}'
-            : 'Some folders could not be created: ${failed.take(3).join('; ')}'),
-      ));
-      unawaited(s.library.scanAll());
-    } on PlatformException catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content: Text(e.code == 'saf_unavailable'
-            ? 'This device has no system folder picker, so only the app folder can be used.'
-            : 'Folder picker failed: ${e.message}'),
-      ));
-    }
-  }
-
-  Future<void> _useAppStorage(BuildContext context) async {
-    final s = servicesOf(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Use the app folder?'),
-        content: const Text('New downloads will go to the app folder. Games already in your public folder stay '
-            'there and stay in the library; nothing is moved or deleted.'),
-        actions: [
-          TextButton(autofocus: true, onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Use app folder')),
-        ],
-      ),
-    );
-    if (ok == true) await s.location.useAppStorage();
-  }
 
   @override
   Widget build(BuildContext context) {
     final s = servicesOf(context);
     final palette = GameboxPalette.of(context);
-    return ValueListenableBuilder<SettingsState>(
-      valueListenable: s.settings.state,
-      builder: (context, st, _) {
-        final public = st.libraryLocation != null;
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const SectionHeader('GAMEBOX library location',
-              subtitle: 'Downloads are moved into Games/<console>/ here. Saves/ and BIOS/ folders are prepared too.'),
-          FutureBuilder<String>(
-            future: s.location.describe(),
-            builder: (_, snap) => Row(children: [
-              Icon(public ? Icons.folder_shared_rounded : Icons.folder_special_rounded, color: palette.focus),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(snap.data ?? '…',
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5), overflow: TextOverflow.ellipsis),
+    return ValueListenableBuilder<StorageAccessStatus>(
+      valueListenable: s.location.access,
+      builder: (context, access, _) => ValueListenableBuilder<SettingsState>(
+        valueListenable: s.settings.state,
+        builder: (context, st, _) {
+          final mode = s.location.mode;
+          final public = s.location.isPublic;
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SectionHeader('Game folder (ROMs)',
+                subtitle: 'Games live in ROMs/<system>/ (nes, snes, gba, psx, …), shared with RetroArch and other '
+                    'emulators. GAMEBOX data lives next to it in GAMEBOX/.'),
+            FutureBuilder<String>(
+              future: s.location.describe(romsDir),
+              builder: (_, snap) => Row(children: [
+                Icon(public ? Icons.folder_shared_rounded : Icons.folder_special_rounded, color: palette.focus),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(snap.data ?? '…',
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5), overflow: TextOverflow.ellipsis),
+                ),
+                StatusChip(
+                  switch (mode) {
+                    LocationMode.device => 'Shared storage',
+                    LocationMode.tree => 'Picked folder',
+                    LocationMode.app => 'App folder only',
+                  },
+                  color: public ? palette.success : palette.warning,
+                ),
+              ]),
+            ),
+            if (!public)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'RetroArch and other emulators cannot read the app folder, and it is deleted with GAMEBOX. '
+                  'Open the setup wizard and allow storage access.',
+                  style: TextStyle(color: Colors.orangeAccent, fontSize: 12.5),
+                ),
               ),
-              StatusChip(public ? 'Public folder' : 'App folder', color: public ? palette.success : palette.warning),
+            const SizedBox(height: 8),
+            Wrap(spacing: 10, runSpacing: 8, children: [
+              TvButton(
+                label: 'Setup wizard',
+                icon: Icons.rocket_launch_rounded,
+                primary: !public,
+                onPressed: () => openSetup(context),
+              ),
+              TvButton(
+                label: 'Find ROMs on this device',
+                icon: Icons.travel_explore_rounded,
+                onPressed: public
+                    ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen()))
+                    : null,
+              ),
+              TvButton(
+                label: 'Create missing folders',
+                icon: Icons.create_new_folder_rounded,
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final failed = await s.location.ensureStructure();
+                  messenger.showSnackBar(SnackBar(
+                      content: Text(failed.isEmpty ? 'All folders are in place' : 'Failed: ${failed.take(3).join('; ')}')));
+                },
+              ),
             ]),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            public
-                ? 'Kept if GAMEBOX is uninstalled, and readable by emulators such as RetroArch.'
-                : 'Recommended: choose a public folder. The app folder is deleted when GAMEBOX is uninstalled, and '
-                    'on Android 11+ RetroArch cannot read it and emulators cannot write saves into it.',
-            style: const TextStyle(color: Colors.white60, fontSize: 12.5),
-          ),
-          const SizedBox(height: 8),
-          Wrap(spacing: 10, runSpacing: 8, children: [
-            TvButton(
-              label: public ? 'Choose another folder' : 'Choose public folder…',
-              icon: Icons.drive_folder_upload_rounded,
-              primary: !public,
-              onPressed: () => _choose(context),
-            ),
-            if (public)
-              TvButton(label: 'Use app folder', icon: Icons.folder_special_rounded, onPressed: () => _useAppStorage(context)),
-            TvButton(
-              label: 'Create missing folders',
-              icon: Icons.create_new_folder_rounded,
-              onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                final failed = await s.location.ensureStructure();
-                messenger.showSnackBar(SnackBar(
-                    content: Text(failed.isEmpty ? 'All GAMEBOX folders are in place' : 'Failed: ${failed.take(3).join('; ')}')));
-              },
-            ),
-          ]),
-          if (!public)
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text(
-                'In the folder picker, open Internal storage (or a USB drive / SD card), create a folder named '
-                'GAMEBOX and select it.',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ),
-        ]);
-      },
+          ]);
+        },
+      ),
     );
   }
 }
@@ -172,7 +145,7 @@ class EmulatorSaveFoldersSection extends StatelessWidget {
                           const SizedBox(width: 6),
                           if (isRegistered) StatusChip('Registered', color: palette.success),
                         ]),
-                        Text(l.dirs.map((d) => 'GAMEBOX/$d').join('   '),
+                        Text(l.dirs.join('   '),
                             style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.white70)),
                         Text(l.howTo, style: const TextStyle(fontSize: 12, color: Colors.white60)),
                       ]),
@@ -213,7 +186,7 @@ class _BiosSectionState extends State<BiosSection> {
         'BIOS',
         subtitle: 'GAMEBOX never provides BIOS files. Dump them from your own console, put them in GAMEBOX/BIOS/'
             '<console>/ and choose that folder in the emulator. For RetroArch, set Settings → Directory → '
-            'System/BIOS to GAMEBOX/$retroArchBiosDir and copy the files there.',
+            'System/BIOS to $retroArchBiosDir and copy the files there.',
         trailing: TvButton(
           label: 'Check again',
           icon: Icons.refresh_rounded,
@@ -232,7 +205,7 @@ class _BiosSectionState extends State<BiosSection> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Expanded(
-                      child: Text('${consoleById(b.info.consoleId)?.name}  ·  GAMEBOX/${b.info.dir}',
+                      child: Text('${consoleById(b.info.consoleId)?.name}  ·  ${b.info.dir}',
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
                     StatusChip(

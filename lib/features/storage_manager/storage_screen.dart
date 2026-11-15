@@ -125,14 +125,13 @@ class StorageScreen extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 18),
-        const SectionHeader('Recommended folder layout'),
+        const SectionHeader('Folder layout'),
         Text(
-          'GAMEBOX/\n'
-          '  Games/  ${consoleCatalog.map((c) => c.folderName).join('/  ')}/\n'
-          '  Artwork/  Covers/  Screenshots/  Backgrounds/\n'
-          '  Saves/  ${saveLayouts.map((l) => l.root.substring(6)).join('/  ')}/\n'
+          '$romsDir/  ${consoleCatalog.map((c) => gamesDirFor(c.id).split('/').last).join('/  ')}/\n'
+          '$dataDir/\n'
+          '  Saves/  ${saveLayouts.map((l) => l.root.split('/').last).join('/  ')}/\n'
           '  BIOS/  ${[for (final b in biosInfo) consoleById(b.consoleId)!.folderName, 'RetroArch'].join('/  ')}/\n'
-          '  Backups/  Downloads/  Exports/',
+          '  Playlists/  Artwork/  Backups/  Downloads/  Exports/',
           style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5, color: Colors.white70),
         ),
       ]),

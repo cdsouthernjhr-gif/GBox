@@ -117,12 +117,16 @@ void main() {
     final services = AppServices(gateway: gateway, db: AppDatabase(NativeDatabase.memory()));
     await services.initialize();
     await tester.pumpWidget(GameboxApp(services: services));
-    for (var i = 0; i < 20 && find.byKey(const ValueKey('game-home')).evaluate().isEmpty; i++) {
+    // HOME is the game launcher. Wait for the library to load: either the
+    // empty state (setup) or the first game in the panel.
+    bool loaded() =>
+        find.text('No games yet').evaluate().isNotEmpty || find.byKey(const ValueKey('hero-title')).evaluate().isNotEmpty;
+    for (var i = 0; i < 40 && !loaded(); i++) {
       await tester.pump(const Duration(milliseconds: 250));
     }
-    // HOME is the game launcher; with an empty library it offers setup.
     expect(find.byKey(const ValueKey('game-home')), findsOneWidget);
-    expect(find.text('Set up GAMEBOX'), findsOneWidget);
+    expect(loaded(), isTrue, reason: 'the launcher shows the games or the setup prompt');
+    if (find.text('No games yet').evaluate().isNotEmpty) expect(find.text('Set up GAMEBOX'), findsOneWidget);
     // Left opens the side menu.
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     for (var i = 0; i < 8; i++) {

@@ -31,7 +31,7 @@ class GameCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final cover = coverPath != null && File(coverPath!).existsSync()
         ? Image.file(File(coverPath!), fit: BoxFit.cover, cacheWidth: (width * 2).round())
-        : _GeneratedCover(title: g.title, consoleId: g.consoleId);
+        : GeneratedCover(title: g.title, consoleId: g.consoleId);
 
     return SizedBox(
       width: width,
@@ -82,8 +82,9 @@ class GameCard extends StatelessWidget {
   }
 }
 
-class _GeneratedCover extends StatelessWidget {
-  const _GeneratedCover({required this.title, required this.consoleId});
+/// Artwork for games without a cover: console colour and the title.
+class GeneratedCover extends StatelessWidget {
+  const GeneratedCover({super.key, required this.title, required this.consoleId});
   final String title;
   final String consoleId;
 

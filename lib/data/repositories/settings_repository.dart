@@ -41,6 +41,8 @@ class SettingsState {
     this.allowHttpDownloads = false,
     this.libraryLocation,
     this.setupCompleted = false,
+    this.homeStyle = HomeStyle.games,
+    this.rowOrder = RowOrder.mostGames,
     this.saveFolders = const [],
     this.accentColor,
     this.wallpaperImagePath,
@@ -73,6 +75,12 @@ class SettingsState {
 
   /// The setup wizard was finished (or skipped) once.
   final bool setupCompleted;
+
+  /// What HOME shows: the game launcher (rows per console) or the dashboard.
+  final HomeStyle homeStyle;
+
+  /// Order of the console rows on the game launcher.
+  final RowOrder rowOrder;
 
   /// Left stick / hat navigates the launcher using each controller's dead zone.
   final bool stickNavigation;
@@ -127,6 +135,8 @@ class SettingsState {
       allowHttpDownloads: (m[SettingsKeys.allowHttpDownloads] ?? 'false') == 'true',
       libraryLocation: (m[SettingsKeys.libraryLocation]?.isEmpty ?? true) ? null : m[SettingsKeys.libraryLocation],
       setupCompleted: (m[SettingsKeys.setupCompleted] ?? 'false') == 'true',
+      homeStyle: HomeStyle.values.asNameMap()[m[SettingsKeys.homeStyle]] ?? HomeStyle.games,
+      rowOrder: RowOrder.values.asNameMap()[m[SettingsKeys.rowOrder]] ?? RowOrder.mostGames,
       saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
       accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
       wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
@@ -175,6 +185,8 @@ abstract final class SettingsKeys {
   static const allowHttpDownloads = 'downloads.allow_http';
   static const libraryLocation = 'storage.library_location';
   static const setupCompleted = 'setup.completed';
+  static const homeStyle = 'launcher.home_style';
+  static const rowOrder = 'launcher.row_order';
   static const saveFolders = 'saves.folders';
   static const accentColor = 'theme.accent_color';
   static const wallpaperImage = 'theme.wallpaper_image';
@@ -203,3 +215,14 @@ class SettingsRepository {
 
   void dispose() => _sub?.cancel();
 }
+
+enum HomeStyle {
+  /// Game launcher: rows of games per console, opens straight on a game.
+  games,
+
+  /// Dashboard with device status and summary rows (before 0.11.0).
+  dashboard,
+}
+
+enum RowOrder { mostGames, recentlyPlayed, alphabetical }
+

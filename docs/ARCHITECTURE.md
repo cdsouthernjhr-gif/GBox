@@ -63,3 +63,8 @@ Blocking native work (EGL probe, file reads, package queries, icon rendering) ru
 ## Project structure
 
 See the tree in the spec (Part 23). The empty Phase 2+ folders (`rom_manager`, `game_scraper`, `source_manager`, `save_manager`, `performance`, `integrations/retroarch`, …) aren't committed until they contain code.
+
+## Game Home (0.11.0)
+
+`features/game_home/game_home_screen.dart`. HOME shows the game launcher when Settings → Home screen is *Games* (default; `SettingsKeys.homeStyle`), else the dashboard. `buildGameRows()` (pure, tested) turns the library into rows: Continue playing (last 15 played), Favourites, then one row per console ordered by `RowOrder`. Rows and cards are lazy `ListView.builder`s; covers are decoded at small sizes (`cacheWidth`). The focused game lives in a `ValueNotifier`, so moving between cards rebuilds only the panel and backdrop. Keys on a card: OK/A → `playGame`, Y → favourite, Menu/X → options, left on the first card / Start → `LauncherShell.openMenu()`. `LauncherShell` shrinks the side menu to icons while HOME shows the launcher and the menu has no focus; BACK on the menu returns focus to the last game (`_focusContent`, which schedules a frame).
+

@@ -1,5 +1,19 @@
 # Release notes
 
+## 0.11.0+13 — Game Home: an interactive game launcher (pre-release)
+
+**New:**
+* **GAMEBOX opens straight on your games.** HOME is now a game launcher: a large panel with the focused game (artwork as background, console, last played, play count) and below it one **horizontal row per console** (NES, SNES, GBA, PS1, …), plus *Continue playing* and *Favourites*. D-pad left/right scrolls a row, up/down switches rows; swiping works on phones.
+* **One button to play:** OK / A starts the game with the console's default emulator. **Y** adds or removes a favourite. **Menu / X** (or a long press) opens *Play with…*, details and favourite.
+* The side menu shrinks to icons on the launcher; **left on the first game** (or Menu/Start) opens it, BACK returns to the games.
+* Games without artwork get a generated card in the console's colour.
+* Empty library: *Set up GAMEBOX* and *Find ROMs on this device* right on HOME.
+* Settings → General: **Home screen** (Games or the previous Dashboard) and **Console rows** order (most games, recently played, alphabetical). With animations off (low-memory mode) the background isn't blurred.
+
+**Fixed (found by tests):** BACK on the menu of the screen already shown didn't return focus to the games, because no frame was scheduled.
+
+**Status:** verified by widget tests and on Android emulators (CI); not yet on a TV box or phone.
+
 ## 0.10.0+12 — Easy setup, shared ROMs folder, ROM search, RetroArch playlists (pre-release)
 
 Based on testing on a phone with RetroArch: Play failed and RetroArch's own menu was empty, because games were kept in GAMEBOX's app folder (unreadable for RetroArch on Android 11+) and RetroArch only lists games it scanned itself.

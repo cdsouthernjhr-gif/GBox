@@ -85,6 +85,28 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           ),
           const SizedBox(height: 12),
           const SectionHeader('General'),
+          _Choice<HomeStyle>(
+            title: 'Home screen',
+            value: st.homeStyle,
+            values: HomeStyle.values,
+            label: (v) => switch (v) {
+              HomeStyle.games => 'Games: rows of games per console (opens on your games)',
+              HomeStyle.dashboard => 'Dashboard: device status and summary rows',
+            },
+            onChanged: (v) => s.settings.set(SettingsKeys.homeStyle, v.name),
+          ),
+          if (st.homeStyle == HomeStyle.games)
+            _Choice<RowOrder>(
+              title: 'Console rows',
+              value: st.rowOrder,
+              values: RowOrder.values,
+              label: (v) => switch (v) {
+                RowOrder.mostGames => 'Most games first',
+                RowOrder.recentlyPlayed => 'Recently played first',
+                RowOrder.alphabetical => 'Alphabetical',
+              },
+              onChanged: (v) => s.settings.set(SettingsKeys.rowOrder, v.name),
+            ),
           _Choice<AppThemeId>(
             title: 'Theme',
             value: st.theme,

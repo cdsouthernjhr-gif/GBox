@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import '../../app/app_services.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/repositories/settings_repository.dart';
 import '../../domain/entities/hardware_profile.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../console_manager/consoles_screen.dart';
 import '../controller_manager/controllers_screen.dart';
+import '../game_home/game_home_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../download_manager/downloads_screen.dart';
 import '../emulator_manager/emulators_screen.dart';
@@ -52,6 +54,9 @@ class LauncherShellState extends State<LauncherShell> {
   late final List<FocusNode> _navNodes =
       List.generate(LauncherSection.values.length, (i) => FocusNode(debugLabel: 'nav$i'));
   final _contentScope = FocusScopeNode(debugLabel: 'content');
+
+  /// The side menu has focus (it is then shown in full).
+  bool _railFocused = false;
   final List<StreamSubscription<Object?>> _subs = [];
   AppServices? _services;
 
@@ -93,9 +98,37 @@ class LauncherShellState extends State<LauncherShell> {
     super.dispose();
   }
 
+  bool get _gamesHome => servicesOf(context).settings.state.value.homeStyle == HomeStyle.games;
+
   void goHome() {
     Navigator.of(context).popUntil((r) => r.isFirst);
-    select(LauncherSection.home, focusNav: true);
+    if (_gamesHome) {
+      select(LauncherSection.home);
+      _focusContent();
+    } else {
+      select(LauncherSection.home, focusNav: true);
+    }
+  }
+
+  /// Opens the side menu: focus moves to the current section's entry.
+  void openMenu() => _navNodes[_section.index].requestFocus();
+
+  /// Moves focus into the content (e.g. the game launcher) after the next
+  /// frame, so a newly shown section is built first.
+  void _focusContent() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _contentScope.hasFocus) return;
+      // The last focused game if it still exists, else the first one.
+      final prev = _contentScope.focusedChild;
+      if (prev != null && prev.context != null && prev.canRequestFocus && prev != _contentScope) {
+        prev.requestFocus();
+        return;
+      }
+      _contentScope.traversalDescendants.where((n) => n.canRequestFocus && !n.skipTraversal).firstOrNull?.requestFocus();
+    });
+    // Nothing else may schedule a frame (e.g. BACK on the menu of the
+    // section already shown), so ask for one.
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   void select(LauncherSection s, {bool focusNav = false}) {
@@ -104,7 +137,9 @@ class LauncherShellState extends State<LauncherShell> {
   }
 
   Widget _content() => switch (_section) {
-        LauncherSection.home => DashboardScreen(onNavigate: (s) => select(s, focusNav: true)),
+        LauncherSection.home => _gamesHome
+            ? GameHomeScreen(onOpenMenu: openMenu)
+            : DashboardScreen(onNavigate: (s) => select(s, focusNav: true)),
         LauncherSection.myGames => const MyGamesScreen(),
         LauncherSection.consoles => const ConsolesScreen(),
         LauncherSection.recent => const RecentlyPlayedScreen(),
@@ -125,10 +160,14 @@ class LauncherShellState extends State<LauncherShell> {
       onPopInvokedWithResult: (didPop, _) {
         // BACK inside content returns focus to the menu; on the menu it
         // goes to HOME. The launcher itself never closes.
+        // With the game launcher, BACK on the menu returns to the games.
         if (_contentScope.hasFocus) {
           _navNodes[_section.index].requestFocus();
         } else if (_section != LauncherSection.home) {
-          select(LauncherSection.home, focusNav: true);
+          select(LauncherSection.home, focusNav: !_gamesHome);
+          if (_gamesHome) _focusContent();
+        } else if (_gamesHome) {
+          _focusContent();
         }
       },
       child: Scaffold(
@@ -137,10 +176,24 @@ class LauncherShellState extends State<LauncherShell> {
           decoration: palette.decoration,
           child: SafeArea(
             child: Row(children: [
-              _NavRail(
-                nodes: _navNodes,
-                selected: _section,
-                onSelect: (s) => select(s),
+              ValueListenableBuilder<SettingsState>(
+                valueListenable: servicesOf(context).settings.state,
+                builder: (context, st, _) {
+                  final games = st.homeStyle == HomeStyle.games;
+                  return Focus(
+                    canRequestFocus: false,
+                    skipTraversal: true,
+                    onFocusChange: (f) => setState(() => _railFocused = f),
+                    child: _NavRail(
+                      nodes: _navNodes,
+                      selected: _section,
+                      onSelect: (s) => select(s),
+                      // On the game launcher the menu shrinks to icons until it has focus.
+                      collapsed: games && _section == LauncherSection.home && !_railFocused,
+                      autofocusHome: !games,
+                    ),
+                  );
+                },
               ),
               Expanded(
                 child: Column(children: [
@@ -162,18 +215,73 @@ class LauncherShellState extends State<LauncherShell> {
 }
 
 class _NavRail extends StatelessWidget {
-  const _NavRail({required this.nodes, required this.selected, required this.onSelect});
+  const _NavRail({
+    required this.nodes,
+    required this.selected,
+    required this.onSelect,
+    this.collapsed = false,
+    this.autofocusHome = true,
+  });
   final List<FocusNode> nodes;
   final LauncherSection selected;
   final ValueChanged<LauncherSection> onSelect;
+  final bool collapsed;
+  final bool autofocusHome;
 
   @override
   Widget build(BuildContext context) {
     final palette = GameboxPalette.of(context);
-    return Container(
-      width: 196,
-      color: palette.surface.withValues(alpha: 0.85),
-      child: FocusTraversalGroup(
+    final animate = MotionSettings.maybeOf(context)?.animate ?? true;
+    return AnimatedContainer(
+      duration: animate ? const Duration(milliseconds: 160) : Duration.zero,
+      width: collapsed ? 64 : 196,
+      color: palette.surface.withValues(alpha: collapsed ? 0.55 : 0.85),
+      child: LayoutBuilder(builder: (context, c) {
+        // Icons only while narrow (collapsed, or animating).
+        final compact = c.maxWidth < 150;
+        return compact ? _compact(context, palette) : _full(context, palette);
+      }),
+    );
+  }
+
+  Widget _compact(BuildContext context, GameboxPalette palette) => FocusTraversalGroup(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 18, 0, 14),
+            child: Image.asset('assets/images/gamebox_logo.png', width: 30, height: 30, cacheWidth: 60, cacheHeight: 60),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              children: [
+                for (final s in LauncherSection.values)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: TvFocusable(
+                      focusNode: nodes[s.index],
+                      autofocus: autofocusHome && s == LauncherSection.home,
+                      scale: 1.0,
+                      borderRadius: 10,
+                      color: s == selected ? palette.accent.withValues(alpha: 0.28) : Colors.transparent,
+                      onFocus: (f) {
+                        if (f) onSelect(s);
+                      },
+                      onSelect: () {
+                        onSelect(s);
+                        FocusScope.of(context).focusInDirection(TraversalDirection.right);
+                      },
+                      semanticLabel: s.label,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Icon(s.icon, size: 20, color: s == selected ? palette.focus : Colors.white54),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ]),
+      );
+
+  Widget _full(BuildContext context, GameboxPalette palette) => FocusTraversalGroup(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 18, 12, 14),
@@ -199,7 +307,7 @@ class _NavRail extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: TvFocusable(
                       focusNode: nodes[s.index],
-                      autofocus: s == LauncherSection.home,
+                      autofocus: autofocusHome && s == LauncherSection.home,
                       scale: 1.0,
                       borderRadius: 10,
                       color: s == selected
@@ -235,9 +343,7 @@ class _NavRail extends StatelessWidget {
             ),
           ),
         ]),
-      ),
-    );
-  }
+      );
 }
 
 class _StatusBar extends StatefulWidget {

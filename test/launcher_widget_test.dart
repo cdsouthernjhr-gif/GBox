@@ -35,7 +35,8 @@ void main() {
       {Map<String, dynamic>? scan,
       void Function(String appRoot)? prepare,
       void Function(FakeGateway)? configure,
-      DownloadEngine? engine}) async {
+      DownloadEngine? engine,
+      HomeStyle home = HomeStyle.dashboard}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
     tester.view.physicalSize = const Size(1920, 1080);
@@ -55,6 +56,9 @@ void main() {
       downloadEngine: engine,
     );
     await tester.runAsync(() async {
+      // Most tests drive the side menu from the dashboard; the game launcher
+      // (the default) has its own tests.
+      await services.db.setSetting(SettingsKeys.homeStyle, home.name);
       await services.initialize();
       // Let background detection + first scan finish.
       for (var i = 0;
@@ -366,6 +370,78 @@ void main() {
     expect(find.text('1200 / 1800 MHz'), findsOneWidget);
     await tester.tap(find.text('Back'));
     await settle(tester);
+    await shutdown(tester);
+  });
+
+  testWidgets('Game Home: opens on the games, rows per console, A plays, left opens the menu', (tester) async {
+    await boot(
+      tester,
+      home: HomeStyle.games,
+      configure: (g) => g.installed['com.retroarch'] = '1.20.0',
+      prepare: (root) {
+        for (final (folder, name, bytes) in [
+          ('NES', 'Alpha Quest.nes', nesRom()),
+          ('NES', 'Beta Run.nes', nesRom()),
+          ('GBA', 'Gamma Race.gba', gbaRom()),
+        ]) {
+          File('$root/GAMEBOX/Games/$folder/$name')
+            ..createSync(recursive: true)
+            ..writeAsBytesSync(bytes);
+        }
+      },
+    );
+    expect(find.byKey(const ValueKey('game-home')), findsOneWidget);
+    // One row per console, most games first; the menu is icons only.
+    expect(find.text('NES'), findsOneWidget);
+    expect(find.text('Game Boy Advance'), findsOneWidget);
+    expect(find.text('MY GAMES'), findsNothing);
+    expect(tester.getTopLeft(find.text('NES')).dy,
+        lessThan(tester.getTopLeft(find.text('Game Boy Advance')).dy));
+
+    // The first game has focus and fills the panel.
+    Text hero() => tester.widget<Text>(find.byKey(const ValueKey('hero-title')));
+    expect(hero().data, 'Alpha Quest');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(hero().data, 'Beta Run');
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    expect(hero().data, 'Gamma Race');
+    await press(tester, LogicalKeyboardKey.arrowUp);
+
+    // Y toggles the favourite: a Favourites row appears.
+    await press(tester, LogicalKeyboardKey.gameButtonY);
+    await settle(tester);
+    expect(find.text('Favourites'), findsOneWidget);
+
+    // A / OK plays straight away with the console default (RetroArch).
+    await press(tester, LogicalKeyboardKey.enter);
+    await settle(tester);
+    expect(gateway.launchedSpecs, hasLength(1));
+    expect(gateway.launchedSpecs.single['className'], 'com.retroarch.browser.retroactivity.RetroActivityFuture');
+    expect(find.textContaining('Starting Alpha Quest in RetroArch'), findsOneWidget);
+
+    // Left on the first game of a row opens the full menu.
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(find.text('MY GAMES'), findsOneWidget, reason: 'menu expanded');
+    // BACK on the menu returns to the games and shrinks the menu again.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'flutter/navigation', const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')), (_) {});
+    await settle(tester);
+    expect(find.text('MY GAMES'), findsNothing);
+    expect(find.byKey(const ValueKey('game-home')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await shutdown(tester);
+  });
+
+  testWidgets('Game Home with an empty library offers setup and the ROM search', (tester) async {
+    await boot(tester, home: HomeStyle.games);
+    expect(find.text('No games yet'), findsOneWidget);
+    expect(find.text('Set up GAMEBOX'), findsOneWidget);
+    expect(find.text('Find ROMs on this device'), findsOneWidget);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(find.text('SETTINGS'), findsOneWidget, reason: 'left opens the menu');
+    expect(tester.takeException(), isNull);
     await shutdown(tester);
   });
 }

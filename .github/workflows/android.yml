@@ -77,6 +77,13 @@ jobs:
           cd build/app/outputs/flutter-apk
           ls -la
           sha256sum *.apk | tee SHA256SUMS.txt
+          # The built-in player's cores must be in every APK.
+          for f in *.apk; do
+            for core in fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed; do
+              unzip -l "$f" | grep -q "lib/.*/lib${core}_libretro_android.so" || { echo "$f is missing the $core core" >&2; exit 1; }
+            done
+            echo "$f: all 6 cores present"
+          done
           AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
           APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
           for f in *release.apk; do echo "== signer of $f"; "$APKSIGNER" verify --print-certs "$f" | grep -E "Signer #1 certificate (DN|SHA-256)" || true; done

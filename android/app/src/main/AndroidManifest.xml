@@ -30,6 +30,15 @@
         android:allowBackup="false"
         android:requestLegacyExternalStorage="true"
         android:largeHeap="false">
+        <!-- Built-in player (LibretroDroid). Not exported: only GAMEBOX starts
+             it. Config changes are handled in place so rotating the phone or
+             connecting a controller never restarts the game. -->
+        <activity
+            android:name=".player.PlayerActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|uiMode|navigation|density|locale|layoutDirection|fontScale" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

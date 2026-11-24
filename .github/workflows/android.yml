@@ -63,6 +63,9 @@ jobs:
           } > android/key.properties
           echo "Release signing configured."
 
+      - name: Fetch libretro cores (built-in player)
+        run: ./tool/fetch_cores.sh
+
       - name: Build debug APK
         run: flutter build apk --debug
 
@@ -135,6 +138,7 @@ jobs:
 
       - name: Build debug APK (real app, for launcher checks)
         run: |
+          ./tool/fetch_cores.sh
           flutter pub get
           flutter build apk --debug
 

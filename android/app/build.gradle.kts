@@ -54,6 +54,15 @@ android {
         }
     }
 
+    // The built-in player loads libretro cores by file path, so native
+    // libraries are extracted at install time (tool/fetch_cores.sh puts the
+    // cores in src/main/jniLibs before the build).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = if (keystoreProperties.containsKey("storeFile")) {
@@ -78,4 +87,9 @@ flutter {
 dependencies {
     // FileProvider (Apache-2.0); minSdk 21.
     implementation("androidx.core:core:1.13.1")
+    // Built-in player: libretro frontend library (GPLv3), the one Lemuroid uses.
+    implementation("com.github.Swordfish90:LibretroDroid:0.14.0")
+    // Lifecycle-aware activity for the player (Apache-2.0).
+    implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
 }

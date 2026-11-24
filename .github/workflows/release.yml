@@ -97,6 +97,9 @@ jobs:
           flutter analyze
           flutter test
 
+      - name: Fetch libretro cores (built-in player)
+        run: ./tool/fetch_cores.sh
+
       - name: Build signed APKs
         run: flutter build apk --release --split-per-abi
 

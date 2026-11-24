@@ -2,6 +2,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // LibretroDroid (built-in player), published through JitPack.
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.Swordfish90") }
+        }
     }
 }
 

@@ -43,6 +43,7 @@ class SettingsState {
     this.setupCompleted = false,
     this.homeStyle = HomeStyle.games,
     this.rowOrder = RowOrder.mostGames,
+    this.playerTouch = PlayerTouch.auto,
     this.saveFolders = const [],
     this.accentColor,
     this.wallpaperImagePath,
@@ -81,6 +82,9 @@ class SettingsState {
 
   /// Order of the console rows on the game launcher.
   final RowOrder rowOrder;
+
+  /// On-screen controls of the built-in player.
+  final PlayerTouch playerTouch;
 
   /// Left stick / hat navigates the launcher using each controller's dead zone.
   final bool stickNavigation;
@@ -137,6 +141,7 @@ class SettingsState {
       setupCompleted: (m[SettingsKeys.setupCompleted] ?? 'false') == 'true',
       homeStyle: HomeStyle.values.asNameMap()[m[SettingsKeys.homeStyle]] ?? HomeStyle.games,
       rowOrder: RowOrder.values.asNameMap()[m[SettingsKeys.rowOrder]] ?? RowOrder.mostGames,
+      playerTouch: PlayerTouch.values.asNameMap()[m[SettingsKeys.playerTouch]] ?? PlayerTouch.auto,
       saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
       accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
       wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
@@ -187,6 +192,7 @@ abstract final class SettingsKeys {
   static const setupCompleted = 'setup.completed';
   static const homeStyle = 'launcher.home_style';
   static const rowOrder = 'launcher.row_order';
+  static const playerTouch = 'player.touch_controls';
   static const saveFolders = 'saves.folders';
   static const accentColor = 'theme.accent_color';
   static const wallpaperImage = 'theme.wallpaper_image';
@@ -225,4 +231,8 @@ enum HomeStyle {
 }
 
 enum RowOrder { mostGames, recentlyPlayed, alphabetical }
+
+/// Built-in player on-screen controls: automatic (phones without a
+/// controller), always, never.
+enum PlayerTouch { auto, on, off }
 

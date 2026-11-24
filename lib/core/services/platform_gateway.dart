@@ -158,6 +158,12 @@ abstract class PlatformGateway {
   /// FileProvider URI for a file in the GAMEBOX game folders, or null.
   Future<String?> shareableUri(String path);
 
+  /// Built-in player state: `{state, frames, errorCode, errorMessage, core}`.
+  Future<Map<String, dynamic>> playerStatus();
+
+  /// Closes the built-in player if it is open.
+  Future<void> closePlayer();
+
   Future<bool> isDefaultLauncher();
   Future<String> requestDefaultLauncher();
   Future<String> openHomeSettings();
@@ -375,6 +381,12 @@ class MethodChannelGateway implements PlatformGateway {
 
   @override
   Future<String?> shareableUri(String path) => _emulator.invokeMethod<String>('shareableUri', {'path': path});
+
+  @override
+  Future<Map<String, dynamic>> playerStatus() async => _map(await _emulator.invokeMethod<Object?>('playerStatus'));
+
+  @override
+  Future<void> closePlayer() => _emulator.invokeMethod<bool>('closePlayer');
 
   @override
   Future<bool> isDefaultLauncher() async =>

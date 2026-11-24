@@ -20,6 +20,7 @@ import com.swordfish.libretrodroid.GLRetroViewData
 import com.swordfish.libretrodroid.Variable
 import kotlinx.coroutines.launch
 import java.io.File
+import java.lang.ref.WeakReference
 
 /**
  * GAMEBOX's built-in player: runs a bundled libretro core (LibretroDroid)
@@ -56,6 +57,8 @@ class PlayerActivity : ComponentActivity() {
 
         val core = intent.getStringExtra(EXTRA_CORE)
         val rom = intent.getStringExtra(EXTRA_ROM)
+        PlayerStatus.reset(core)
+        PlayerStatus.activity = WeakReference(this)
         val coreFile = core?.let { File(applicationInfo.nativeLibraryDir, "lib${it}_libretro_android.so") }
         if (core == null || rom == null || coreFile == null) return fail("The game could not be started (missing core or game).")
         if (!coreFile.isFile) return fail("The $core emulator is not part of this GAMEBOX build.")
@@ -94,7 +97,16 @@ class PlayerActivity : ComponentActivity() {
         retroView.requestFocus()
 
         lifecycleScope.launch {
+            retroView.getGLRetroEvents().collect { e ->
+                if (e is GLRetroView.GLRetroEvents.FrameRendered) {
+                    PlayerStatus.frames++
+                    if (PlayerStatus.state == "starting") PlayerStatus.state = "running"
+                }
+            }
+        }
+        lifecycleScope.launch {
             retroView.getGLRetroErrors().collect { code ->
+                PlayerStatus.errorCode = code
                 val msg = when (code) {
                     GLRetroView.ERROR_LOAD_LIBRARY -> "The emulator core could not be loaded on this device."
                     GLRetroView.ERROR_LOAD_GAME -> "The emulator could not open this game. The file may be damaged, " +
@@ -234,6 +246,12 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        if (PlayerStatus.state != "error") PlayerStatus.state = "closed"
+        if (PlayerStatus.activity?.get() === this) PlayerStatus.activity = null
+    }
+
     override fun onPause() {
         // The view observes the lifecycle and has paused emulation by now
         // (ON_PAUSE is dispatched before Activity.onPause on API 29+).
@@ -244,6 +262,8 @@ class PlayerActivity : ComponentActivity() {
     // ---- helpers ----
 
     private fun fail(message: String) {
+        PlayerStatus.state = "error"
+        PlayerStatus.errorMessage = message
         if (isFinishing) return
         AlertDialog.Builder(this)
             .setTitle("Cannot start the game")

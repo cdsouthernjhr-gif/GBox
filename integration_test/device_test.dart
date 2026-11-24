@@ -88,6 +88,48 @@ void main() {
     }
   });
 
+  testWidgets('built-in player loads a bundled core and renders frames', (tester) async {
+    final services = AppServices(gateway: gateway, db: AppDatabase(NativeDatabase.memory()));
+    await services.settings.initialize();
+    await services.location.refreshAccess();
+    await services.location.ensureStructure();
+    final base = (await services.location.localBase())!;
+    // Synthetic iNES image: header + 16 KB PRG + 8 KB CHR of zeros (format
+    // documentation only, not game data). FCEUmm runs it as a blank screen.
+    final bytes = Uint8List(16 + 16384 + 8192)..setAll(0, [0x4E, 0x45, 0x53, 0x1A, 1, 1, 0, 0]);
+    final rom = File('$base/ROMs/nes/ci_player_test.nes')..writeAsBytesSync(bytes);
+    try {
+      final id = await services.db.insertGameWithFiles(
+        GamesCompanion.insert(title: 'CI player test', sortTitle: 'ci', consoleId: 'nes', addedAt: DateTime.now()),
+        [GameFilesCompanion.insert(gameId: 0, uri: rom.path, displayPath: 'nes/ci_player_test.nes', extension: 'nes')],
+      );
+      final outcome = await services.launcher.play(id);
+      expect(outcome.ok, isTrue, reason: outcome.reasons.join());
+      expect(outcome.emulatorName, 'GAMEBOX Player');
+
+      Map<String, dynamic> st = {};
+      for (var i = 0; i < 60; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        st = await gateway.playerStatus();
+        if (st['state'] == 'error' || ((st['frames'] as num?) ?? 0) > 60) break;
+      }
+      // ignore: avoid_print
+      print('PLAYER: $st');
+      expect(st['state'], 'running', reason: '$st');
+      expect((st['frames'] as num) > 60, isTrue, reason: 'the core renders frames: $st');
+      expect(st['core'], 'fceumm');
+
+      await gateway.closePlayer();
+      for (var i = 0; i < 20 && (await gateway.playerStatus())['state'] != 'closed'; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+      expect((await gateway.playerStatus())['state'], 'closed');
+    } finally {
+      if (rom.existsSync()) rom.deleteSync();
+      await services.db.close();
+    }
+  });
+
   testWidgets('emulator launch errors are reported, never thrown', (tester) async {
     final r = await gateway.launchIntent({
       'package': 'com.example.not.installed',

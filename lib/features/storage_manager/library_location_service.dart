@@ -202,7 +202,8 @@ class LibraryLocationService {
   /// Registers the suggested save folder of each installed emulator with the
   /// Save Manager. Returns how many were added.
   Future<int> registerSaveFolders() async {
-    final installed = _installedEmulators().toSet();
+    // The built-in player is always there.
+    final installed = {..._installedEmulators(), 'gamebox'};
     final existing = {for (final f in _settings.state.value.saveFolders) f.uri};
     final add = <SaveFolder>[];
     for (final l in saveLayouts) {

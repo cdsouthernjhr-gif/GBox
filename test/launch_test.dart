@@ -141,7 +141,8 @@ void main() {
         );
 
     test('no compatible emulator installed → clear message, nothing launched', () async {
-      final id = await addGame('nes', safNes);
+      // N64 isn't covered by the built-in player.
+      final id = await addGame('n64', safNes.replaceAll('NES/Space Quest.nes', 'N64/Kart.z64'));
       final o = await launcher.play(id);
       expect(o.ok, isFalse);
       expect(o.reasons.single, contains('RetroArch'));
@@ -152,7 +153,7 @@ void main() {
       gateway.installed['com.retroarch.aarch64'] = '1.20.0';
       final id = await addGame('nes', safNes);
 
-      final o = await launcher.play(id);
+      final o = await launcher.play(id, emulatorId: 'retroarch');
       expect(o.ok, isTrue, reason: o.reasons.join());
       expect(o.emulatorName, 'RetroArch');
       expect(cacheCleared, 1);
@@ -212,7 +213,7 @@ void main() {
       gateway.installed['com.retroarch'] = '1.20.0';
       gateway.nextLaunchResult = {'ok': false, 'code': 'not_found', 'error': 'activity not found'};
       final id = await addGame('snes', safNes.replaceAll('.nes', '.sfc'));
-      final o = await launcher.play(id);
+      final o = await launcher.play(id, emulatorId: 'retroarch');
       expect(o.ok, isFalse);
       expect(o.reasons.single, contains('activity not found'));
       expect((await db.gameById(id)).playCount, 0);

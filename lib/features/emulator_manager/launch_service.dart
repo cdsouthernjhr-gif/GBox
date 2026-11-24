@@ -10,6 +10,7 @@ import '../../core/rom/rom_path_resolver.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/services/system_services.dart';
 import '../../domain/entities/performance_tier.dart';
+import 'player_files.dart';
 import '../../integrations/emulator_adapters/emulator_adapter.dart';
 import '../../integrations/emulator_adapters/launcher_registry.dart';
 
@@ -41,7 +42,15 @@ class LaunchService {
     required this._emulators,
     required this._device,
     this._beforeLaunch,
+    this.playerFiles,
+    this.touchControls,
   });
+
+  /// Prepares files for the built-in player (null in tests that don't use it).
+  PlayerFiles? playerFiles;
+
+  /// On-screen controls setting for the built-in player: auto | on | off.
+  String Function()? touchControls;
 
   final PlatformGateway _gateway;
   final AppDatabase _db;
@@ -66,7 +75,9 @@ class LaunchService {
       for (final a in launchersForConsole(consoleId))
         LaunchChoice(
           adapter: a,
-          installedPackage: installs.where((i) => i.emulator.id == a.emulatorId).firstOrNull?.installedPackage,
+          installedPackage: a.builtIn
+              ? gameboxPackage
+              : installs.where((i) => i.emulator.id == a.emulatorId).firstOrNull?.installedPackage,
           options: a.options(consoleId),
         ),
     ];
@@ -121,6 +132,16 @@ class LaunchService {
       ]);
     }
 
+    // Built-in player: a file GAMEBOX can read, plus BIOS and save folders.
+    PlayerPreparation? prep;
+    if (choice.adapter.builtIn) {
+      final pf = playerFiles;
+      prep = pf == null
+          ? PlayerPreparation(romPath: resolveFilesystemPath(primary.uri))
+          : await pf.prepare(game, files);
+      if (prep.problem != null) return LaunchOutcome.blocked([prep.problem!], emulatorName: choice.adapter.emulator.name);
+    }
+
     final path = resolveFilesystemPath(primary.uri);
     String? content;
     if (primary.uri.startsWith('content://')) {
@@ -136,6 +157,8 @@ class LaunchService {
       extension: primary.extension,
       filesystemPath: path,
       contentUri: content,
+      localPath: prep?.romPath,
+      title: game.title,
     );
     // Unknown SDK → assume the stricter Android 11+ storage rules.
     final profile = _device.state.value.profile;
@@ -143,6 +166,9 @@ class LaunchService {
       installedPackage: choice.installedPackage!,
       sdkInt: profile?.sdkInt ?? 30,
       supportsArm64: profile == null || profile.supportedAbis.isEmpty || profile.supportsArm64,
+      systemDir: prep?.systemDir,
+      savesDir: prep?.savesDir,
+      touchControls: touchControls?.call() ?? 'auto',
     );
     final name = choice.adapter.emulator.name;
     final plan = choice.adapter.plan(target, env, opts);

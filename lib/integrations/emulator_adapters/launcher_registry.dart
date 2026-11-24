@@ -1,3 +1,4 @@
+import '../builtin/builtin_player_launcher.dart';
 import '../duckstation/duckstation_launcher.dart';
 import '../retroarch/retroarch_launcher.dart';
 import 'emulator_adapter.dart';
@@ -7,6 +8,8 @@ import 'recipe_launcher.dart';
 /// launch has been verified on real hardware (docs/EMULATOR_INTEGRATION.md).
 /// Order matters: the first installed one is the default for a console.
 final List<GameLauncherAdapter> gameLaunchers = [
+  // Built-in player first: the default for the consoles it covers.
+  BuiltInPlayerLauncher(),
   // Phase 3
   RetroArchLauncher(),
   DuckStationLauncher(),
@@ -117,7 +120,11 @@ const _standaloneFirst = {'n64', 'nds', 'psp', 'saturn', 'dreamcast', 'gamecube'
 List<GameLauncherAdapter> launchersForConsole(String consoleId) {
   final list = [for (final l in gameLaunchers) if (l.supports(consoleId)) l];
   if (_standaloneFirst.contains(consoleId)) {
-    list.sort((a, b) => (a.emulatorId == 'retroarch' ? 1 : 0) - (b.emulatorId == 'retroarch' ? 1 : 0));
+    // Stable: RetroArch after the standalone emulators.
+    final ra = list.where((l) => l.emulatorId == 'retroarch').toList();
+    list
+      ..removeWhere((l) => l.emulatorId == 'retroarch')
+      ..addAll(ra);
   }
   return list;
 }

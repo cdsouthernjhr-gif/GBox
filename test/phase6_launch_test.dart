@@ -38,11 +38,12 @@ void main() {
       }
     });
 
-    test('dedicated emulators are preferred for 3D/handheld consoles, RetroArch for retro', () {
+    test('built-in player first for the bundled systems; dedicated emulators for 3D/handheld', () {
       expect(launchersForConsole('psp').first.emulatorId, 'ppsspp');
       expect(launchersForConsole('n64').first.emulatorId, 'mupen64plus_fz');
-      expect(launchersForConsole('nes').first.emulatorId, 'retroarch');
-      expect(launchersForConsole('ps1').first.emulatorId, 'retroarch');
+      expect(launchersForConsole('n64').last.emulatorId, 'retroarch');
+      expect(launchersForConsole('nes').map((l) => l.emulatorId).take(2), ['gamebox', 'retroarch']);
+      expect(launchersForConsole('ps1').map((l) => l.emulatorId).take(2), ['gamebox', 'retroarch']);
     });
 
     test('nothing is verified on a device yet', () {

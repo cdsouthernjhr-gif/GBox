@@ -2,6 +2,8 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
+> **0.12.0:** built-in player — games play inside GAMEBOX, no RetroArch or cores to install (NES, SNES, GB/GBC/GBA, Mega Drive, Master System, PS1). Licensed GPLv3 (see LICENSE and docs/THIRD_PARTY_LICENSES.md).
+>
 > **0.11.0:** HOME is an interactive game launcher (one row of games per console, OK plays). **0.10.0:** setup wizard, shared `ROMs/` folder, ROM search, RetroArch playlists.
 >
 > **Status: Phase 7 (Advanced features).** Save Manager (backup/restore/export/import of emulator saves), library database backup/restore, compatibility evidence (your own results, community imports, anonymous export with consent), device benchmarks, live performance monitor, accent colour and wallpaper image. Earlier: **Phase 6 (Additional emulators, experimental).** All 10 supported emulator apps can launch games: PPSSPP, Mupen64Plus FZ, melonDS, DraStic, Flycast, Redream, Dolphin, AetherSX2/NetherSX2, plus RetroArch cores for N64, NDS, PSP, Saturn and Dreamcast. Launch methods are unverified on a device. Earlier: **Phase 5 (Online Services).** User-added sources (direct links and the GAMEBOX catalogue format), HTTPS download engine with resume, SHA-256, size/space checks and safe ZIP extraction, download dashboard and history, catalogue metadata and covers. Earlier: **Phase 4 (Controllers).** Button mapping wizard, analog calibration, dead zone, trigger threshold, vibration test, player slots and RetroArch autoconfig export. Mappings apply inside GAMEBOX (native key remap + dead-zone-aware stick navigation). Earlier: **Phase 3 (First emulator integration, experimental).** Games can be launched through RetroArch (NES, SNES, Master System, Mega Drive, GB/GBC, GBA, PS1) and DuckStation (PS1), with play history. The launch methods are untested on a real device. Earlier phases: **Phase 2 (Game Library).** Phase 1 (launcher, Device Intelligence Engine, database, controller/storage detection, settings) plus the ROM manager: folder scanning, console detection, manual import, missing-file and duplicate detection, header verification, local artwork, search/filter/sort and metadata editing. Game launching through emulators (Phase 3) is **not implemented yet**. See [docs/DEVELOPMENT_REPORT.md](docs/DEVELOPMENT_REPORT.md).
@@ -49,7 +51,7 @@ See [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) for the full toolchain and CI. In
 
 ## Legal
 
-GAMEBOX ships **no ROMs, BIOS files, firmware or emulators**. It only works with files you legally own and emulator apps you install yourself. It will never bypass DRM, authentication or paywalls.
+GAMEBOX ships **no ROMs, BIOS files or firmware**. Since 0.12.0 it includes a built-in player (bundled libretro cores for NES, SNES, Game Boy/Color/Advance, Mega Drive/Master System and PS1); other systems use emulator apps you install yourself. It only works with games you legally own. It will never bypass DRM, authentication or paywalls.
 
 ## Dependencies and licences
 
@@ -64,6 +66,9 @@ GAMEBOX ships **no ROMs, BIOS files, firmware or emulators**. It only works with
 | crypto | ^3.0.8 | BSD-3-Clause | SHA-256 for download verification |
 | archive | ^4.6.0 | MIT | ZIP inspection and guarded extraction |
 | androidx.core:core (Android) | 1.13.1 | Apache-2.0 | FileProvider for sharing GAMEBOX-folder games with emulators |
+| LibretroDroid (Android, JitPack) | 0.14.0 | GPL-3.0 | Built-in player (libretro frontend) |
+| androidx.activity / lifecycle-runtime-ktx | 1.9.3 / 2.8.7 | Apache-2.0 | Built-in player activity |
+| libretro cores (bundled at build time) | LemuroidCores `fee2e82` | GPL-2.0, MPL-2.0, non-commercial | See docs/THIRD_PARTY_LICENSES.md |
 | drift_dev, build_runner (dev) | 2.35.3 / 2.17.1 | MIT / BSD-3-Clause | Code generation |
 | flutter_lints, flutter_test, integration_test (dev) | SDK | BSD-3-Clause | Linting, tests |
 | Android Gradle Plugin / Kotlin / Gradle | 9.1.0 / 2.4.0 / 9.3.1 | Apache-2.0 | Android build |

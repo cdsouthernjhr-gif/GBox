@@ -75,6 +75,13 @@ const _generic = 'Open the emulator\'s settings and look for a save, memory-card
 
 const saveLayouts = <SaveLayout>[
   SaveLayout(
+    emulatorId: 'gamebox',
+    dirs: ['$dataDir/Saves/GAMEBOX'],
+    howTo: 'Built-in player: battery saves (.srm) and save states (.state) are stored here automatically, '
+        'one folder per system.',
+    specific: true,
+  ),
+  SaveLayout(
     emulatorId: 'retroarch',
     dirs: ['$dataDir/Saves/RetroArch/saves', '$dataDir/Saves/RetroArch/states'],
     howTo: 'RetroArch → Settings → Directory → Save Files: choose GAMEBOX/Saves/RetroArch/saves. '

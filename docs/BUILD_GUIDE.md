@@ -17,6 +17,7 @@
 
 ```bash
 flutter pub get
+./tool/fetch_cores.sh                            # built-in player cores → android/app/src/main/jniLibs (verified, git-ignored)
 dart run build_runner build --delete-conflicting-outputs   # only after editing tables.dart / app_database.dart
 flutter analyze
 flutter test

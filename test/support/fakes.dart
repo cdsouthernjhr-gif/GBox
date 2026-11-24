@@ -399,6 +399,14 @@ class FakeGateway implements PlatformGateway {
     return 'content://com.gamebox.console.files/gamebox/${path.substring(base.length)}';
   }
 
+  Map<String, dynamic> player = {'state': 'idle', 'frames': 0};
+
+  @override
+  Future<Map<String, dynamic>> playerStatus() async => player;
+
+  @override
+  Future<void> closePlayer() async => player = {...player, 'state': 'closed'};
+
   @override
   Future<bool> isDefaultLauncher() async => false;
 

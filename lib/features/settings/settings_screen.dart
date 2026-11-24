@@ -196,6 +196,19 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             value: 'Mapping, calibration, dead zone, vibration and player slots are under CONTROLLERS',
           ),
           const SizedBox(height: 12),
+          const SectionHeader('Built-in player'),
+          _Choice<PlayerTouch>(
+            title: 'On-screen controls',
+            value: st.playerTouch,
+            values: PlayerTouch.values,
+            label: (v) => switch (v) {
+              PlayerTouch.auto => 'Automatic (phones and tablets without a controller)',
+              PlayerTouch.on => 'Always',
+              PlayerTouch.off => 'Never',
+            },
+            onChanged: (v) => s.settings.set(SettingsKeys.playerTouch, v.name),
+          ),
+          const SizedBox(height: 12),
           const SectionHeader('Downloads'),
           _Toggle(
             title: 'Pause downloads while playing',

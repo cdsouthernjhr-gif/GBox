@@ -11,6 +11,7 @@ import '../core/services/platform_gateway.dart';
 import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
+import '../features/emulator_manager/player_files.dart';
 import '../features/emulator_manager/retroarch_playlist_service.dart';
 import '../features/rom_manager/rom_search_service.dart';
 import '../features/storage_manager/roms_migration_service.dart';
@@ -94,6 +95,14 @@ class AppServices {
       appBases: appRoots ?? _defaultAppRoots,
     );
     library.extraLocalRoots = location.localScanRoots;
+    launcher
+      ..playerFiles = PlayerFiles(
+        gateway: gateway,
+        // Hidden folder: the library scan skips it.
+        cacheDir: () async => '${await gameboxRoot()}/.cache',
+        dataBase: () async => await location.localBase() ?? await location.appBase(),
+      )
+      ..touchControls = (() => settings.state.value.playerTouch.name);
     romSearch = RomSearchService(db: db, library: library, location: location);
     migration = RomsMigrationService(db, location);
     playlists = RetroArchPlaylistService(db, location);

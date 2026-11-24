@@ -181,6 +181,10 @@ ConsoleDefinition? consoleById(String id) {
 
 enum IntegrationStrategy { external, standalone, libretro }
 
+/// GAMEBOX's own package and the id of its built-in player.
+const gameboxPackage = 'com.gamebox.console';
+const builtInPlayerId = 'gamebox';
+
 /// A third-party emulator app that GAMEBOX can detect (and, from Phase 3,
 /// launch) through Android's documented package and intent mechanisms.
 /// GAMEBOX does not bundle these apps.
@@ -216,6 +220,17 @@ class KnownEmulator {
 /// Package ids must also be listed in AndroidManifest.xml `<queries>` so they
 /// are visible on Android 11+.
 const List<KnownEmulator> knownEmulators = [
+  // Built into GAMEBOX (LibretroDroid + bundled libretro cores). Its
+  // "package" is GAMEBOX itself, so it is always installed.
+  KnownEmulator(
+    id: builtInPlayerId, name: 'GAMEBOX Player',
+    packageIds: [gameboxPackage],
+    consoleIds: ['nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1'],
+    license: 'GPLv3 (LibretroDroid); cores: GPLv2, MPL-2.0, non-commercial — see THIRD_PARTY_LICENSES',
+    strategy: IntegrationStrategy.libretro,
+    notes: 'Built in: no app, core or setup needed. Cores: FCEUmm, Snes9x, Gambatte, mGBA, '
+        'Genesis Plus GX, PCSX ReARMed.',
+  ),
   KnownEmulator(
     id: 'retroarch', name: 'RetroArch',
     packageIds: ['com.retroarch', 'com.retroarch.aarch64', 'com.retroarch.ra32'],

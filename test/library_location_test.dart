@@ -386,6 +386,7 @@ void main() {
       expect(gateway.treeDirs[tree], containsAll(gameboxFolders()));
       expect(settings.state.value.romFolders, contains(tree));
       expect({for (final f in settings.state.value.saveFolders) f.uri: f.emulatorId}, {
+        '$tree#GAMEBOX/Saves/GAMEBOX': 'gamebox',
         '$tree#GAMEBOX/Saves/RetroArch': 'retroarch',
         '$tree#GAMEBOX/Saves/PPSSPP': 'ppsspp',
       });

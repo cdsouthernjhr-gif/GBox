@@ -66,7 +66,8 @@ class _EmulatorTile extends StatelessWidget {
     return TvFocusable(
       scale: 1.01,
       padding: const EdgeInsets.all(14),
-      onSelect: inst.isInstalled
+      // The built-in player is GAMEBOX itself: nothing to open.
+      onSelect: inst.isInstalled && e.id != builtInPlayerId
           ? () async {
               final ok = await s.gateway.launchApp(inst.installedPackage!);
               if (!ok && context.mounted) {

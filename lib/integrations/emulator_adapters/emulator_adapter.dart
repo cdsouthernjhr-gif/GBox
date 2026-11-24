@@ -71,6 +71,8 @@ class LaunchTarget {
     required this.extension,
     this.filesystemPath,
     this.contentUri,
+    this.localPath,
+    this.title,
   });
 
   final String consoleId;
@@ -84,10 +86,22 @@ class LaunchTarget {
 
   /// content:// URI GAMEBOX may grant to the emulator, if any.
   final String? contentUri;
+
+  /// A path GAMEBOX itself can read (built-in player): the file, a copy in
+  /// the cache, or the game extracted from a ZIP. Null if none.
+  final String? localPath;
+  final String? title;
 }
 
 class LaunchEnvironment {
-  const LaunchEnvironment({required this.installedPackage, required this.sdkInt, this.supportsArm64 = true});
+  const LaunchEnvironment({
+    required this.installedPackage,
+    required this.sdkInt,
+    this.supportsArm64 = true,
+    this.systemDir,
+    this.savesDir,
+    this.touchControls = 'auto',
+  });
 
   /// Package of the installed emulator build being used.
   final String installedPackage;
@@ -96,6 +110,11 @@ class LaunchEnvironment {
   /// From the hardware profile; true when unknown (the emulator then reports
   /// incompatibility itself).
   final bool supportsArm64;
+
+  /// Built-in player: BIOS folder, save folder and on-screen controls.
+  final String? systemDir;
+  final String? savesDir;
+  final String touchControls;
 }
 
 /// A user-selectable option, e.g. a RetroArch core.
@@ -142,6 +161,9 @@ abstract class GameLauncherAdapter {
   LaunchPlan plan(LaunchTarget target, LaunchEnvironment env, Map<String, String> options);
 
   KnownEmulator get emulator => knownEmulators.firstWhere((e) => e.id == emulatorId);
+
+  /// Part of GAMEBOX (always available, needs files GAMEBOX can read).
+  bool get builtIn => false;
 
   bool supports(String consoleId) => consoleIds.contains(consoleId);
 }

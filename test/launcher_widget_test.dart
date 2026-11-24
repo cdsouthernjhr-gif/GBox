@@ -86,6 +86,14 @@ void main() {
     expect(closed, isTrue, reason: 'database closed cleanly');
   }
 
+  /// Pumps until [done] (real file I/O of the built-in player's preparation
+  /// only advances in runAsync windows).
+  Future<void> settleUntil(WidgetTester tester, bool Function() done, {int max = 30}) async {
+    for (var i = 0; i < max && !done(); i++) {
+      await settle(tester);
+    }
+  }
+
   Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
     await tester.sendKeyEvent(key);
     await settle(tester);
@@ -196,7 +204,7 @@ void main() {
     await shutdown(tester);
   });
 
-  testWidgets('Play on the game page launches RetroArch and records the session', (tester) async {
+  testWidgets('Play on the game page starts the built-in player and records the session', (tester) async {
     await boot(
       tester,
       configure: (g) => g.installed['com.retroarch'] = '1.20.0',
@@ -211,13 +219,20 @@ void main() {
     expect(find.text('Play with…'), findsOneWidget);
 
     await tester.tap(find.text('Play'));
+    await settleUntil(tester, () => gateway.launchedSpecs.isNotEmpty);
     await settle(tester);
-    await settle(tester);
-    // The synthetic device is Android 9 (API 28), so RetroArch may read the
-    // GAMEBOX folder path directly.
+    // NES plays in the built-in player by default, straight from GAMEBOX's
+    // own folder (no copy needed).
     expect(gateway.launchedSpecs, hasLength(1));
-    expect(gateway.launchedSpecs.single['className'], 'com.retroarch.browser.retroactivity.RetroActivityFuture');
-    expect(find.textContaining('Starting Space Quest in RetroArch'), findsOneWidget);
+    final spec = gateway.launchedSpecs.single;
+    expect(spec['package'], 'com.gamebox.console');
+    expect(spec['className'], 'com.gamebox.console.player.PlayerActivity');
+    final extras = spec['extras'] as Map;
+    expect(extras['core'], 'fceumm');
+    expect(extras['rom'], endsWith('/GAMEBOX/Games/NES/Space Quest.nes'));
+    expect(extras['saves'], endsWith('/GAMEBOX/Saves/GAMEBOX/nes'));
+    expect(extras['layout'], 'nes');
+    expect(find.textContaining('Starting Space Quest in GAMEBOX Player'), findsOneWidget);
     final game = (await tester.runAsync(() => services.db.select(services.db.games).get()))!.single;
     expect(game.playCount, 1);
     await shutdown(tester);
@@ -331,11 +346,11 @@ void main() {
     await settle(tester);
     await settle(tester);
     await tester.tap(find.text('Play'));
-    await settle(tester);
+    await settleUntil(tester, () => gateway.launchedSpecs.isNotEmpty);
     await settle(tester);
     expect(gateway.launchedSpecs, hasLength(1));
 
-    final back = services.launcher.onReturned(); // user comes back from RetroArch
+    final back = services.launcher.onReturned(); // user comes back from the game
     await settle(tester);
     await back;
     await settle(tester);
@@ -347,7 +362,7 @@ void main() {
     await settle(tester);
     final rows = await results;
     expect(rows.single.result, 'good');
-    expect(rows.single.emulatorId, 'retroarch');
+    expect(rows.single.emulatorId, 'gamebox');
     expect(rows.single.consentToShare, isFalse, reason: 'sharing is opt-in');
     await shutdown(tester);
   });
@@ -412,12 +427,13 @@ void main() {
     await settle(tester);
     expect(find.text('Favourites'), findsOneWidget);
 
-    // A / OK plays straight away with the console default (RetroArch).
+    // A / OK plays straight away with the console default (built-in player).
     await press(tester, LogicalKeyboardKey.enter);
+    await settleUntil(tester, () => gateway.launchedSpecs.isNotEmpty);
     await settle(tester);
     expect(gateway.launchedSpecs, hasLength(1));
-    expect(gateway.launchedSpecs.single['className'], 'com.retroarch.browser.retroactivity.RetroActivityFuture');
-    expect(find.textContaining('Starting Alpha Quest in RetroArch'), findsOneWidget);
+    expect(gateway.launchedSpecs.single['className'], 'com.gamebox.console.player.PlayerActivity');
+    expect(find.textContaining('Starting Alpha Quest in GAMEBOX Player'), findsOneWidget);
 
     // Left on the first game of a row opens the full menu.
     await press(tester, LogicalKeyboardKey.arrowLeft);

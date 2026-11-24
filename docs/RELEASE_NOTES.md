@@ -1,5 +1,21 @@
 # Release notes
 
+## 0.12.0+14 — Built-in player: play without RetroArch (pre-release)
+
+Feedback: NES and PS1 games showed a black screen in RetroArch, even when opened in RetroArch itself. Setting up RetroArch (cores, permissions, config) was the hardest part of GAMEBOX.
+
+**New:**
+* **GAMEBOX plays games itself.** NES, SNES, Game Boy / Color / Advance, Mega Drive, Master System and PS1 run in a built-in player: press OK on a game and it starts. No emulator app, no core download, no emulator settings, no storage permission for another app.
+* Bundled cores: FCEUmm, Snes9x, Gambatte, mGBA, Genesis Plus GX, PCSX ReARMed (PS1 works without a BIOS; a real one in `GAMEBOX/BIOS/PS1` is used when present).
+* Pause menu with BACK (or the controller's Mode button): resume, save state, load state, restart, quit. Battery saves are kept automatically in `GAMEBOX/Saves/GAMEBOX/<system>` and appear in the Save Manager.
+* Controllers by button position, TV remote (D-pad, OK, Menu), and on-screen controls on phones (Settings → Built-in player).
+* Games in GAMEBOX's own folder, picked folders and ZIP archives play too.
+* RetroArch and the other emulators remain under *Play with…*; systems the player doesn't cover (PSP, N64, NDS, Dreamcast, PS2, GameCube/Wii) still use them.
+
+**Licence:** GAMEBOX is now GPLv3 (the player library LibretroDroid is GPLv3). Snes9x and Genesis Plus GX are non-commercial: these builds must not be sold. Details: docs/THIRD_PARTY_LICENSES.md.
+
+**Status:** CI starts the player on Android 7 and 14 emulators and checks the NES core renders frames. Real games, controllers and touch controls on a phone/TV box are not yet verified. APKs are about 15 MB larger.
+
 ## 0.11.0+13 — Game Home: an interactive game launcher (pre-release)
 
 **New:**

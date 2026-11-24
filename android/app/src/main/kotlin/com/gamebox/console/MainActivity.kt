@@ -200,6 +200,11 @@ class MainActivity : FlutterActivity() {
         val emulatorLauncher = EmulatorLauncher(this)
         MethodChannel(messenger, "gamebox/emulator").setMethodCallHandler { call, result ->
             when (call.method) {
+                "playerStatus" -> result.success(com.gamebox.console.player.PlayerStatus.toMap())
+                "closePlayer" -> {
+                    com.gamebox.console.player.PlayerStatus.activity?.get()?.finish()
+                    result.success(true)
+                }
                 "launch" -> {
                     @Suppress("UNCHECKED_CAST")
                     val spec = call.arguments as? Map<String, Any?>

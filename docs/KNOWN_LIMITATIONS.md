@@ -90,6 +90,14 @@
 * GAMEBOX can't set emulators' save or BIOS folders; you point each emulator at them once.
 * Save backups and exports are kept in the app folder (deleted with GAMEBOX).
 
+## Built-in player (0.12.0)
+
+* Only six bundled cores: NES, SNES, Game Boy/Color/Advance, Mega Drive/Master System, PS1. PSP, N64, NDS, Dreamcast, PS2, GameCube/Wii still need an emulator app.
+* Verified on Android emulators only (a synthetic NES image renders frames). Real games, speed on low-end TV boxes, controllers and touch controls are untested.
+* One save-state slot per game; no fast-forward, rewind, cheats or shaders yet. Single player (port 1) for the remote/touch; each physical controller uses its own port.
+* `.7z` archives aren't opened (ZIP is). PS1 without a real BIOS relies on PCSX ReARMed's replacement, which some games don't like.
+* APK size grows by about 15 MB per ABI. Builds that include Snes9x and Genesis Plus GX must not be sold (non-commercial licences).
+
 ## Not yet implemented (by phase)
 
  · languages other than English.

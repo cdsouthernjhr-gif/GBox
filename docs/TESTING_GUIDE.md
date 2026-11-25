@@ -26,10 +26,8 @@ Hardware profiles and ROM headers in tests are **synthetic** (headers are built 
 `integration_test/device_test.dart` runs on a real Android device or emulator with the real native layer:
 
 ```bash
-flutter test integration_test/device_test.dart -d <device-id>          # debug
-flutter drive --release --driver=test_driver/integration_test.dart \
-  --target=integration_test/device_test.dart -d <device-id>                # release (what CI runs)
-./tool/ci_device_tests.sh   # integration tests + adb HOME-launcher checks (needs emulator-5554)
+flutter test integration_test/device_test.dart -d <device-id>
+./tool/ci_device_tests.sh   # also starts the player in a RELEASE build via adb (alias .player.PlayerSmokeTest, DUMP-protected)   # integration tests + adb HOME-launcher checks (needs emulator-5554)
 ```
 
 | Test | Checks |

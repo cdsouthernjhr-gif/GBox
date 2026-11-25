@@ -166,6 +166,8 @@ jobs:
           ./tool/fetch_cores.sh
           flutter pub get
           flutter build apk --debug
+          # Release build (R8) for the built-in player check in ci_device_tests.sh.
+          flutter build apk --release --target-platform android-x64
 
       - name: Run on emulator
         uses: reactivecircus/android-emulator-runner@v2

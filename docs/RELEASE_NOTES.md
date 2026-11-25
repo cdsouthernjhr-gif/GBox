@@ -5,7 +5,7 @@
 **Fixed:** in 0.12.0 the built-in player showed a black screen and the app closed (reported on a phone with an NES game). Cause: release APKs are shrunk by R8, which renamed the classes and methods LibretroDroid's native code looks up by name (the library ships no keep rules). The emulator tests used debug builds, so they didn't catch it. Now:
 * keep rules for LibretroDroid (`android/app/proguard-rules.pro`);
 * CI checks the R8 mapping keeps those names, and fails otherwise;
-* the on-device tests run a **release** build (`flutter drive --release`), like the APKs you install.
+* the emulator tests also start the player in a **release** build (like the APKs you install) and fail if it crashes or shows no frames.
 
 **New:** if the built-in player ever stops unexpectedly, GAMEBOX shows what happened on its next start (or when you return), with **Copy details** to send to the developer. Audio uses the standard (not low-latency) path.
 

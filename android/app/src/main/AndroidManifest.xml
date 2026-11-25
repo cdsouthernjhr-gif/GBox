@@ -39,6 +39,14 @@
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|uiMode|navigation|density|locale|layoutDirection|fontScale" />
+        <!-- Lets CI start the player in a release build with `adb shell am
+             start`. Requires DUMP, which only the shell/system hold, so other
+             apps cannot use it. -->
+        <activity-alias
+            android:name=".player.PlayerSmokeTest"
+            android:targetActivity=".player.PlayerActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

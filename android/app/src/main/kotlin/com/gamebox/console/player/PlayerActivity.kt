@@ -5,6 +5,7 @@ import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -114,6 +115,7 @@ class PlayerActivity : ComponentActivity() {
                     if (PlayerStatus.state == "starting") {
                         PlayerStatus.state = "running"
                         PlayerStatus.persist()
+                        Log.i(TAG, "GAMEBOX-Player: running ${intent.getStringExtra(EXTRA_CORE)}")
                     }
                 }
             }
@@ -279,6 +281,7 @@ class PlayerActivity : ComponentActivity() {
     private fun fail(message: String) {
         PlayerStatus.state = "error"
         PlayerStatus.errorMessage = message
+        Log.e(TAG, "GAMEBOX-Player: error: $message")
         PlayerStatus.persist()
         if (isFinishing) return
         AlertDialog.Builder(this)
@@ -299,6 +302,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val TAG = "GameboxPlayer"
         const val EXTRA_CORE = "core"
         const val EXTRA_ROM = "rom"
         const val EXTRA_SYSTEM = "system"

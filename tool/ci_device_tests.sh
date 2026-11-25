@@ -136,13 +136,15 @@ if [ -f "$RELEASE_APK" ]; then
   sleep 12
   # Read the log once (grep -q on a pipe would SIGPIPE adb under pipefail).
   PLAYER_LOG=$(adb logcat -d | tr -d '\r' || true)
-  echo "$PLAYER_LOG" | grep -E "GAMEBOX-Player|FATAL|Fatal signal|libretro" || true
-  if echo "$PLAYER_LOG" | grep -qE "FATAL EXCEPTION|Fatal signal"; then
-    echo "$PLAYER_LOG" | grep -A30 -E "FATAL EXCEPTION|Fatal signal" | head -60 || true
+  # Here-strings, not pipes: grep -q exits early and a pipe writer would get
+  # SIGPIPE under pipefail (the large API 34 log failed that way).
+  grep -E "GAMEBOX-Player|FATAL|Fatal signal|libretro" <<< "$PLAYER_LOG" || true
+  if grep -qE "FATAL EXCEPTION|Fatal signal" <<< "$PLAYER_LOG"; then
+    grep -A30 -E "FATAL EXCEPTION|Fatal signal" <<< "$PLAYER_LOG" | head -60 || true
     echo "FAIL: the built-in player crashed in the release build" >&2
     exit 1
   fi
-  if ! echo "$PLAYER_LOG" | grep -q "GAMEBOX-Player: running"; then
+  if ! grep -q "GAMEBOX-Player: running" <<< "$PLAYER_LOG"; then
     echo "FAIL: the built-in player did not render frames in the release build" >&2
     exit 1
   fi

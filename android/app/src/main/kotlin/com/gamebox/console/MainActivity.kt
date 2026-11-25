@@ -81,6 +81,7 @@ class MainActivity : FlutterActivity() {
                         )
                     }
                     "launchApp" -> result.success(launcher.launchApp(call.argument<String>("packageName")!!))
+                    "openUrl" -> result.success(launcher.openUrl(call.argument<String>("url")!!))
                     "installedVersions" -> Background.run(result) {
                         launcher.installedVersions(call.argument<List<String>>("packages") ?: emptyList())
                     }

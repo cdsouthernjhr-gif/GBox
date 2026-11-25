@@ -176,6 +176,10 @@ abstract class PlatformGateway {
   Future<List<InstalledApp>> listApps();
   Future<Uint8List?> appImage(String packageName, {bool banner = false});
   Future<bool> launchApp(String packageName);
+
+  /// Opens an https:// or market:// link (browser / Play Store). False when
+  /// nothing on the device can open it.
+  Future<bool> openUrl(String url);
   Future<Map<String, String?>> installedVersions(List<String> packages);
 
   /// Fires when HOME is pressed while GAMEBOX is already in front.
@@ -439,6 +443,10 @@ class MethodChannelGateway implements PlatformGateway {
   Future<bool> launchApp(String packageName) async =>
       await _launcher.invokeMethod<bool>('launchApp', {'packageName': packageName}) ??
           false;
+
+  @override
+  Future<bool> openUrl(String url) async =>
+      await _launcher.invokeMethod<bool>('openUrl', {'url': url}) ?? false;
 
   @override
   Future<Map<String, String?>> installedVersions(List<String> packages) async {

@@ -1,4 +1,4 @@
 const String appName = 'GAMEBOX';
 
 /// Keep in sync with `version:` in pubspec.yaml.
-const String appVersion = '0.12.2';
+const String appVersion = '0.12.3';

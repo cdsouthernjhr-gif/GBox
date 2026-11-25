@@ -439,6 +439,16 @@ class FakeGateway implements PlatformGateway {
   @override
   Future<Uint8List?> appImage(String packageName, {bool banner = false}) async => null;
 
+  final openedUrls = <String>[];
+  bool canOpenUrls = true;
+
+  @override
+  Future<bool> openUrl(String url) async {
+    if (!canOpenUrls) return false;
+    openedUrls.add(url);
+    return true;
+  }
+
   @override
   Future<bool> launchApp(String packageName) async {
     launched.add(packageName);

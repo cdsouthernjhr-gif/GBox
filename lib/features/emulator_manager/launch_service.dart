@@ -25,9 +25,18 @@ class LaunchChoice {
 }
 
 class LaunchOutcome {
-  const LaunchOutcome.started({required this.emulatorName, this.notes = const []}) : ok = true, reasons = const [];
-  const LaunchOutcome.blocked(this.reasons, {this.emulatorName}) : ok = false, notes = const [];
+  const LaunchOutcome.started({required this.emulatorName, this.notes = const []})
+      : ok = true,
+        reasons = const [],
+        missingEmulators = const [];
+  const LaunchOutcome.blocked(this.reasons, {this.emulatorName, this.missingEmulators = const []})
+      : ok = false,
+        notes = const [];
   final bool ok;
+
+  /// Emulators that could play the game but aren't installed (the UI offers
+  /// where to get them).
+  final List<String> missingEmulators;
   final String? emulatorName;
   final List<String> reasons;
   final List<String> notes;
@@ -150,11 +159,16 @@ class LaunchService {
     }
     if (choice == null || !choice.installed) {
       final names = choices.map((c) => c.adapter.emulator.name).join(' or ');
-      return LaunchOutcome.blocked([
-        emulatorId == null
-            ? 'No compatible emulator is installed. Install $names from its official source, then try again.'
-            : '${choice?.adapter.emulator.name ?? emulatorId} is not installed.',
-      ]);
+      return LaunchOutcome.blocked(
+        [
+          emulatorId == null
+              ? 'No compatible emulator is installed. Install $names from its official source, then try again.'
+              : '${choice?.adapter.emulator.name ?? emulatorId} is not installed.',
+        ],
+        missingEmulators: emulatorId != null
+            ? [emulatorId]
+            : [for (final c in choices) if (!c.installed) c.adapter.emulatorId],
+      );
     }
 
     // Built-in player: a file GAMEBOX can read, plus BIOS and save folders.

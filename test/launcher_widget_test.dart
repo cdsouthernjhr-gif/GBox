@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gamebox/features/rom_manager/rom_search_service.dart';
 import 'package:gamebox/features/setup/rom_search_screen.dart';
 import 'package:gamebox/core/rom/scan_planner.dart';
+import 'package:gamebox/features/source_manager/find_online_screen.dart';
 import 'package:gamebox/app/app_services.dart';
 import 'package:gamebox/app/gamebox_app.dart';
 import 'package:gamebox/core/online/download_engine.dart';
@@ -529,6 +530,50 @@ void main() {
     expect(find.textContaining('→ ROMs/gba/'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('NEEDS A CONSOLE (1)'), 200, scrollable: list);
     await settle(tester);
+    expect(tester.takeException(), isNull);
+    await shutdown(tester);
+  });
+
+  testWidgets('no emulator installed: a popup offers the official sources', (tester) async {
+    await boot(
+      tester,
+      home: HomeStyle.games,
+      prepare: (root) => File('$root/GAMEBOX/Games/N64/Kart.z64')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(Uint8List(4096)),
+    );
+    await press(tester, LogicalKeyboardKey.enter); // play the focused game
+    await settleUntil(tester, () => find.textContaining('Get an emulator for').evaluate().isNotEmpty);
+    expect(find.textContaining('Get an emulator for'), findsOneWidget);
+    expect(find.text('Mupen64Plus FZ'), findsOneWidget);
+    expect(find.text('RetroArch'), findsOneWidget);
+    expect(gateway.launchedSpecs, isEmpty);
+
+    await tester.tap(find.text('Play Store').first);
+    await settle(tester);
+    expect(gateway.openedUrls, ['market://details?id=org.mupen64plusae.v3.fzurita']);
+
+    gateway.canOpenUrls = false;
+    await tester.tap(find.text('Official site').first);
+    await settle(tester);
+    expect(find.textContaining('No app on this device can open the link'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await settle(tester);
+    await shutdown(tester);
+  });
+
+  testWidgets('Find games online: search opens the browser; homebrew sources open their sites', (tester) async {
+    await boot(tester);
+    Navigator.of(tester.element(find.byType(Scaffold).first))
+        .push(MaterialPageRoute<void>(builder: (_) => const FindOnlineScreen()));
+    await settle(tester);
+    await tester.enterText(find.byKey(const ValueKey('web-search')), 'pixel quest');
+    await tester.tap(find.text('Search'));
+    await settle(tester);
+    expect(gateway.openedUrls, ['https://www.google.com/search?q=pixel+quest']);
+    await tester.tap(find.text('Homebrew Hub'));
+    await settle(tester);
+    expect(gateway.openedUrls.last, 'https://hh.gbdev.io/');
     expect(tester.takeException(), isNull);
     await shutdown(tester);
   });

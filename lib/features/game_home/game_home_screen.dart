@@ -14,6 +14,7 @@ import '../emulator_manager/launch_dialogs.dart';
 import '../game_library/game_detail_screen.dart';
 import '../game_library/library_screens.dart' show GeneratedCover, consoleColor;
 import '../setup/rom_search_screen.dart';
+import '../source_manager/find_online_screen.dart';
 import '../setup/setup_screen.dart';
 
 /// One horizontal row of the game launcher.
@@ -501,6 +502,11 @@ class _EmptyLibrary extends StatelessWidget {
                 label: 'Find ROMs on this device',
                 icon: Icons.travel_explore_rounded,
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen())),
+              ),
+              TvButton(
+                label: 'Find games online',
+                icon: Icons.public_rounded,
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
               ),
               TvButton(label: 'Menu', icon: Icons.menu_rounded, onPressed: onOpenMenu),
             ]),

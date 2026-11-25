@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.12.3+17 — Get emulators, find games online (pre-release)
+
+**New:**
+* **No emulator for a game?** Pressing Play shows which emulators play it, each with **Play Store** and **Official site** buttons (official sources only). Install one, come back, press Play again. Emulators that aren't installed can also be fetched from the EMULATORS screen.
+* **Find games online** (DOWNLOADS, or HOME when the library is empty): type anything and **Search** opens the device's web browser with that search. GAMEBOX itself doesn't fetch or list websites. Below it, legal sources of free homebrew games (itch.io, Homebrew Hub, PDRoms), and a shortcut to *Find ROMs on this device* for files you downloaded.
+
+**Not included, on purpose:** download links for BIOS files (copyrighted by the console makers; dump your own) and lists of ROM sites.
+
 ## 0.12.2+16 — ROM search: per-console lists and a summary (pre-release)
 
 **Improved — Find ROMs on this device** (STORAGE, Set up GAMEBOX, or HOME when the library is empty):

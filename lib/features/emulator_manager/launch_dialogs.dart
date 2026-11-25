@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/constants/console_catalog.dart';
+import '../../core/constants/emulator_links.dart';
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/tv_widgets.dart';
@@ -31,6 +32,10 @@ Future<void> playGameWith(BuildContext context, GameRow game) async {
 }
 
 Future<void> _report(BuildContext context, LaunchOutcome o, GameRow game) async {
+  if (!o.ok && o.missingEmulators.isNotEmpty) {
+    await showGetEmulatorDialog(context, game.consoleId, o.missingEmulators);
+    return;
+  }
   if (o.ok) {
     final notes = o.notes.isEmpty ? '' : ' ${o.notes.join(' ')}';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -219,4 +224,75 @@ Future<void> showPlayerCrashDialog(BuildContext context, PlayerCrash crash) => s
         ],
       ),
     );
+
+/// Where to get emulators for [consoleId]: Play Store and official site.
+/// After installing one, return to GAMEBOX and press Play again (installed
+/// emulators are detected on every launch).
+Future<void> showGetEmulatorDialog(BuildContext context, String consoleId, List<String> emulatorIds, {String? title}) =>
+    showDialog<void>(
+      context: context,
+      builder: (c) {
+        final console = consoleById(consoleId)?.name ?? consoleId;
+        return AlertDialog(
+          title: Text(title ?? 'Get an emulator for $console'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title != null
+                    ? 'Install it from its official source, then come back to GAMEBOX.'
+                    : 'No emulator that plays $console games is installed. Install one from its official source, '
+                        'then come back and press Play again.'),
+                const SizedBox(height: 12),
+                for (final id in emulatorIds) _EmulatorGetRow(emulatorId: id),
+              ]),
+            ),
+          ),
+          actions: [TextButton(autofocus: true, onPressed: () => Navigator.pop(c), child: const Text('Close'))],
+        );
+      },
+    );
+
+class _EmulatorGetRow extends StatelessWidget {
+  const _EmulatorGetRow({required this.emulatorId});
+  final String emulatorId;
+
+  Future<void> _open(BuildContext context, List<String?> urls) async {
+    final s = servicesOf(context);
+    final messenger = ScaffoldMessenger.of(context);
+    for (final u in urls) {
+      if (u != null && await s.gateway.openUrl(u)) return;
+    }
+    messenger.showSnackBar(const SnackBar(
+        content: Text('No app on this device can open the link (no Play Store or web browser).')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final emu = knownEmulators.where((e) => e.id == emulatorId).firstOrNull;
+    final links = emulatorLinks[emulatorId];
+    if (emu == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(emu.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+        if (links?.note != null) Text(links!.note!, style: const TextStyle(fontSize: 12, color: Colors.white60)),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          if (links?.playPackage != null)
+            TvButton(
+              label: 'Play Store',
+              icon: Icons.shop_rounded,
+              onPressed: () => _open(context, [links!.playStoreApp, links.playStoreWeb]),
+            ),
+          if (links?.site != null)
+            TvButton(
+              label: 'Official site',
+              icon: Icons.open_in_new_rounded,
+              onPressed: () => _open(context, [links!.site]),
+            ),
+        ]),
+      ]),
+    );
+  }
+}
 

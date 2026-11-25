@@ -103,6 +103,18 @@ class LauncherBridge(private val activity: Activity) {
         return out.toByteArray()
     }
 
+    /**
+     * Opens [url] in the app that handles it (Play Store for market://, the
+     * browser for https://). Only http(s) and market URLs; false when no app
+     * on the device can open it (e.g. a TV box without a browser).
+     */
+    fun openUrl(url: String): Boolean {
+        val uri = Uri.parse(url)
+        if (uri.scheme !in setOf("https", "http", "market")) return false
+        val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return tryStart(intent)
+    }
+
     fun launchApp(packageName: String): Boolean {
         val intent = pm.getLeanbackLaunchIntentForPackage(packageName)
             ?: pm.getLaunchIntentForPackage(packageName)

@@ -87,3 +87,10 @@ During extraction the bytes actually written are counted again, so a lying heade
 ## Metadata providers
 
 Online scrapers (ScreenScraper, TheGamesDB, IGDB, …) need personal API keys and have their own terms, so none is built in. Metadata comes from catalogue entries and manual editing (game page → Edit info). Cached data is used offline.
+
+## Find games online and getting emulators (0.12.3)
+
+* **Find games online** (`features/source_manager/find_online_screen.dart`): the search box opens the device's browser with `https://www.google.com/search?q=<what was typed>`. GAMEBOX adds nothing to the query and does not fetch, scrape, list or rank websites; the user browses and downloads in the browser, and *Find ROMs on this device* then sorts the files into `ROMs/<system>/`. The screen also opens three legal homebrew sources (itch.io homebrew tag, Homebrew Hub, PDRoms). It reminds users that most commercial games online are shared without permission.
+* **Getting emulators:** when no installed emulator can play a game, the launch result lists the missing ones and the UI shows their Play Store listing (`market://`, falling back to `https://play.google.com/…`) and the developer's page (`core/constants/emulator_links.dart`). AetherSX2 has no link (no longer distributed by its developer). Links open through Android's `ACTION_VIEW` (https/market only); devices without a store or browser get a message.
+* **BIOS:** no download links (copyrighted); STORAGE → BIOS explains which files and folders emulators need.
+

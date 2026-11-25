@@ -146,6 +146,8 @@ void main() {
       final o = await launcher.play(id);
       expect(o.ok, isFalse);
       expect(o.reasons.single, contains('RetroArch'));
+      // The UI offers where to get them, dedicated emulator first.
+      expect(o.missingEmulators, ['mupen64plus_fz', 'retroarch']);
       expect(gateway.launchedSpecs, isEmpty);
     });
 

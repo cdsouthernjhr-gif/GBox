@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gamebox/core/constants/console_catalog.dart';
+import 'package:gamebox/core/constants/emulator_links.dart';
+import 'package:gamebox/features/source_manager/find_online_screen.dart';
 import 'package:gamebox/core/database/app_database.dart';
 import 'package:gamebox/core/device/device_intelligence_service.dart';
 import 'package:gamebox/core/services/system_services.dart';
@@ -228,4 +231,24 @@ void main() {
       expect(launcher.finishedSession.value, (id, 'gamebox'));
     });
   });
+
+  group('emulator links and web search', () {
+    test('every emulator GAMEBOX can launch has an official source (or says why not)', () {
+      for (final e in knownEmulators.where((e) => e.id != 'gamebox')) {
+        final l = emulatorLinks[e.id];
+        expect(l, isNotNull, reason: e.id);
+        expect(l!.playPackage != null || l.site != null || l.note != null, isTrue, reason: e.id);
+        if (l.site != null) expect(l.site, startsWith('https://'), reason: e.id);
+        if (l.playPackage != null) expect(e.packageIds, contains(l.playPackage), reason: 'the package GAMEBOX detects');
+      }
+      expect(emulatorLinks['retroarch']!.playStoreApp, 'market://details?id=com.retroarch');
+      expect(homebrewSources.every((s) => s.url.startsWith('https://')), isTrue);
+    });
+
+    test('web search only opens the browser with what was typed', () {
+      expect(webSearchUrl('  Pixel Quest nes '), 'https://www.google.com/search?q=Pixel+Quest+nes');
+      expect(webSearchUrl('a&b=c'), 'https://www.google.com/search?q=a%26b%3Dc');
+    });
+  });
 }
+

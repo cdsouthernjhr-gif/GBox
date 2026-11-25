@@ -6,6 +6,7 @@ import '../../core/online/download_engine.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utilities/formatters.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../source_manager/find_online_screen.dart';
 import '../source_manager/sources_view.dart';
 import 'download_service.dart';
 
@@ -27,6 +28,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       title: _sources ? 'Game sources' : 'Downloads',
       subtitle: 'Authorised downloads only — files are never executed',
       actions: [
+        TvButton(
+          label: 'Find games online',
+          icon: Icons.travel_explore_rounded,
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
+        ),
         TvButton(
           label: _sources ? 'Show downloads' : 'Sources',
           icon: _sources ? Icons.download_rounded : Icons.public_rounded,

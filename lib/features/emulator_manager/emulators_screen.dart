@@ -4,6 +4,7 @@ import '../../core/constants/console_catalog.dart';
 import '../../core/services/system_services.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import 'launch_dialogs.dart';
 import '../../integrations/emulator_adapters/launcher_registry.dart';
 import '../game_library/game_detail_screen.dart' show ratingColor;
 
@@ -75,7 +76,7 @@ class _EmulatorTile extends StatelessWidget {
                     SnackBar(content: Text('Android could not open ${e.name}.')));
               }
             }
-          : null,
+          : (inst.isInstalled ? null : () => showGetEmulatorDialog(context, e.consoleIds.first, [e.id], title: 'Get ${e.name}')),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(Icons.memory_rounded, size: 34, color: inst.isInstalled ? Colors.greenAccent : Colors.white38),
         const SizedBox(width: 14),

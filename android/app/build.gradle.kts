@@ -65,6 +65,8 @@ android {
 
     buildTypes {
         release {
+            // Keep rules for the built-in player (LibretroDroid uses JNI by name).
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = if (keystoreProperties.containsKey("storeFile")) {
                 signingConfigs.getByName("release")
             } else {

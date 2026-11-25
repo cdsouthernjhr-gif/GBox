@@ -201,6 +201,9 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, "gamebox/emulator").setMethodCallHandler { call, result ->
             when (call.method) {
                 "playerStatus" -> result.success(com.gamebox.console.player.PlayerStatus.toMap())
+                "playerCrashReport" -> Background.run(result) {
+                    com.gamebox.console.player.PlayerStatus.crashReport(applicationContext)
+                }
                 "closePlayer" -> {
                     com.gamebox.console.player.PlayerStatus.activity?.get()?.finish()
                     result.success(true)

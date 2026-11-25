@@ -460,4 +460,25 @@ void main() {
     expect(tester.takeException(), isNull);
     await shutdown(tester);
   });
+
+  testWidgets('after a player crash, GAMEBOX shows the details to copy on its next start', (tester) async {
+    await boot(
+      tester,
+      configure: (g) => g.crashReport = {
+        'core': 'fceumm',
+        'rom': '/storage/emulated/0/ROMs/nes/Hero.nes',
+        'frames': 0,
+        'message': '',
+        'log': 'F libc: Fatal signal 6 (SIGABRT)',
+      },
+    );
+    await settle(tester);
+    expect(find.text('The game stopped unexpectedly'), findsOneWidget);
+    expect(find.textContaining('Fatal signal 6'), findsOneWidget);
+    expect(find.text('Copy details'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await settle(tester);
+    expect(find.text('The game stopped unexpectedly'), findsNothing);
+    await shutdown(tester);
+  });
 }

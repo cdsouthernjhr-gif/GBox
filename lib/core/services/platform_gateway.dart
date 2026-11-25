@@ -164,6 +164,10 @@ abstract class PlatformGateway {
   /// Closes the built-in player if it is open.
   Future<void> closePlayer();
 
+  /// When the built-in player of an earlier run stopped unexpectedly:
+  /// `{core, rom, frames, message, log}` (reported once), else null.
+  Future<Map<String, dynamic>?> playerCrashReport();
+
   Future<bool> isDefaultLauncher();
   Future<String> requestDefaultLauncher();
   Future<String> openHomeSettings();
@@ -387,6 +391,12 @@ class MethodChannelGateway implements PlatformGateway {
 
   @override
   Future<void> closePlayer() => _emulator.invokeMethod<bool>('closePlayer');
+
+  @override
+  Future<Map<String, dynamic>?> playerCrashReport() async {
+    final r = await _emulator.invokeMethod<Object?>('playerCrashReport');
+    return r == null ? null : _map(r);
+  }
 
   @override
   Future<bool> isDefaultLauncher() async =>

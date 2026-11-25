@@ -407,6 +407,16 @@ class FakeGateway implements PlatformGateway {
   @override
   Future<void> closePlayer() async => player = {...player, 'state': 'closed'};
 
+  /// Next crash report of the built-in player (returned once).
+  Map<String, dynamic>? crashReport;
+
+  @override
+  Future<Map<String, dynamic>?> playerCrashReport() async {
+    final r = crashReport;
+    crashReport = null;
+    return r;
+  }
+
   @override
   Future<bool> isDefaultLauncher() async => false;
 

@@ -68,6 +68,31 @@ class LaunchService {
   /// uses it to ask how the game ran (optional local compatibility result).
   final ValueNotifier<(int, String)?> finishedSession = ValueNotifier(null);
 
+  /// Set when the built-in player stopped unexpectedly (shown by the UI).
+  final ValueNotifier<PlayerCrash?> playerCrash = ValueNotifier(null);
+
+  /// Looks for a crash of the built-in player (after GAMEBOX restarts, or on
+  /// return from a game). Returns true when one was found.
+  Future<bool> checkPlayerCrash() async {
+    Map<String, dynamic>? r;
+    try {
+      r = await _gateway.playerCrashReport();
+    } catch (_) {
+      return false;
+    }
+    if (r == null) return false;
+    final crash = PlayerCrash(
+      core: '${r['core'] ?? ''}',
+      game: '${r['rom'] ?? ''}'.split('/').last,
+      frames: (r['frames'] as num?)?.toInt() ?? 0,
+      message: '${r['message'] ?? ''}',
+      log: '${r['log'] ?? ''}',
+    );
+    AppLogger.instance.error('Built-in player stopped unexpectedly: ${crash.details}');
+    playerCrash.value = crash;
+    return true;
+  }
+
   Future<List<LaunchChoice>> choicesFor(String consoleId) async {
     if (_emulators.installations.value == null) await _emulators.detect();
     final installs = _emulators.installations.value ?? const [];
@@ -216,6 +241,31 @@ class LaunchService {
     await _db.endPlaySession(s, DateTime.now());
     final g = _activeGame;
     _activeGame = null;
+    // A crash of the built-in player replaces the "how did it run?" question.
+    if (g != null && g.$2 == builtInPlayerId && await checkPlayerCrash()) return;
     if (g != null) finishedSession.value = g;
   }
 }
+
+/// The built-in player stopped unexpectedly.
+class PlayerCrash {
+  const PlayerCrash({required this.core, required this.game, required this.frames, required this.message, required this.log});
+  final String core;
+  final String game;
+
+  /// Frames shown before it stopped (0: it never started).
+  final int frames;
+  final String message;
+  final String log;
+
+  /// Text for the user to send to the developer.
+  String get details => [
+        'GAMEBOX built-in player stopped unexpectedly',
+        'Core: $core',
+        'Game: $game',
+        'Frames shown: $frames',
+        if (message.isNotEmpty) 'Error: $message',
+        if (log.isNotEmpty) '--- log ---\n$log',
+      ].join('\n');
+}
+

@@ -11,6 +11,7 @@ import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../console_manager/consoles_screen.dart';
 import '../controller_manager/controllers_screen.dart';
+import '../emulator_manager/launch_dialogs.dart';
 import '../game_home/game_home_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../download_manager/downloads_screen.dart';
@@ -74,6 +75,8 @@ class LauncherShellState extends State<LauncherShell> {
     }
     _subs.add(s.controllers.notifications.stream.listen(notify));
     s.launcher.finishedSession.addListener(_onFinished);
+    s.launcher.playerCrash.addListener(_onPlayerCrash);
+    if (s.launcher.playerCrash.value != null) WidgetsBinding.instance.addPostFrameCallback((_) => _onPlayerCrash());
     _subs.add(s.storage.notifications.stream.listen(notify));
   }
 
@@ -85,9 +88,18 @@ class LauncherShellState extends State<LauncherShell> {
     askHowItRan(context, done.$1, done.$2);
   }
 
+  void _onPlayerCrash() {
+    final s = _services;
+    final crash = s?.launcher.playerCrash.value;
+    if (crash == null || !mounted) return;
+    s!.launcher.playerCrash.value = null;
+    showPlayerCrashDialog(context, crash);
+  }
+
   @override
   void dispose() {
     _services?.launcher.finishedSession.removeListener(_onFinished);
+    _services?.launcher.playerCrash.removeListener(_onPlayerCrash);
     for (final s in _subs) {
       s.cancel();
     }

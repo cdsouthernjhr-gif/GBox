@@ -190,6 +190,8 @@ class AppServices {
     await settings.initialize();
     await device.initialize(rescan: false);
     await controllerConfig.initialize();
+    // After a crash of the built-in player (which ends the app), report it.
+    unawaited(launcher.checkPlayerCrash());
     // Background work; failures are logged and never block the UI.
     () async {
       await Future.wait([

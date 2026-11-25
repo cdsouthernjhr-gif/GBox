@@ -40,17 +40,19 @@ if ! timeout 300 adb install -r -t -g build/app/outputs/flutter-apk/app-debug.ap
 fi
 
 echo "== Integration tests"
+# Release build (R8 shrinking), like the APKs users install: 0.12.0's player
+# worked in debug but crashed in release.
 # Bounded so an emulator hang fails fast instead of using the job timeout.
 # A timeout (exit 124) is retried once after restarting adb; a test
 # failure is not retried.
 set +e
-timeout 900 flutter test integration_test/device_test.dart -d emulator-5554 --reporter expanded
+timeout 900 flutter drive --release --driver=test_driver/integration_test.dart --target=integration_test/device_test.dart -d emulator-5554
 STATUS=$?
 if [ "$STATUS" = 124 ]; then
   echo "Integration tests timed out (emulator hang); restarting adb and retrying once"
   adb kill-server; adb start-server
   wait_for_package_manager
-  timeout 900 flutter test integration_test/device_test.dart -d emulator-5554 --reporter expanded
+  timeout 900 flutter drive --release --driver=test_driver/integration_test.dart --target=integration_test/device_test.dart -d emulator-5554
   STATUS=$?
 fi
 set -e

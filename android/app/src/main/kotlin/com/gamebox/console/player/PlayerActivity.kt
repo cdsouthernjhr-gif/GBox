@@ -57,8 +57,18 @@ class PlayerActivity : ComponentActivity() {
 
         val core = intent.getStringExtra(EXTRA_CORE)
         val rom = intent.getStringExtra(EXTRA_ROM)
-        PlayerStatus.reset(core)
+        PlayerStatus.init(this)
+        PlayerStatus.reset(core, rom)
         PlayerStatus.activity = WeakReference(this)
+        // A Java/Kotlin crash in the player is recorded for the report GAMEBOX
+        // shows on its next start (native crashes are found in the log).
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            PlayerStatus.state = "crashed"
+            PlayerStatus.errorMessage = e.stackTraceToString().take(4000)
+            PlayerStatus.persist()
+            previous?.uncaughtException(t, e)
+        }
         val coreFile = core?.let { File(applicationInfo.nativeLibraryDir, "lib${it}_libretro_android.so") }
         if (core == null || rom == null || coreFile == null) return fail("The game could not be started (missing core or game).")
         if (!coreFile.isFile) return fail("The $core emulator is not part of this GAMEBOX build.")
@@ -74,7 +84,8 @@ class PlayerActivity : ComponentActivity() {
             savesDirectory = savesDir.absolutePath
             saveRAMState = srmFile.takeIf { it.isFile }?.readBytes()
             variables = coreVariables(core)
-            preferLowLatencyAudio = true
+            // The safer audio path; low-latency mode is not needed for these systems.
+            preferLowLatencyAudio = false
         }
         retroView = GLRetroView(this, data)
         lifecycle.addObserver(retroView)
@@ -100,7 +111,10 @@ class PlayerActivity : ComponentActivity() {
             retroView.getGLRetroEvents().collect { e ->
                 if (e is GLRetroView.GLRetroEvents.FrameRendered) {
                     PlayerStatus.frames++
-                    if (PlayerStatus.state == "starting") PlayerStatus.state = "running"
+                    if (PlayerStatus.state == "starting") {
+                        PlayerStatus.state = "running"
+                        PlayerStatus.persist()
+                    }
                 }
             }
         }
@@ -249,6 +263,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (PlayerStatus.state != "error") PlayerStatus.state = "closed"
+        PlayerStatus.persist()
         if (PlayerStatus.activity?.get() === this) PlayerStatus.activity = null
     }
 
@@ -264,6 +279,7 @@ class PlayerActivity : ComponentActivity() {
     private fun fail(message: String) {
         PlayerStatus.state = "error"
         PlayerStatus.errorMessage = message
+        PlayerStatus.persist()
         if (isFinishing) return
         AlertDialog.Builder(this)
             .setTitle("Cannot start the game")

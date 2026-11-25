@@ -89,6 +89,24 @@ jobs:
           for f in *release.apk; do echo "== signer of $f"; "$APKSIGNER" verify --print-certs "$f" | grep -E "Signer #1 certificate (DN|SHA-256)" || true; done
           for f in *.apk; do echo "== $f"; "$AAPT2" dump badging "$f" | grep -E "^(package|minSdkVersion|sdkVersion|targetSdkVersion|native-code|application-label|launchable-activity|leanback-launchable-activity):|uses-feature.*(leanback|touchscreen|gamepad)" || true; done
 
+      - name: Check R8 kept the built-in player's JNI names
+        run: |
+          # R8 must keep the names LibretroDroid's native code looks up (JNI),
+          # else the built-in player crashes in release builds (0.12.0).
+          M=build/app/outputs/mapping/release/mapping.txt
+          if [ ! -f "$M" ]; then echo "no R8 mapping at $M" >&2; exit 1; fi
+          for c in LibretroDroid GLRetroView GLRetroShader Variable Controller DetachedVirtualFile; do
+            grep -q "^com.swordfish.libretrodroid.$c -> com.swordfish.libretrodroid.$c:" "$M" \
+              || { echo "R8 renamed or removed com.swordfish.libretrodroid.$c" >&2; exit 1; }
+          done
+          # Methods called from native code must not be renamed.
+          for m in refreshAspectRatio sendRumbleEvent; do
+            if grep -E " $m\(" "$M" | grep -vqE -- "-> $m$"; then
+              echo "R8 renamed GLRetroView.$m" >&2; exit 1
+            fi
+          done
+          echo "R8 kept LibretroDroid's JNI names"
+
       - name: Manifest merge diagnostics (minSdk source)
         run: |
           for f in $(find build/app -name "manifest-merger-*release-report.txt" -o -name "manifest-merger-blame-*release-report.txt" | sort); do

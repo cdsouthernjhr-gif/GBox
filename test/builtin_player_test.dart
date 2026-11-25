@@ -186,5 +186,46 @@ void main() {
       expect(extras['title'], 'Hero');
       expect((await db.historyForGame(id)).single.emulatorId, 'gamebox');
     });
+
+    test('a crash of the built-in player is reported instead of the "how did it run?" question', () async {
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      final temp = Directory.systemTemp.createTempSync('gamebox_player_crash');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final gateway = FakeGateway()..installed.clear();
+      final device = DeviceIntelligenceService(gateway, db);
+      await device.scan();
+      final launcher = LaunchService(gateway: gateway, db: db, emulators: EmulatorDetectionService(gateway, db), device: device)
+        ..playerFiles = PlayerFiles(
+            gateway: gateway, cacheDir: () async => '${temp.path}/c', dataBase: () async => '${temp.path}/b');
+      final rom = File('${temp.path}/Hero.nes')..writeAsBytesSync(nesRom());
+      final id = await db.insertGameWithFiles(
+        GamesCompanion.insert(title: 'Hero', sortTitle: 'hero', consoleId: 'nes', addedAt: DateTime(2026)),
+        [GameFilesCompanion.insert(gameId: 0, uri: rom.path, displayPath: 'Hero.nes', extension: 'nes')],
+      );
+      expect((await launcher.play(id)).ok, isTrue);
+
+      gateway.crashReport = {
+        'core': 'fceumm',
+        'rom': rom.path,
+        'frames': 0,
+        'message': '',
+        'log': 'F libc: Fatal signal 11 (SIGSEGV)',
+      };
+      await launcher.onReturned();
+      expect(launcher.finishedSession.value, isNull);
+      final crash = launcher.playerCrash.value!;
+      expect(crash.game, 'Hero.nes');
+      expect(crash.frames, 0);
+      expect(crash.details, allOf(contains('Core: fceumm'), contains('Fatal signal 11')));
+
+      // Reported once; a normal return asks how it ran again.
+      launcher.playerCrash.value = null;
+      expect((await launcher.play(id)).ok, isTrue);
+      await launcher.onReturned();
+      expect(launcher.playerCrash.value, isNull);
+      expect(launcher.finishedSession.value, (id, 'gamebox'));
+    });
   });
 }

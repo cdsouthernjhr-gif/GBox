@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/constants/console_catalog.dart';
 import '../../core/database/app_database.dart';
@@ -171,3 +172,51 @@ class _LaunchChooserDialogState extends State<LaunchChooserDialog> {
     );
   }
 }
+
+/// Explains that the built-in player stopped, with details to copy and send.
+Future<void> showPlayerCrashDialog(BuildContext context, PlayerCrash crash) => showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('The game stopped unexpectedly'),
+        content: SizedBox(
+          width: 640,
+          height: 360,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              crash.frames == 0
+                  ? 'The built-in player closed before showing the game (${crash.game}). '
+                      'Please copy the details below and send them to the developer, so it can be fixed. '
+                      'Meanwhile you can try "Play with…" and another emulator.'
+                  : 'The built-in player closed while playing ${crash.game}. '
+                      'Please copy the details below and send them to the developer.',
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.black38,
+                child: SingleChildScrollView(
+                  child: SelectableText(crash.details,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.white70)),
+                ),
+              ),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close')),
+          TextButton(
+            autofocus: true,
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: crash.details));
+              if (c.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Details copied')));
+                Navigator.pop(c);
+              }
+            },
+            child: const Text('Copy details'),
+          ),
+        ],
+      ),
+    );
+

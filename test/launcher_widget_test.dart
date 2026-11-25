@@ -5,6 +5,9 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gamebox/features/rom_manager/rom_search_service.dart';
+import 'package:gamebox/features/setup/rom_search_screen.dart';
+import 'package:gamebox/core/rom/scan_planner.dart';
 import 'package:gamebox/app/app_services.dart';
 import 'package:gamebox/app/gamebox_app.dart';
 import 'package:gamebox/core/online/download_engine.dart';
@@ -479,6 +482,54 @@ void main() {
     await tester.tap(find.text('Close'));
     await settle(tester);
     expect(find.text('The game stopped unexpectedly'), findsNothing);
+    await shutdown(tester);
+  });
+
+  testWidgets('ROM search lists games per console with their folder and a summary before copying', (tester) async {
+    await boot(tester);
+    RomSearchHit hit(String name, String? console, int size) {
+      final e = ScannedEntry(uri: '/storage/emulated/0/Download/$name', name: name, dirSegments: const ['Download'], size: size);
+      return RomSearchHit(files: [e], primary: e, consoleId: console, candidates: console == null ? ['psp', 'ps2'] : const []);
+    }
+
+    services.romSearch.last.value = RomSearchResult(hits: [
+      hit('Alpha.nes', 'nes', 40960),
+      hit('Beta.nes', 'nes', 40960),
+      hit('Gamma.gba', 'gba', 4194304),
+      hit('mystery.iso', null, 1048576),
+    ], foldersSearched: 12);
+    Navigator.of(tester.element(find.byType(Scaffold).first))
+        .push(MaterialPageRoute<void>(builder: (_) => const RomSearchScreen()));
+    await settle(tester);
+
+    expect(find.text('NES · 2'), findsOneWidget);
+    expect(find.textContaining('→ ROMs/nes/'), findsOneWidget);
+
+    // Select all NES games, then summarise.
+    await tester.tap(find.text('All').first);
+    await settle(tester);
+    expect(tester.widget<Text>(find.byKey(const ValueKey('search-selection'))).data, contains('2 game(s)'));
+    await tester.tap(find.text('Copy 2 to ROMs…'));
+    await settle(tester);
+    expect(find.text('Copy 2 game(s) to ROMs?'), findsOneWidget);
+    expect(find.text('NES: 2 game(s)'), findsOneWidget);
+    expect(find.textContaining('→  ROMs/nes/'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await settle(tester);
+    expect(find.text('Copy 2 game(s) to ROMs?'), findsNothing);
+
+    // "None" for NES clears the selection.
+    await tester.tap(find.text('None').first);
+    await settle(tester);
+    expect(find.byKey(const ValueKey('search-selection')), findsNothing);
+
+    // Further down: the GBA section with its folder, then files needing a console.
+    final list = find.descendant(of: find.byType(RomSearchScreen), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.text('GAME BOY ADVANCE · 1'), 200, scrollable: list);
+    expect(find.textContaining('→ ROMs/gba/'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('NEEDS A CONSOLE (1)'), 200, scrollable: list);
+    await settle(tester);
+    expect(tester.takeException(), isNull);
     await shutdown(tester);
   });
 }

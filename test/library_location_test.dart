@@ -9,6 +9,7 @@ import 'package:gamebox/core/constants/console_catalog.dart';
 import 'package:gamebox/core/database/app_database.dart';
 import 'package:gamebox/core/online/download_engine.dart';
 import 'package:gamebox/core/rom/console_detector.dart';
+import 'package:gamebox/core/rom/scan_planner.dart';
 import 'package:gamebox/core/services/platform_gateway.dart';
 import 'package:gamebox/core/storage/gamebox_layout.dart';
 import 'package:gamebox/data/repositories/settings_repository.dart';
@@ -80,6 +81,33 @@ void main() {
       expect(discConsoleFromHeader('iso', Uint8List(0x9000)..setAll(0x8001, 'CD001'.codeUnits)..setAll(0x8008, 'PLAYSTATION'.codeUnits)), 'ps2');
       expect(discConsoleFromHeader('iso', Uint8List(0x40)..setAll(0x1C, [0xC2, 0x33, 0x9F, 0x3D])), 'gamecube');
       expect(discConsoleFromHeader('iso', Uint8List(0x9000)), isNull);
+    });
+
+    test('search results: grouped by console (biggest first) and summarised before copying', () {
+      RomSearchHit hit(String name, String? console, int size) {
+        final e = ScannedEntry(uri: '/d/$name', name: name, dirSegments: const ['Download'], size: size);
+        return RomSearchHit(files: [e], primary: e, consoleId: console);
+      }
+
+      final hits = [
+        hit('a.gba', 'gba', 4 << 20),
+        hit('b.nes', 'nes', 40 << 10),
+        hit('c.nes', 'nes', 40 << 10),
+        hit('d.iso', null, 1 << 30),
+        hit('e.sfc', 'snes', 1 << 20),
+      ];
+      final groups = groupHitsByConsole(hits);
+      expect([for (final (c, l) in groups) '$c:${l.length}'], ['nes:2', 'gba:1', 'snes:1'],
+          reason: 'unidentified files are not grouped; ties by console name');
+
+      final sum = OrganiseSummary.of(hits);
+      expect(sum.games, 4, reason: 'only files with a console');
+      expect(sum.perConsole['nes'], (2, 80 << 10));
+      expect(sum.bytes, (4 << 20) + (80 << 10) + (1 << 20));
+      expect(sum.fits(100 << 20, move: false), isTrue);
+      expect(sum.fits(40 << 20, move: false), isFalse, reason: '50 MB stay free');
+      expect(sum.fits(1, move: true), isTrue, reason: 'a move needs no extra space');
+      expect(sum.fits(null, move: false), isTrue, reason: 'unknown free space does not block');
     });
 
     test('RetroArch playlist format', () {

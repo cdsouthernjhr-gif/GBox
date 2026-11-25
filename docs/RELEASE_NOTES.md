@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.12.2+16 — ROM search: per-console lists and a summary (pre-release)
+
+**Improved — Find ROMs on this device** (STORAGE, Set up GAMEBOX, or HOME when the library is empty):
+* Results are grouped **by console** (most games first), each showing its destination folder, e.g. `→ ROMs/nes/`, how many are selected, and **All / None** for that console. Files whose console is unclear stay under *Needs a console*.
+* Before anything is copied or moved, a **summary** lists games and size per console with their folders, the total, the free space and whether originals are kept (copy) or moved. Copies that would leave less than 50 MB free are blocked.
+
 ## 0.12.1+15 — Fix: built-in player crashed in release APKs (pre-release)
 
 **Fixed:** in 0.12.0 the built-in player showed a black screen and the app closed (reported on a phone with an NES game). Cause: release APKs are shrunk by R8, which renamed the classes and methods LibretroDroid's native code looks up by name (the library ships no keep rules). The emulator tests used debug builds, so they didn't catch it. Now:

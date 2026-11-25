@@ -301,6 +301,16 @@ class LibraryLocationService {
     return placed;
   }
 
+  /// Free bytes where games are placed (app storage for a picked folder,
+  /// whose volume can't be measured by path); null if unknown.
+  Future<int?> freeSpace() async {
+    try {
+      return await _gateway.freeSpace(await localBase() ?? await appBase());
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Deletes a placed file or document (used when a download is deleted).
   Future<bool> delete(String location) => location.startsWith('content://')
       ? _gateway.deleteFile(location)

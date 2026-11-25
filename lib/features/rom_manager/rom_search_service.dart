@@ -325,3 +325,47 @@ String? discConsoleFromHeader(String ext, Uint8List b) {
   if (ext == 'cso' && at(0, 'CISO'.codeUnits)) return 'psp';
   return null;
 }
+
+/// Identified hits grouped by console, biggest group first (then by name).
+List<(String, List<RomSearchHit>)> groupHitsByConsole(Iterable<RomSearchHit> hits) {
+  final groups = <String, List<RomSearchHit>>{};
+  for (final h in hits) {
+    final c = h.consoleId;
+    if (c != null) (groups[c] ??= []).add(h);
+  }
+  String name(String id) => consoleById(id)?.name ?? id;
+  final keys = groups.keys.toList()
+    ..sort((a, b) {
+      final n = groups[b]!.length.compareTo(groups[a]!.length);
+      return n != 0 ? n : name(a).compareTo(name(b));
+    });
+  return [for (final k in keys) (k, groups[k]!)];
+}
+
+/// What a copy/move of the selected hits will do, per console.
+class OrganiseSummary {
+  const OrganiseSummary(this.perConsole);
+
+  /// console id → (games, bytes)
+  final Map<String, (int, int)> perConsole;
+
+  int get games => perConsole.values.fold(0, (a, v) => a + v.$1);
+  int get bytes => perConsole.values.fold(0, (a, v) => a + v.$2);
+
+  factory OrganiseSummary.of(Iterable<RomSearchHit> hits) {
+    final m = <String, (int, int)>{};
+    for (final h in hits) {
+      final c = h.consoleId;
+      if (c == null) continue;
+      final (g, b) = m[c] ?? (0, 0);
+      m[c] = (g + 1, b + h.totalSize);
+    }
+    return OrganiseSummary(m);
+  }
+
+  /// Margin kept free on the device (50 MB), like downloads.
+  static const margin = 50 * 1024 * 1024;
+
+  /// A copy needs the space; a move on the same storage does not.
+  bool fits(int? freeBytes, {required bool move}) => move || freeBytes == null || bytes + margin <= freeBytes;
+}

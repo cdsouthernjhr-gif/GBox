@@ -47,7 +47,22 @@ class SettingsState {
     this.saveFolders = const [],
     this.accentColor,
     this.wallpaperImagePath,
+    this.playerCores = const {},
   });
+
+  /// Built-in player settings per core: `player.core.<core>.<name>` → value.
+  final Map<String, String> playerCores;
+
+  /// Display filter of [core]'s games (see [PlayerShader]).
+  PlayerShader shaderFor(String core) =>
+      PlayerShader.values.asNameMap()[playerCores[SettingsKeys.playerCore(core, 'shader')]] ?? PlayerShader.standard;
+
+  /// On-screen controls for [core]: its own choice, else the general one.
+  PlayerTouch touchFor(String core) =>
+      PlayerTouch.values.asNameMap()[playerCores[SettingsKeys.playerCore(core, 'touch')]] ?? playerTouch;
+
+  /// Whether [core] has its own on-screen controls choice.
+  bool hasOwnTouch(String core) => playerCores.containsKey(SettingsKeys.playerCore(core, 'touch'));
 
   /// Registered emulator save folders.
   final List<SaveFolder> saveFolders;
@@ -145,6 +160,10 @@ class SettingsState {
       saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
       accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
       wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
+      playerCores: {
+        for (final e in m.entries)
+          if (e.key.startsWith(SettingsKeys.playerCorePrefix) && e.value.isNotEmpty) e.key: e.value,
+      },
     );
   }
 }
@@ -196,6 +215,8 @@ abstract final class SettingsKeys {
   static const saveFolders = 'saves.folders';
   static const accentColor = 'theme.accent_color';
   static const wallpaperImage = 'theme.wallpaper_image';
+  static const playerCorePrefix = 'player.core.';
+  static String playerCore(String core, String name) => '$playerCorePrefix$core.$name';
 }
 
 class SettingsRepository {
@@ -235,4 +256,18 @@ enum RowOrder { mostGames, recentlyPlayed, alphabetical }
 /// Built-in player on-screen controls: automatic (phones without a
 /// controller), always, never.
 enum PlayerTouch { auto, on, off }
+
+/// Built-in player display filter (LibretroDroid shaders). [wire] is the
+/// value sent to the player.
+enum PlayerShader {
+  standard('default', 'Standard'),
+  sharp('sharp', 'Sharp pixels'),
+  crt('crt', 'CRT TV (scanlines)'),
+  lcd('lcd', 'LCD (handheld screen)'),
+  smooth('smooth', 'Smooth (upscaled edges)');
+
+  const PlayerShader(this.wire, this.label);
+  final String wire;
+  final String label;
+}
 

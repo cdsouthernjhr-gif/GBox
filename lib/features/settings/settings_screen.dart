@@ -5,6 +5,7 @@ import '../../core/constants/console_catalog.dart';
 import '../../core/errors/app_logger.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../integrations/builtin/builtin_player_launcher.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../compatibility/device_report_screen.dart';
 import '../performance/performance_screen.dart';
@@ -208,6 +209,12 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             },
             onChanged: (v) => s.settings.set(SettingsKeys.playerTouch, v.name),
           ),
+          _Row(
+            title: 'Settings for each emulator',
+            value: 'Display filter, on-screen controls and emulator options for NES, SNES, PS1, N64, PSP…',
+            action: 'Open ›',
+            onSelect: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlayerCoresScreen())),
+          ),
           const SizedBox(height: 12),
           const SectionHeader('Downloads'),
           _Toggle(
@@ -402,6 +409,179 @@ class LogsScreen extends StatelessWidget {
               itemCount: lines.length,
               itemBuilder: (_, i) => Text(lines[i],
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, color: Colors.white70)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Consoles each bundled core plays, e.g. "NES" or "Game Boy, Game Boy Color".
+String coreConsoles(String core) =>
+    [for (final e in builtInCores.entries) if (e.value == core) consoleById(e.key)?.name ?? e.key].join(', ');
+
+/// The built-in player's emulators, each with its own settings.
+class PlayerCoresScreen extends StatelessWidget {
+  const PlayerCoresScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = GameboxPalette.of(context);
+    final cores = builtInCores.values.toSet().toList();
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: DecoratedBox(
+        decoration: palette.decoration,
+        child: SafeArea(
+          child: PageFrame(
+            title: 'Emulator settings',
+            subtitle: 'The emulators built into GAMEBOX. Each one keeps its own settings.',
+            actions: [TvButton(label: 'Back', icon: Icons.arrow_back_rounded, onPressed: () => Navigator.pop(context))],
+            child: ListView(children: [
+              for (final (i, core) in cores.indexed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TvFocusable(
+                    autofocus: i == 0,
+                    scale: 1.01,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    onSelect: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => PlayerCoreSettingsScreen(core: core))),
+                    child: Row(children: [
+                      const Icon(Icons.memory_rounded),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(coreConsoles(core), style: const TextStyle(fontWeight: FontWeight.w700)),
+                          Text(builtInCoreNames[core] ?? core,
+                              style: const TextStyle(fontSize: 12, color: Colors.white60)),
+                        ]),
+                      ),
+                      Text('Settings ›', style: TextStyle(color: palette.focus)),
+                    ]),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Settings of one built-in emulator: display filter, on-screen controls,
+/// and the emulator options changed in game (Menu → Emulator options).
+class PlayerCoreSettingsScreen extends StatefulWidget {
+  const PlayerCoreSettingsScreen({super.key, required this.core});
+  final String core;
+
+  @override
+  State<PlayerCoreSettingsScreen> createState() => _PlayerCoreSettingsScreenState();
+}
+
+class _PlayerCoreSettingsScreenState extends State<PlayerCoreSettingsScreen> {
+  Future<Map<String, String>>? _options;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _options ??= _load();
+  }
+
+  Future<Map<String, String>> _load() async {
+    try {
+      return await servicesOf(context).gateway.coreOptions(widget.core);
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  Future<void> _reset() async {
+    final s = servicesOf(context);
+    final messenger = ScaffoldMessenger.of(context);
+    bool ok;
+    try {
+      ok = await s.gateway.resetCoreOptions(widget.core);
+    } catch (_) {
+      ok = false;
+    }
+    messenger.showSnackBar(SnackBar(content: Text(ok ? 'Emulator options reset' : 'Could not reset the options')));
+    if (!mounted) return;
+    final next = _load();
+    setState(() {
+      _options = next;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = servicesOf(context);
+    final palette = GameboxPalette.of(context);
+    final core = widget.core;
+    String key(String name) => SettingsKeys.playerCore(core, name);
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: DecoratedBox(
+        decoration: palette.decoration,
+        child: SafeArea(
+          child: PageFrame(
+            title: coreConsoles(core),
+            subtitle: 'Built-in emulator: ${builtInCoreNames[core] ?? core}',
+            actions: [
+              TvButton(label: 'Back', icon: Icons.arrow_back_rounded, autofocus: true, onPressed: () => Navigator.pop(context)),
+            ],
+            child: ValueListenableBuilder<SettingsState>(
+              valueListenable: s.settings.state,
+              builder: (context, st, _) => ListView(children: [
+                const SectionHeader('Display'),
+                _Choice<PlayerShader>(
+                  title: 'Display filter',
+                  value: st.shaderFor(core),
+                  values: PlayerShader.values,
+                  label: (v) => v.label,
+                  onChanged: (v) => s.settings.set(key('shader'), v.name),
+                ),
+                const SectionHeader('Controls'),
+                _Choice<String>(
+                  title: 'On-screen controls',
+                  value: st.hasOwnTouch(core) ? st.touchFor(core).name : 'general',
+                  values: const ['general', 'auto', 'on', 'off'],
+                  label: (v) => switch (v) {
+                    'auto' => 'Automatic (phones and tablets without a controller)',
+                    'on' => 'Always',
+                    'off' => 'Never',
+                    _ => 'Same as the general setting',
+                  },
+                  onChanged: (v) => s.settings.set(key('touch'), v == 'general' ? '' : v),
+                ),
+                const SectionHeader('Emulator options',
+                    subtitle: 'Change them while playing: BACK (Menu) → Emulator options. '
+                        'The list comes from the emulator itself, so it shows its real choices.'),
+                FutureBuilder<Map<String, String>>(
+                  future: _options,
+                  builder: (context, snap) {
+                    final m = snap.data;
+                    if (m == null) return const SizedBox(height: 24);
+                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      if (m.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text('No options changed: the emulator uses its defaults.',
+                              style: TextStyle(color: Colors.white60)),
+                        ),
+                      for (final e in m.entries) _Row(title: e.key, value: e.value),
+                      if (m.isNotEmpty)
+                        _Row(
+                          title: 'Reset emulator options',
+                          value: 'Go back to the emulator defaults',
+                          action: 'Reset',
+                          onSelect: _reset,
+                        ),
+                    ]);
+                  },
+                ),
+              ]),
             ),
           ),
         ),

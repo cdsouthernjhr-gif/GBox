@@ -88,6 +88,10 @@ During extraction the bytes actually written are counted again, so a lying heade
 
 Online scrapers (ScreenScraper, TheGamesDB, IGDB, …) need personal API keys and have their own terms, so none is built in. Metadata comes from catalogue entries and manual editing (game page → Edit info). Cached data is used offline.
 
+## Cover art (0.14.0)
+
+*Download cover* (game page, `features/game_scraper/cover_art_service.dart`) fetches box art from libretro-thumbnails: `https://thumbnails.libretro.com/<libretro database name>/Named_Boxarts/<name>.png`, and the same files from `raw.githubusercontent.com/libretro-thumbnails/…` when the server can't be reached. Names: the game's file name (with and without `[tags]` and disc numbers), then the title with its region and common regions (`&*/:`<>?\|"` replaced by `_`, like libretro). It stops at the first match; a "not found" from one server is final. Only responses that are PNG files of at most 8 MB are kept, and they are resized like picked images. If nothing matches, the user can type the name. No other metadata is fetched.
+
 ## Find games online and getting emulators (0.12.3)
 
 * **Find games online** (`features/source_manager/find_online_screen.dart`): the search box opens the device's browser with `https://www.google.com/search?q=<what was typed>`. GAMEBOX adds nothing to the query and does not fetch, scrape, list or rank websites; the user browses and downloads in the browser, and *Find ROMs on this device* then sorts the files into `ROMs/<system>/`. The screen also opens three legal homebrew sources (itch.io homebrew tag, Homebrew Hub, PDRoms). It reminds users that most commercial games online are shared without permission.

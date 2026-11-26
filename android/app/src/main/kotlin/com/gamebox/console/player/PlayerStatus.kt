@@ -18,6 +18,9 @@ object PlayerStatus {
     @Volatile var frames: Long = 0
     @Volatile var errorCode: Int? = null
     @Volatile var errorMessage: String? = null
+
+    /** "load_game" when the core could not open the game file. */
+    @Volatile var errorKind: String? = null
     @Volatile var core: String? = null
     @Volatile var rom: String? = null
     var activity: WeakReference<PlayerActivity>? = null
@@ -32,6 +35,7 @@ object PlayerStatus {
         frames = 0
         errorCode = null
         errorMessage = null
+        errorKind = null
         this.core = core
         this.rom = rom
         persist()
@@ -42,7 +46,9 @@ object PlayerStatus {
         "frames" to frames,
         "errorCode" to errorCode,
         "errorMessage" to errorMessage,
+        "errorKind" to errorKind,
         "core" to core,
+        "rom" to rom,
     )
 
     /** Writes the state with this process id. Never throws. */

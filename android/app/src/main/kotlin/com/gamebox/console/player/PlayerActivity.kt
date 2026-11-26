@@ -18,8 +18,10 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroViewData
+import com.swordfish.libretrodroid.ShaderConfig
 import com.swordfish.libretrodroid.Variable
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -34,7 +36,11 @@ import java.lang.ref.WeakReference
  *  saves      folder for battery saves (.srm) and save states (.state)
  *  title      game title (menu)
  *  touch      "auto" | "on" | "off" — on-screen controls
- *  layout     touch layout: "nes", "gb", "snes", "gba", "md", "ps1"
+ *  layout     touch layout: "nes", "snes", "gba", "md", "ps1", "n64", "nds", "psp"
+ *  shader     display filter: "default" | "sharp" | "crt" | "lcd" | "smooth"
+ *
+ * Emulator (core) options changed in the pause menu are kept per core in
+ * files/core_options/<core>.json and applied on every start.
  *
  * Controls: gamepad buttons by position (bottom = B, right = A, left = Y,
  * top = X, as on a SNES pad); TV remote D-pad = D-pad, OK = A, Menu = Start;
@@ -90,7 +96,8 @@ class PlayerActivity : ComponentActivity() {
             systemDirectory = systemDir.absolutePath
             savesDirectory = savesDir.absolutePath
             saveRAMState = srmFile.takeIf { it.isFile }?.readBytes()
-            variables = coreVariables(core)
+            variables = startVariables(core)
+            shader = shaderFor(intent.getStringExtra(EXTRA_SHADER))
             // The safer audio path; low-latency mode is not needed for these systems.
             preferLowLatencyAudio = false
         }
@@ -130,6 +137,8 @@ class PlayerActivity : ComponentActivity() {
         lifecycleScope.launch {
             retroView.getGLRetroErrors().collect { code ->
                 PlayerStatus.errorCode = code
+                // GAMEBOX offers other emulators when the game itself could not be opened.
+                if (code == GLRetroView.ERROR_LOAD_GAME) PlayerStatus.errorKind = "load_game"
                 val msg = when (code) {
                     GLRetroView.ERROR_LOAD_LIBRARY -> "The emulator core could not be loaded on this device."
                     GLRetroView.ERROR_LOAD_GAME -> "The emulator could not open this game. The file may be damaged, " +
@@ -182,6 +191,22 @@ class PlayerActivity : ComponentActivity() {
         // Touch screen through LibretroDroid's pointer; both screens stacked.
         "desmume" -> arrayOf(Variable("desmume_pointer_type", "touch"), Variable("desmume_screens_layout", "top/bottom"))
         else -> arrayOf()
+    }
+
+    /** Built-in defaults, overridden by the options the user saved for this core. */
+    private fun startVariables(core: String): Array<Variable> {
+        val m = LinkedHashMap<String, String>()
+        for (v in coreVariables(core)) m[v.key!!] = v.value!!
+        m.putAll(CoreOptions.load(this, core))
+        return m.map { (k, v) -> Variable(k, v) }.toTypedArray()
+    }
+
+    private fun shaderFor(name: String?): ShaderConfig = when (name) {
+        "sharp" -> ShaderConfig.Sharp
+        "crt" -> ShaderConfig.CRT
+        "lcd" -> ShaderConfig.LCD
+        "smooth" -> ShaderConfig.CUT2()
+        else -> ShaderConfig.Default
     }
 
     private fun wantsTouchControls(): Boolean = when (intent.getStringExtra(EXTRA_TOUCH)) {
@@ -252,7 +277,7 @@ class PlayerActivity : ComponentActivity() {
         // stopped, the core is called directly (useEmulationThread = false).
         retroView.onPause()
         var chosen = 0
-        val items = arrayOf("Resume", "Save state", "Load state", "Restart game", "Quit to GAMEBOX")
+        val items = arrayOf("Resume", "Save state", "Load state", "Restart game", "Emulator options", "Quit to GAMEBOX")
         AlertDialog.Builder(this)
             .setTitle(intent.getStringExtra(EXTRA_TITLE) ?: "Paused")
             .setItems(items) { _, which -> chosen = which }
@@ -262,17 +287,77 @@ class PlayerActivity : ComponentActivity() {
                     2 -> loadState()
                     3 -> runCatching { retroView.reset(false) }
                     4 -> {
+                        // Stays paused until the options are closed.
+                        showCoreOptions { resumeFromMenu() }
+                        return@setOnDismissListener
+                    }
+                    5 -> {
                         saveSram()
                         finish()
                         return@setOnDismissListener
                     }
                 }
-                menuOpen = false
-                if (!isFinishing) {
-                    retroView.onResume()
-                    hideSystemBars()
+                resumeFromMenu()
+            }
+            .show()
+    }
+
+    private fun resumeFromMenu() {
+        menuOpen = false
+        if (!isFinishing) {
+            retroView.onResume()
+            hideSystemBars()
+        }
+    }
+
+    /**
+     * The running core's own options (each core declares them with their
+     * choices). A choice is applied to the core at once and saved for this
+     * core; some cores only use it after the game is restarted.
+     */
+    private fun showCoreOptions(onDone: () -> Unit) {
+        val core = intent.getStringExtra(EXTRA_CORE) ?: return onDone()
+        val options = runCatching { retroView.getVariables() }.getOrDefault(arrayOf())
+            .mapNotNull { CoreOptions.Option.parse(it) }
+        if (options.isEmpty()) {
+            toast("This emulator has no options")
+            return onDone()
+        }
+        val labels = options.map { "${it.label}: ${it.value}" }.toTypedArray()
+        var next: (() -> Unit)? = null
+        AlertDialog.Builder(this)
+            .setTitle("Emulator options (${CoreOptions.displayName(core)})")
+            .setItems(labels) { _, which ->
+                val o = options[which]
+                next = { chooseCoreOption(core, o) { showCoreOptions(onDone) } }
+            }
+            .setNeutralButton("Reset all") { _, _ ->
+                next = {
+                    CoreOptions.reset(this, core)
+                    runCatching { retroView.updateVariables(*options.map { Variable(it.key, it.choices.first()) }.toTypedArray()) }
+                    runCatching { retroView.updateVariables(*coreVariables(core)) }
+                    toast("Options reset. Restart the game if something looks wrong.")
+                    onDone()
                 }
             }
+            .setPositiveButton("Close", null)
+            .setOnDismissListener { (next ?: onDone)() }
+            .show()
+    }
+
+    private fun chooseCoreOption(core: String, o: CoreOptions.Option, onDone: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle(o.label)
+            .setSingleChoiceItems(o.choices.toTypedArray(), o.choices.indexOf(o.value).coerceAtLeast(0)) { d, which ->
+                val value = o.choices[which]
+                if (value != o.value) {
+                    runCatching { retroView.updateVariables(Variable(o.key, value)) }
+                    CoreOptions.save(this, core, o.key, value)
+                    toast("Saved. Some options apply after \"Restart game\".")
+                }
+                d.dismiss()
+            }
+            .setOnDismissListener { onDone() }
             .show()
     }
 
@@ -350,6 +435,7 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_TITLE = "title"
         const val EXTRA_TOUCH = "touch"
         const val EXTRA_LAYOUT = "layout"
+        const val EXTRA_SHADER = "shader"
 
         /**
          * Android key → key code LibretroDroid understands. Face buttons are

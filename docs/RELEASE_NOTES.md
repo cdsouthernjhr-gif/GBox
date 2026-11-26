@@ -1,5 +1,16 @@
 # Release notes
 
+## 0.14.0+19 — Emulator settings, cover-first HOME, cover downloads (pre-release)
+
+**New:**
+* **Settings for each built-in emulator** (Settings → Built-in player → *Settings for each emulator*): per system a **display filter** (Standard, Sharp pixels, CRT TV, LCD, Smooth) and its own **on-screen controls** choice. While playing, **BACK → Emulator options** lists the emulator's own options with their real choices (as the emulator declares them, e.g. resolution, frameskip, region). A choice is applied at once and kept for that emulator; some only take effect after *Restart game*. The settings page lists changed options and can reset them.
+* **HOME:** smaller game cards, so more fit in a row. The focused game's cover is shown **large** at the top and as the **wallpaper**, and both change as you move through the games. With a mouse, they change when the pointer is over a game, before you choose it.
+* **Download cover** on the game page: box art from **libretro-thumbnails** (the collection RetroArch uses; GitHub copy when the server can't be reached). GAMEBOX tries the file name, then the title with common regions. If nothing matches, you can edit the name (e.g. "Crash Bandicoot (USA)") and search again. Only PNG images are accepted.
+* **Game for another console:** before starting, GAMEBOX checks the file header. If, for example, a PS2 disc is in the PSP list, a popup offers **Move to PlayStation 2 and play**, **Get PlayStation 2 emulator** (official sources) or **Play anyway**. Only signatures specific to one console count.
+* **Built-in player couldn't open the game:** after its error message, GAMEBOX lists the other emulators: installed ones to play with directly, the others with Play Store / official-site links.
+
+**Not yet checked on a device:** the shaders, the in-game options menu and cover downloads ran in tests only (the libretro server could not be reached from the build environment; the GitHub copy was checked). PENDING on real hardware.
+
 ## 0.13.0+18 — N64, Nintendo DS and PSP in the built-in player (pre-release)
 
 **New:** three more systems play directly in GAMEBOX, no emulator app needed:

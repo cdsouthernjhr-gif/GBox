@@ -101,6 +101,7 @@ class LaunchEnvironment {
     this.systemDir,
     this.savesDir,
     this.touchControls = 'auto',
+    this.shader = 'default',
   });
 
   /// Package of the installed emulator build being used.
@@ -115,6 +116,9 @@ class LaunchEnvironment {
   final String? systemDir;
   final String? savesDir;
   final String touchControls;
+
+  /// Built-in player display filter (PlayerShader.wire).
+  final String shader;
 }
 
 /// A user-selectable option, e.g. a RetroArch core.

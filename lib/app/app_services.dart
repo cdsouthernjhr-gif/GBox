@@ -12,6 +12,7 @@ import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
 import '../features/emulator_manager/player_files.dart';
+import '../features/game_scraper/cover_art_service.dart';
 import '../features/emulator_manager/retroarch_playlist_service.dart';
 import '../features/rom_manager/rom_search_service.dart';
 import '../features/storage_manager/roms_migration_service.dart';
@@ -36,6 +37,7 @@ class AppServices {
     Future<List<String>> Function()? appRoots,
     Future<String> Function()? artworkDir,
     DownloadEngine? downloadEngine,
+    CoverFetcher? coverFetch,
   })  : settings = SettingsRepository(db),
         device = DeviceIntelligenceService(gateway, db) {
     connectivity = ConnectivityService(gateway);
@@ -49,6 +51,7 @@ class AppServices {
       appRoots: appRoots ?? _defaultAppRoots,
       artworkDir: artworkDir ?? _defaultArtworkDir,
     );
+    covers = CoverArtService(db: db, library: library, fetch: coverFetch);
     controllerConfig = ControllerConfigService(
       gateway: gateway,
       repo: ControllerProfileRepository(db),
@@ -102,7 +105,8 @@ class AppServices {
         cacheDir: () async => '${await gameboxRoot()}/.cache',
         dataBase: () async => await location.localBase() ?? await location.appBase(),
       )
-      ..touchControls = (() => settings.state.value.playerTouch.name);
+      ..touchControls = ((core) => settings.state.value.touchFor(core).name)
+      ..playerShader = ((core) => settings.state.value.shaderFor(core).wire);
     romSearch = RomSearchService(db: db, library: library, location: location);
     migration = RomsMigrationService(db, location);
     playlists = RetroArchPlaylistService(db, location);
@@ -142,6 +146,9 @@ class AppServices {
   late final StorageService storage;
   late final EmulatorDetectionService emulators;
   late final RomLibraryService library;
+
+  /// Box art downloads (libretro-thumbnails).
+  late final CoverArtService covers;
   late final LaunchService launcher;
   late final ControllerConfigService controllerConfig;
   late final SourceService sources;

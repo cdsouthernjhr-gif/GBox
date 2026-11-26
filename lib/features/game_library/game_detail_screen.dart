@@ -13,6 +13,7 @@ import '../../shared/widgets/tv_widgets.dart';
 import '../compatibility/compatibility_service.dart';
 import '../compatibility/rating_prompt.dart';
 import '../emulator_manager/launch_dialogs.dart';
+import '../game_scraper/cover_art_service.dart';
 import '../save_manager/save_widgets.dart';
 import 'my_games_screen.dart' show headerLabel;
 
@@ -118,6 +119,30 @@ class _BodyState extends State<_Body> {
               : 'Could not pick image: ${e.message}');
         }
       });
+
+  /// Downloads the box art (libretro-thumbnails). When no cover matches,
+  /// the user can edit the name searched for and try again.
+  Future<void> _downloadCover() async {
+    final s = servicesOf(context);
+    String? name;
+    while (mounted) {
+      setState(() => _busy = true);
+      CoverSearch r;
+      try {
+        r = await s.covers.download(g, name: name);
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      if (r.found) return _snack('Cover downloaded (${r.name})');
+      if (r.error != null) return _snack(r.error!);
+      if (!mounted) return;
+      name = await showDialog<String>(
+        context: context,
+        builder: (c) => _CoverNameDialog(tried: r.tried, initial: name ?? r.tried.first),
+      );
+      if (name == null || name.trim().isEmpty) return;
+    }
+  }
 
   Future<void> _edit() async {
     final s = servicesOf(context);
@@ -248,6 +273,9 @@ class _BodyState extends State<_Body> {
                   onPressed: () => s.db.setFavorite(g.id, !widget.entry.isFavorite),
                 ),
                 TvButton(label: 'Verify file', icon: Icons.verified_rounded, onPressed: _busy ? null : _verify),
+                if (CoverArtService.supports(g.consoleId))
+                  TvButton(
+                      label: 'Download cover', icon: Icons.download_rounded, onPressed: _busy ? null : _downloadCover),
                 TvButton(label: 'Choose artwork', icon: Icons.image_rounded, onPressed: _busy ? null : _setCover),
                 TvButton(label: 'Edit info', icon: Icons.edit_rounded, onPressed: _edit),
                 TvButton(label: 'Remove from library', icon: Icons.playlist_remove_rounded, onPressed: _removeFromLibrary),
@@ -318,6 +346,56 @@ class _BodyState extends State<_Body> {
       ]),
     );
   }
+}
+
+/// No cover matched: shows the names tried and lets the user type the name
+/// as the cover collection spells it (e.g. "Crash Bandicoot (USA)").
+class _CoverNameDialog extends StatefulWidget {
+  const _CoverNameDialog({required this.tried, required this.initial});
+  final List<String> tried;
+  final String initial;
+
+  @override
+  State<_CoverNameDialog> createState() => _CoverNameDialogState();
+}
+
+class _CoverNameDialogState extends State<_CoverNameDialog> {
+  late final _name = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('No cover found'),
+        content: SizedBox(
+          width: 560,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Covers are matched by the game\'s full name with its region, for example '
+                  '"Crash Bandicoot (USA)". Edit the name and search again.'),
+              const SizedBox(height: 10),
+              TextField(
+                key: const ValueKey('cover-name'),
+                controller: _name,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (v) => Navigator.pop(context, v),
+                decoration: const InputDecoration(labelText: 'Name on the cover collection'),
+              ),
+              const SizedBox(height: 10),
+              Text('Tried: ${widget.tried.join(' · ')}', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+            ]),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, _name.text), child: const Text('Search')),
+        ],
+      );
 }
 
 class _EditDialog extends StatefulWidget {

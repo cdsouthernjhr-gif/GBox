@@ -12,6 +12,9 @@ import '../../core/rom/title_normalizer.dart';
 import '../../core/storage/gamebox_layout.dart';
 import '../storage_manager/library_location_service.dart';
 import 'rom_library_service.dart';
+import '../../core/rom/console_mismatch.dart';
+
+export '../../core/rom/console_mismatch.dart' show discConsoleFromHeader;
 
 /// One game found on the device by [RomSearchService].
 class RomSearchHit {
@@ -301,29 +304,6 @@ class RomSearchService {
     }
     return OrganiseResult(placed: placed, imported: imported, failed: failed);
   }
-}
-
-/// Console of a disc image from its volume descriptor: PSP UMD images say
-/// "PSP GAME", PS2 DVDs "PLAYSTATION"; GameCube/Wii have disc magic.
-String? discConsoleFromHeader(String ext, Uint8List b) {
-  bool at(int off, List<int> sig) {
-    if (b.length < off + sig.length) return false;
-    for (var i = 0; i < sig.length; i++) {
-      if (b[off + i] != sig[i]) return false;
-    }
-    return true;
-  }
-
-  if (ext == 'iso') {
-    if (at(0x1C, [0xC2, 0x33, 0x9F, 0x3D])) return 'gamecube';
-    if (at(0x18, [0x5D, 0x1C, 0x9E, 0xA3])) return 'wii';
-    if (at(0x8001, 'CD001'.codeUnits)) {
-      if (at(0x8008, 'PSP GAME'.codeUnits)) return 'psp';
-      if (at(0x8008, 'PLAYSTATION'.codeUnits)) return 'ps2';
-    }
-  }
-  if (ext == 'cso' && at(0, 'CISO'.codeUnits)) return 'psp';
-  return null;
 }
 
 /// Identified hits grouped by console, biggest group first (then by name).

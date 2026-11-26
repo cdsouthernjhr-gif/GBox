@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -9,6 +10,10 @@ import 'package:gamebox/features/rom_manager/rom_search_service.dart';
 import 'package:gamebox/features/setup/rom_search_screen.dart';
 import 'package:gamebox/core/rom/scan_planner.dart';
 import 'package:gamebox/features/source_manager/find_online_screen.dart';
+import 'package:gamebox/features/game_scraper/cover_art_service.dart';
+import 'package:gamebox/features/game_library/game_detail_screen.dart';
+import 'package:gamebox/features/settings/settings_screen.dart';
+import 'player_covers_test.dart' show ps2Iso;
 import 'package:gamebox/app/app_services.dart';
 import 'package:gamebox/app/gamebox_app.dart';
 import 'package:gamebox/core/online/download_engine.dart';
@@ -40,6 +45,7 @@ void main() {
       void Function(String appRoot)? prepare,
       void Function(FakeGateway)? configure,
       DownloadEngine? engine,
+      CoverFetcher? coverFetch,
       HomeStyle home = HomeStyle.dashboard}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
@@ -58,6 +64,7 @@ void main() {
       appRoots: () async => ['${temp.path}/ext0'],
       artworkDir: () async => '${temp.path}/artwork',
       downloadEngine: engine,
+      coverFetch: coverFetch,
     );
     await tester.runAsync(() async {
       // Most tests drive the side menu from the dashboard; the game launcher
@@ -575,6 +582,113 @@ void main() {
     await settle(tester);
     expect(gateway.openedUrls.last, 'https://hh.gbdev.io/');
     expect(tester.takeException(), isNull);
+    await shutdown(tester);
+  });
+
+  testWidgets('a PS2 disc in the PSP list: popup to move it or get a PS2 emulator', (tester) async {
+    await boot(
+      tester,
+      home: HomeStyle.games,
+      prepare: (root) => File('$root/GAMEBOX/Games/PSP/Racer.iso')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(ps2Iso()),
+    );
+    await press(tester, LogicalKeyboardKey.enter); // play the focused game
+    await settleUntil(tester, () => find.textContaining('This looks like a PlayStation 2 game').evaluate().isNotEmpty);
+    expect(find.textContaining('it is in the PSP list'), findsOneWidget);
+    expect(gateway.launchedSpecs, isEmpty, reason: 'not started with the PSP emulator');
+    await tester.tap(find.text('Get PlayStation 2 emulator'));
+    await settleUntil(tester, () => find.text('Get a PlayStation 2 emulator').evaluate().isNotEmpty);
+    expect(find.text('AetherSX2 / NetherSX2'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await settle(tester);
+
+    // Moving it files the game under PS2 (no PS2 emulator: the get-emulator popup).
+    final game = (await tester.runAsync(() => services.db.watchAllGames().first))!.single.game;
+    await tester.runAsync(() => services.db.setGameConsole(game.id, 'ps2'));
+    final moved = (await tester.runAsync(() => services.db.gameById(game.id)))!;
+    expect(moved.consoleId, 'ps2');
+    await shutdown(tester);
+  });
+
+  testWidgets('the built-in player could not open the game: other emulators are offered', (tester) async {
+    await boot(
+      tester,
+      home: HomeStyle.games,
+      prepare: (root) => File('$root/GAMEBOX/Games/NES/Hero.nes')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom()),
+    );
+    await press(tester, LogicalKeyboardKey.enter);
+    await settleUntil(tester, () => gateway.launchedSpecs.isNotEmpty);
+    expect(gateway.launchedSpecs.single['className'], 'com.gamebox.console.player.PlayerActivity');
+    expect((gateway.launchedSpecs.single['extras'] as Map)['shader'], 'default');
+    gateway.player = {'state': 'error', 'errorKind': 'load_game', 'frames': 0};
+    await tester.runAsync(() => services.launcher.onReturned());
+    await settleUntil(tester, () => find.text('GAMEBOX could not open this game').evaluate().isNotEmpty);
+    expect(find.text('RetroArch'), findsOneWidget, reason: 'where to get another NES emulator');
+    expect(find.textContaining('How did'), findsNothing, reason: 'no rating question');
+    await tester.tap(find.text('Close'));
+    await settle(tester);
+    await shutdown(tester);
+  });
+
+  testWidgets('game details: Download cover finds the box art, or asks for the name', (tester) async {
+    final asked = <String>[];
+    // A 1x1 PNG.
+    final png = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+    await boot(
+      tester,
+      prepare: (root) => File('$root/GAMEBOX/Games/NES/Hero Quest (USA).nes')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom()),
+      coverFetch: (url) async {
+        asked.add(Uri.decodeComponent(url.pathSegments.last));
+        if (url.host == 'thumbnails.libretro.com') throw const SocketException('blocked');
+        return url.pathSegments.last == 'Hero Quest (Proto).png' ? png : null;
+      },
+    );
+    final game = (await tester.runAsync(() => services.db.watchAllGames().first))!.single.game;
+    Navigator.of(tester.element(find.byType(Scaffold).first))
+        .push(MaterialPageRoute<void>(builder: (_) => GameDetailScreen(gameId: game.id)));
+    await settle(tester);
+    await tester.ensureVisible(find.text('Download cover'));
+    await tester.tap(find.text('Download cover'));
+    await settleUntil(tester, () => find.text('No cover found').evaluate().isNotEmpty);
+    // The server could not be reached: GitHub was used; the file name was tried first.
+    expect(asked.first, 'Hero Quest (USA).png');
+    expect(asked[1], 'Hero Quest (USA).png');
+    expect(asked, contains('Hero Quest (Japan).png'), reason: 'common regions are tried');
+    await tester.enterText(find.byKey(const ValueKey('cover-name')), 'Hero Quest (Proto)');
+    await tester.tap(find.text('Search'));
+    await settleUntil(tester, () => find.textContaining('Cover downloaded').evaluate().isNotEmpty);
+    expect(asked.last, 'Hero Quest (Proto).png');
+    final covers = await tester.runAsync(() => services.db.watchCoverPaths().first);
+    expect(covers![game.id], isNotNull);
+    await shutdown(tester);
+  });
+
+  testWidgets('emulator settings: each built-in emulator has its own display filter and controls', (tester) async {
+    await boot(tester, configure: (g) => g.savedCoreOptions['snes9x'] = {'snes9x_region': 'PAL'});
+    Navigator.of(tester.element(find.byType(Scaffold).first))
+        .push(MaterialPageRoute<void>(builder: (_) => const PlayerCoresScreen()));
+    await settle(tester);
+    expect(find.text('Game Boy, Game Boy Color'), findsOneWidget);
+    await tester.tap(find.text('SNES'));
+    await settle(tester);
+    expect(find.text('snes9x_region'), findsOneWidget, reason: 'options changed in game are listed');
+    await tester.tap(find.text('Display filter'));
+    await settle(tester);
+    await settleUntil(tester, () => services.settings.state.value.shaderFor('snes9x') == PlayerShader.sharp);
+    expect(find.text('Sharp pixels'), findsOneWidget);
+    await tester.tap(find.text('On-screen controls'));
+    await settleUntil(tester, () => services.settings.state.value.hasOwnTouch('snes9x'));
+    expect(services.settings.state.value.touchFor('snes9x'), PlayerTouch.auto);
+    await tester.ensureVisible(find.text('Reset emulator options'));
+    await tester.tap(find.text('Reset emulator options'));
+    await settleUntil(tester, () => find.text('Emulator options reset').evaluate().isNotEmpty);
+    expect(gateway.savedCoreOptions['snes9x'], isNull);
     await shutdown(tester);
   });
 }

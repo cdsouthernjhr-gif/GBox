@@ -95,7 +95,10 @@
 * Bundled cores: NES, SNES, Game Boy/Color/Advance, Mega Drive/Master System, PS1, N64, NDS, PSP (PSP on ARM only). Saturn, Dreamcast, PS2, GameCube/Wii still need an emulator app.
 * N64, NDS and PSP have not run in CI (no freely licensed test images); only packaging is checked. N64/PSP are demanding on low-end TV boxes; the NDS touch screen needs a touch display.
 * Verified on Android emulators only (a synthetic NES image renders frames). Real games, speed on low-end TV boxes, controllers and touch controls are untested.
-* One save-state slot per game; no fast-forward, rewind, cheats or shaders yet. Single player (port 1) for the remote/touch; each physical controller uses its own port.
+* One save-state slot per game; no fast-forward, rewind or cheats yet. Display filters (0.14.0) are LibretroDroid's built-in shaders; their look on real TVs is untested. Single player (port 1) for the remote/touch; each physical controller uses its own port.
+* Emulator options come from the running core; GAMEBOX can only show them while a game runs (Settings lists the changed ones). Some options only apply after *Restart game*; an option that breaks a game can be reset in Settings.
+* Covers (0.14.0) are matched by name: files not named like No-Intro/Redump ("Title (Region)") may need the name typed. Covers exist only for consoles in libretro-thumbnails.
+* The wrong-console check reads the file header: it recognises PSP/PS2/GameCube/Wii discs and cartridge headers; PS1 vs PS2 discs and CHD/PBP files can't be told apart, so they are never reported.
 * `.7z` archives aren't opened (ZIP is). PS1 without a real BIOS relies on PCSX ReARMed's replacement, which some games don't like.
 * APK size grows with the cores (PPSSPP and its assets add about 20 MB on ARM). Builds that include Snes9x and Genesis Plus GX must not be sold (non-commercial licences).
 

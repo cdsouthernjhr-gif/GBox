@@ -57,6 +57,7 @@ void main() {
         'saves': '/b/s',
         'title': 'Crash',
         'touch': 'auto',
+        'shader': 'default',
         'layout': 'ps1',
       });
       expect(p.spec.flags, isEmpty, reason: 'same task: BACK returns to GAMEBOX');

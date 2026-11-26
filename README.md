@@ -2,6 +2,8 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
+> **0.14.0:** settings for each built-in emulator (display filter, on-screen controls, the emulator's own options in game), HOME with small cards and the focused game's cover large and as wallpaper (also on mouse hover), *Download cover* on the game page, and a popup when a game belongs to another console or the built-in player can't open it.
+>
 > **0.13.0:** N64, Nintendo DS and PSP also play in the built-in player.
 >
 > **0.12.0:** built-in player — games play inside GAMEBOX, no RetroArch or cores to install (NES, SNES, GB/GBC/GBA, Mega Drive, Master System, PS1). Licensed GPLv3 (see LICENSE and docs/THIRD_PARTY_LICENSES.md).

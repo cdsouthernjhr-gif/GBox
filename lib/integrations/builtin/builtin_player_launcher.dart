@@ -136,6 +136,7 @@ class BuiltInPlayerLauncher extends GameLauncherAdapter {
           'saves': ?env.savesDir,
           'title': ?target.title,
           'touch': env.touchControls,
+          'shader': env.shader,
           'layout': builtInTouchLayouts[target.consoleId] ?? 'nes',
         },
       ),

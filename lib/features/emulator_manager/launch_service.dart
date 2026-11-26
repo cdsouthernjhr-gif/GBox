@@ -6,6 +6,7 @@ import '../../core/constants/console_catalog.dart';
 import '../../core/database/app_database.dart';
 import '../../core/device/device_intelligence_service.dart';
 import '../../core/errors/app_logger.dart';
+import '../../core/rom/console_mismatch.dart';
 import '../../core/rom/rom_path_resolver.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/services/system_services.dart';
@@ -29,11 +30,16 @@ class LaunchOutcome {
   const LaunchOutcome.started({required this.emulatorName, this.notes = const []})
       : ok = true,
         reasons = const [],
-        missingEmulators = const [];
-  const LaunchOutcome.blocked(this.reasons, {this.emulatorName, this.missingEmulators = const []})
+        missingEmulators = const [],
+        wrongConsole = null;
+  const LaunchOutcome.blocked(this.reasons, {this.emulatorName, this.missingEmulators = const [], this.wrongConsole})
       : ok = false,
         notes = const [];
   final bool ok;
+
+  /// The console the game file really belongs to, when it is filed under
+  /// another one (the UI offers to move it or get that console's emulator).
+  final String? wrongConsole;
 
   /// Emulators that could play the game but aren't installed (the UI offers
   /// where to get them).
@@ -59,8 +65,10 @@ class LaunchService {
   /// Prepares files for the built-in player (null in tests that don't use it).
   PlayerFiles? playerFiles;
 
-  /// On-screen controls setting for the built-in player: auto | on | off.
-  String Function()? touchControls;
+  /// Built-in player settings for a core: on-screen controls (auto | on |
+  /// off) and display filter (PlayerShader.wire).
+  String Function(String core)? touchControls;
+  String Function(String core)? playerShader;
 
   final PlatformGateway _gateway;
   final AppDatabase _db;
@@ -80,6 +88,21 @@ class LaunchService {
 
   /// Set when the built-in player stopped unexpectedly (shown by the UI).
   final ValueNotifier<PlayerCrash?> playerCrash = ValueNotifier(null);
+
+  /// Set to the game id when the built-in player could not open the game
+  /// (the UI offers other emulators).
+  final ValueNotifier<int?> playerCouldNotOpen = ValueNotifier(null);
+
+  /// The console [game]'s file belongs to when it is not the game's console
+  /// (from the file header); null when it matches or can't be told.
+  Future<String?> wrongConsoleOf(GameRow game, GameFileRow primary) async {
+    try {
+      final bytes = await _gateway.readBytes(primary.uri, length: consoleCheckBytes);
+      return otherConsoleFromHeader(game.consoleId, primary.extension, bytes);
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Looks for a crash of the built-in player (after GAMEBOX restarts, or on
   /// return from a game). Returns true when one was found.
@@ -121,12 +144,14 @@ class LaunchService {
   }
 
   /// [emulatorId]/[options] override the console default. With [remember]
-  /// the choice becomes the console default.
+  /// the choice becomes the console default. Unless [checkConsole] is false,
+  /// a game whose file belongs to another console is not started.
   Future<LaunchOutcome> play(
     int gameId, {
     String? emulatorId,
     Map<String, String>? options,
     bool remember = false,
+    bool checkConsole = true,
   }) async {
     final game = await _db.gameById(gameId);
     final files = await _db.filesForGame(gameId);
@@ -136,6 +161,16 @@ class LaunchService {
       return const LaunchOutcome.blocked([
         'The game file is missing. Reconnect the storage it was on, or rescan your folders.',
       ]);
+    }
+    if (checkConsole) {
+      final other = await wrongConsoleOf(game, primary);
+      if (other != null) {
+        return LaunchOutcome.blocked([
+          'This file looks like a ${consoleById(other)?.name ?? other} game, but it is in the '
+              '${consoleById(game.consoleId)?.name ?? game.consoleId} list. '
+              'Each emulator only plays games of its own console.',
+        ], wrongConsole: other);
+      }
     }
 
     // Emulator selection: explicit → console default → first installed.
@@ -210,7 +245,8 @@ class LaunchService {
       supportsArm64: profile == null || profile.supportedAbis.isEmpty || profile.supportsArm64,
       systemDir: prep?.systemDir,
       savesDir: prep?.savesDir,
-      touchControls: touchControls?.call() ?? 'auto',
+      touchControls: touchControls?.call(builtInCores[game.consoleId] ?? '') ?? 'auto',
+      shader: playerShader?.call(builtInCores[game.consoleId] ?? '') ?? 'default',
     );
     final name = choice.adapter.emulator.name;
     final plan = choice.adapter.plan(target, env, opts);
@@ -260,6 +296,16 @@ class LaunchService {
     _activeGame = null;
     // A crash of the built-in player replaces the "how did it run?" question.
     if (g != null && g.$2 == builtInPlayerId && await checkPlayerCrash()) return;
+    // So does a game the built-in player could not open.
+    if (g != null && g.$2 == builtInPlayerId) {
+      try {
+        final st = await _gateway.playerStatus();
+        if (st['state'] == 'error' && st['errorKind'] == 'load_game') {
+          playerCouldNotOpen.value = g.$1;
+          return;
+        }
+      } catch (_) {}
+    }
     if (g != null) finishedSession.value = g;
   }
 }

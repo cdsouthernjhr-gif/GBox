@@ -407,6 +407,18 @@ class FakeGateway implements PlatformGateway {
   @override
   Future<void> closePlayer() async => player = {...player, 'state': 'closed'};
 
+  /// Saved built-in player options per core.
+  final Map<String, Map<String, String>> savedCoreOptions = {};
+
+  @override
+  Future<Map<String, String>> coreOptions(String core) async => savedCoreOptions[core] ?? const {};
+
+  @override
+  Future<bool> resetCoreOptions(String core) async {
+    savedCoreOptions.remove(core);
+    return true;
+  }
+
   /// Next crash report of the built-in player (returned once).
   Map<String, dynamic>? crashReport;
 

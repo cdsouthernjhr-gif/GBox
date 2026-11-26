@@ -610,6 +610,10 @@ class AppDatabase extends _$AppDatabase {
   Future<GameMetadataRow?> metadataForGame(int gameId) =>
       (select(gameMetadata)..where((m) => m.gameId.equals(gameId))).getSingleOrNull();
 
+  /// Files the game under another console (its files stay where they are).
+  Future<void> setGameConsole(int gameId, String consoleId) =>
+      (update(games)..where((g) => g.id.equals(gameId))).write(GamesCompanion(consoleId: Value(consoleId)));
+
   Future<void> setFavorite(int gameId, bool favorite) async {
     if (favorite) {
       await into(favorites).insertOnConflictUpdate(

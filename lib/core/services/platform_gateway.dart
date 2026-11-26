@@ -158,11 +158,17 @@ abstract class PlatformGateway {
   /// FileProvider URI for a file in the GAMEBOX game folders, or null.
   Future<String?> shareableUri(String path);
 
-  /// Built-in player state: `{state, frames, errorCode, errorMessage, core}`.
+  /// Built-in player state: `{state, frames, errorCode, errorMessage, errorKind, core, rom}`.
   Future<Map<String, dynamic>> playerStatus();
 
   /// Closes the built-in player if it is open.
   Future<void> closePlayer();
+
+  /// Emulator options the user changed in the built-in player for [core].
+  Future<Map<String, String>> coreOptions(String core);
+
+  /// Forgets the options saved for [core] (the core's defaults apply again).
+  Future<bool> resetCoreOptions(String core);
 
   /// When the built-in player of an earlier run stopped unexpectedly:
   /// `{core, rom, frames, message, log}` (reported once), else null.
@@ -395,6 +401,14 @@ class MethodChannelGateway implements PlatformGateway {
 
   @override
   Future<void> closePlayer() => _emulator.invokeMethod<bool>('closePlayer');
+
+  @override
+  Future<Map<String, String>> coreOptions(String core) async =>
+      (await _emulator.invokeMapMethod<String, String>('coreOptions', {'core': core})) ?? const {};
+
+  @override
+  Future<bool> resetCoreOptions(String core) async =>
+      await _emulator.invokeMethod<bool>('resetCoreOptions', {'core': core}) ?? false;
 
   @override
   Future<Map<String, dynamic>?> playerCrashReport() async {

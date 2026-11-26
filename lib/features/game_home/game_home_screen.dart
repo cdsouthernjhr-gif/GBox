@@ -29,11 +29,7 @@ class GameRowData {
 
 /// Builds the launcher rows: continue playing, favourites, recently added,
 /// then one row per console that has games, in [order].
-List<GameRowData> buildGameRows({
-  required List<GameWithStatus> all,
-  required RowOrder order,
-  int recentLimit = 15,
-}) {
+List<GameRowData> buildGameRows({required List<GameWithStatus> all, required RowOrder order, int recentLimit = 15}) {
   final rows = <GameRowData>[];
   final played = all.where((g) => g.game.lastPlayedAt != null).toList()
     ..sort((a, b) => b.game.lastPlayedAt!.compareTo(a.game.lastPlayedAt!));
@@ -55,13 +51,13 @@ List<GameRowData> buildGameRows({
   final consoles = byConsole.keys.toList()
     ..sort(switch (order) {
       RowOrder.mostGames => (a, b) {
-          final c = byConsole[b]!.length.compareTo(byConsole[a]!.length);
-          return c != 0 ? c : name(a).compareTo(name(b));
-        },
+        final c = byConsole[b]!.length.compareTo(byConsole[a]!.length);
+        return c != 0 ? c : name(a).compareTo(name(b));
+      },
       RowOrder.recentlyPlayed => (a, b) {
-          final c = lastPlayed(byConsole[b]!).compareTo(lastPlayed(byConsole[a]!));
-          return c != 0 ? c : name(a).compareTo(name(b));
-        },
+        final c = lastPlayed(byConsole[b]!).compareTo(lastPlayed(byConsole[a]!));
+        return c != 0 ? c : name(a).compareTo(name(b));
+      },
       RowOrder.alphabetical => (a, b) => name(a).compareTo(name(b)),
     });
   for (final c in consoles) {
@@ -157,27 +153,38 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
                     if (mounted && _focused.value == current) _focused.value = want;
                   });
                 }
-                return Stack(children: [
-                  Positioned.fill(child: _Backdrop(focused: _focused, covers: covers)),
-                  Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    _Hero(focused: _focused, covers: covers),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        itemCount: rows.length,
-                        itemBuilder: (context, r) => _GameRow(
-                          key: ValueKey('row-${rows[r].title}'),
-                          data: rows[r],
-                          covers: covers,
-                          autofocusFirst: r == 0,
-                          onFocusGame: (g) => _focused.value = g,
-                          onOpenMenu: widget.onOpenMenu,
-                          onOptions: _options,
-                        ),
+                return LayoutBuilder(
+                  builder: (context, box) => Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _Backdrop(focused: _focused, covers: covers),
                       ),
-                    ),
-                  ]),
-                ]);
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // The focused game's cover is shown large; the rows below
+                          // keep small cards so more games fit.
+                          _Hero(focused: _focused, covers: covers, height: (box.maxHeight * 0.46).clamp(150.0, 360.0)),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                              itemCount: rows.length,
+                              itemBuilder: (context, r) => _GameRow(
+                                key: ValueKey('row-${rows[r].title}'),
+                                data: rows[r],
+                                covers: covers,
+                                autofocusFirst: r == 0,
+                                onFocusGame: (g) => _focused.value = g,
+                                onOpenMenu: widget.onOpenMenu,
+                                onOptions: _options,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
               },
             );
           },
@@ -202,11 +209,28 @@ class _Backdrop extends StatelessWidget {
         final path = g == null ? null : covers[g.game.id];
         final Widget layer;
         if (path != null && File(path).existsSync()) {
-          final img = Image.file(File(path), fit: BoxFit.cover, cacheWidth: 480, gaplessPlayback: true);
-          layer = Opacity(
-            opacity: 0.28,
-            // Blur only when animations are on (low-memory mode turns them off).
-            child: animate ? ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: img) : img,
+          final img = Image.file(File(path), fit: BoxFit.cover, cacheWidth: 720, gaplessPlayback: true);
+          // The cover as wallpaper, lightly softened, darkened towards the
+          // text and the rows so they stay readable.
+          layer = Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                opacity: 0.6,
+                // Blur only when animations are on (low-memory mode turns them off).
+                child: animate ? ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3), child: img) : img,
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.45, 1.0],
+                    colors: [Color(0x55000000), Color(0x88000000), Color(0xE6000000)],
+                  ),
+                ),
+              ),
+            ],
           );
         } else if (g != null) {
           final c = consoleColor(g.game.consoleId);
@@ -223,8 +247,11 @@ class _Backdrop extends StatelessWidget {
           layer = const SizedBox.shrink();
         }
         return AnimatedSwitcher(
-          duration: animate ? const Duration(milliseconds: 250) : Duration.zero,
-          child: KeyedSubtree(key: ValueKey(g?.game.id), child: SizedBox.expand(child: layer)),
+          duration: animate ? const Duration(milliseconds: 300) : Duration.zero,
+          child: KeyedSubtree(
+            key: ValueKey(g?.game.id),
+            child: SizedBox.expand(child: layer),
+          ),
         );
       },
     );
@@ -233,16 +260,17 @@ class _Backdrop extends StatelessWidget {
 
 /// Large panel with the focused game.
 class _Hero extends StatelessWidget {
-  const _Hero({required this.focused, required this.covers});
+  const _Hero({required this.focused, required this.covers, required this.height});
   final ValueNotifier<GameWithStatus?> focused;
   final Map<int, String> covers;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final palette = GameboxPalette.of(context);
     return SizedBox(
-      height: 150,
+      height: height,
       child: ValueListenableBuilder<GameWithStatus?>(
         valueListenable: focused,
         builder: (context, g, _) {
@@ -250,51 +278,70 @@ class _Hero extends StatelessWidget {
           final game = g.game;
           final path = covers[game.id];
           return Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 6),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              AspectRatio(
-                aspectRatio: 3 / 4,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: path != null && File(path).existsSync()
-                      ? Image.file(File(path), fit: BoxFit.cover, cacheWidth: 200, gaplessPlayback: true)
-                      : GeneratedCover(title: game.title, consoleId: game.consoleId),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AspectRatio(
+                  key: const ValueKey('hero-cover'),
+                  aspectRatio: 3 / 4,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18, offset: Offset(0, 6))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: path != null && File(path).existsSync()
+                          ? Image.file(File(path), fit: BoxFit.cover, cacheWidth: 480, gaplessPlayback: true)
+                          : GeneratedCover(title: game.title, consoleId: game.consoleId),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(game.title,
+                const SizedBox(width: 22),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        game.title,
                         key: const ValueKey('hero-title'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(
-                      [
-                        consoleById(game.consoleId)?.name ?? game.consoleId,
-                        game.lastPlayedAt == null ? 'Not played yet' : 'Played ${formatRelative(game.lastPlayedAt)}',
-                        if (game.playCount > 0) '${game.playCount}× played',
-                        if (game.isMissing) 'FILE MISSING',
-                      ].join('  ·  '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.bodyMedium?.copyWith(color: game.isMissing ? Colors.orangeAccent : Colors.white70),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(spacing: 8, runSpacing: 6, children: [
-                      StatusChip('OK / A  Play', color: palette.focus, icon: Icons.play_arrow_rounded),
-                      StatusChip(g.isFavorite ? 'Y  Unfavourite' : 'Y  Favourite',
-                          color: Colors.amber, icon: Icons.star_rounded),
-                      const StatusChip('Menu / X  Options', color: Colors.white70, icon: Icons.more_horiz_rounded),
-                    ]),
-                  ],
+                        style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          consoleById(game.consoleId)?.name ?? game.consoleId,
+                          game.lastPlayedAt == null ? 'Not played yet' : 'Played ${formatRelative(game.lastPlayedAt)}',
+                          if (game.playCount > 0) '${game.playCount}× played',
+                          if (game.isMissing) 'FILE MISSING',
+                        ].join('  ·  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.bodyMedium?.copyWith(color: game.isMissing ? Colors.orangeAccent : Colors.white70),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          StatusChip('OK / A  Play', color: palette.focus, icon: Icons.play_arrow_rounded),
+                          StatusChip(
+                            g.isFavorite ? 'Y  Unfavourite' : 'Y  Favourite',
+                            color: Colors.amber,
+                            icon: Icons.star_rounded,
+                          ),
+                          const StatusChip('Menu / X  Options', color: Colors.white70, icon: Icons.more_horiz_rounded),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           );
         },
       ),
@@ -319,42 +366,51 @@ class _GameRow extends StatelessWidget {
   final VoidCallback onOpenMenu;
   final ValueChanged<GameWithStatus> onOptions;
 
-  static const cardWidth = 116.0;
-  static const cardHeight = 156.0;
+  static const cardWidth = 84.0;
+  static const cardHeight = 112.0;
 
   @override
   Widget build(BuildContext context) {
     final accent = data.consoleId == null ? GameboxPalette.of(context).focus : consoleColor(data.consoleId!);
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 4, height: 16, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 8),
-          Text(data.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(width: 8),
-          Text('${data.games.length}', style: const TextStyle(color: Colors.white54)),
-        ]),
-        SizedBox(
-          height: cardHeight + 20,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-            itemCount: data.games.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, i) => _HomeCard(
-              entry: data.games[i],
-              coverPath: covers[data.games[i].game.id],
-              autofocus: autofocusFirst && i == 0,
-              firstInRow: i == 0,
-              onFocus: onFocusGame,
-              onOpenMenu: onOpenMenu,
-              onOptions: onOptions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(width: 8),
+              Text(data.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(width: 8),
+              Text('${data.games.length}', style: const TextStyle(color: Colors.white54)),
+            ],
+          ),
+          SizedBox(
+            height: cardHeight + 20,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              itemCount: data.games.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, i) => _HomeCard(
+                entry: data.games[i],
+                coverPath: covers[data.games[i].game.id],
+                autofocus: autofocusFirst && i == 0,
+                firstInRow: i == 0,
+                onFocus: onFocusGame,
+                onOpenMenu: onOpenMenu,
+                onOptions: onOptions,
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -383,7 +439,7 @@ class _HomeCard extends StatelessWidget {
     final s = servicesOf(context);
     final path = coverPath;
     final cover = path != null && File(path).existsSync()
-        ? Image.file(File(path), fit: BoxFit.cover, cacheWidth: 240)
+        ? Image.file(File(path), fit: BoxFit.cover, cacheWidth: 180)
         : GeneratedCover(title: g.title, consoleId: g.consoleId);
     return Focus(
       canRequestFocus: false,
@@ -399,53 +455,69 @@ class _HomeCard extends StatelessWidget {
           s.db.setFavorite(g.id, !entry.isFavorite);
           return KeyEventResult.handled;
         }
-        if (k == LogicalKeyboardKey.gameButtonX || k == LogicalKeyboardKey.contextMenu || k == LogicalKeyboardKey.keyI) {
+        if (k == LogicalKeyboardKey.gameButtonX ||
+            k == LogicalKeyboardKey.contextMenu ||
+            k == LogicalKeyboardKey.keyI) {
           onOptions(entry);
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
       },
-      child: SizedBox(
-        width: _GameRow.cardWidth,
-        height: _GameRow.cardHeight,
-        child: TvFocusable(
-          autofocus: autofocus,
-          scale: 1.1,
-          borderRadius: 12,
-          semanticLabel: g.title,
-          onFocus: (f) {
-            if (f) onFocus(entry);
-          },
-          onSelect: () => playGame(context, g),
-          onLongPress: () => onOptions(entry),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Stack(fit: StackFit.expand, children: [
-              cover,
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(8, 18, 8, 6),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black87],
+      // A mouse over a card shows that game's cover large and as wallpaper,
+      // before it is chosen.
+      child: MouseRegion(
+        onEnter: (_) => onFocus(entry),
+        child: SizedBox(
+          width: _GameRow.cardWidth,
+          height: _GameRow.cardHeight,
+          child: TvFocusable(
+            autofocus: autofocus,
+            scale: 1.15,
+            borderRadius: 10,
+            semanticLabel: g.title,
+            onFocus: (f) {
+              if (f) onFocus(entry);
+            },
+            onSelect: () => playGame(context, g),
+            onLongPress: () => onOptions(entry),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  cover,
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(5, 14, 5, 4),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black87],
+                        ),
+                      ),
+                      child: Text(
+                        g.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, height: 1.1),
+                      ),
                     ),
                   ),
-                  child: Text(g.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.15)),
-                ),
+                  if (entry.isFavorite)
+                    const Positioned(top: 3, right: 3, child: Icon(Icons.star_rounded, color: Colors.amber, size: 15)),
+                  if (g.isMissing)
+                    const Positioned(
+                      top: 3,
+                      left: 3,
+                      child: Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 15),
+                    ),
+                ],
               ),
-              if (entry.isFavorite)
-                const Positioned(top: 5, right: 5, child: Icon(Icons.star_rounded, color: Colors.amber, size: 20)),
-              if (g.isMissing)
-                const Positioned(top: 5, left: 5, child: Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20)),
-            ]),
+            ),
           ),
         ),
       ),
@@ -466,7 +538,8 @@ class _EmptyLibrary extends StatelessWidget {
       skipTraversal: true,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.contextMenu || event.logicalKey == LogicalKeyboardKey.gameButtonStart)) {
+            (event.logicalKey == LogicalKeyboardKey.contextMenu ||
+                event.logicalKey == LogicalKeyboardKey.gameButtonStart)) {
           onOpenMenu();
           return KeyEventResult.handled;
         }
@@ -475,42 +548,52 @@ class _EmptyLibrary extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.sports_esports_rounded, size: 56, color: Colors.white54),
-            const SizedBox(height: 10),
-            Text('No games yet', style: t.headlineSmall),
-            const SizedBox(height: 6),
-            const Text(
-              'Let GAMEBOX find the games already on this device, or set it up step by step. '
-              'Games you add appear here, one row per console.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 16),
-            Wrap(alignment: WrapAlignment.center, spacing: 12, runSpacing: 10, children: [
-              _LeftOpensMenu(
-                onOpenMenu: onOpenMenu,
-                child: TvButton(
-                  label: 'Set up GAMEBOX',
-                  icon: Icons.rocket_launch_rounded,
-                  primary: true,
-                  autofocus: true,
-                  onPressed: () => openSetup(context),
-                ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.sports_esports_rounded, size: 56, color: Colors.white54),
+              const SizedBox(height: 10),
+              Text('No games yet', style: t.headlineSmall),
+              const SizedBox(height: 6),
+              const Text(
+                'Let GAMEBOX find the games already on this device, or set it up step by step. '
+                'Games you add appear here, one row per console.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70),
               ),
-              TvButton(
-                label: 'Find ROMs on this device',
-                icon: Icons.travel_explore_rounded,
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen())),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  _LeftOpensMenu(
+                    onOpenMenu: onOpenMenu,
+                    child: TvButton(
+                      label: 'Set up GAMEBOX',
+                      icon: Icons.rocket_launch_rounded,
+                      primary: true,
+                      autofocus: true,
+                      onPressed: () => openSetup(context),
+                    ),
+                  ),
+                  TvButton(
+                    label: 'Find ROMs on this device',
+                    icon: Icons.travel_explore_rounded,
+                    onPressed: () =>
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen())),
+                  ),
+                  TvButton(
+                    label: 'Find games online',
+                    icon: Icons.public_rounded,
+                    onPressed: () =>
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
+                  ),
+                  TvButton(label: 'Menu', icon: Icons.menu_rounded, onPressed: onOpenMenu),
+                ],
               ),
-              TvButton(
-                label: 'Find games online',
-                icon: Icons.public_rounded,
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
-              ),
-              TvButton(label: 'Menu', icon: Icons.menu_rounded, onPressed: onOpenMenu),
-            ]),
-          ]),
+            ],
+          ),
         ),
       ),
     );
@@ -524,15 +607,15 @@ class _LeftOpensMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Focus(
-        canRequestFocus: false,
-        skipTraversal: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            onOpenMenu();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: child,
-      );
+    canRequestFocus: false,
+    skipTraversal: true,
+    onKeyEvent: (node, event) {
+      if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        onOpenMenu();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    },
+    child: child,
+  );
 }

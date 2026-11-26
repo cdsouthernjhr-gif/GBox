@@ -77,6 +77,7 @@ class LauncherShellState extends State<LauncherShell> {
     s.launcher.finishedSession.addListener(_onFinished);
     s.launcher.playerCrash.addListener(_onPlayerCrash);
     if (s.launcher.playerCrash.value != null) WidgetsBinding.instance.addPostFrameCallback((_) => _onPlayerCrash());
+    s.launcher.playerCouldNotOpen.addListener(_onCouldNotOpen);
     _subs.add(s.storage.notifications.stream.listen(notify));
   }
 
@@ -96,8 +97,20 @@ class LauncherShellState extends State<LauncherShell> {
     showPlayerCrashDialog(context, crash);
   }
 
+  Future<void> _onCouldNotOpen() async {
+    final s = _services;
+    final id = s?.launcher.playerCouldNotOpen.value;
+    if (id == null || !mounted) return;
+    s!.launcher.playerCouldNotOpen.value = null;
+    try {
+      final game = await s.db.gameById(id);
+      if (mounted) await showOtherEmulatorsDialog(context, game);
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
+    _services?.launcher.playerCouldNotOpen.removeListener(_onCouldNotOpen);
     _services?.launcher.finishedSession.removeListener(_onFinished);
     _services?.launcher.playerCrash.removeListener(_onPlayerCrash);
     for (final s in _subs) {

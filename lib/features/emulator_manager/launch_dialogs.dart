@@ -32,6 +32,10 @@ Future<void> playGameWith(BuildContext context, GameRow game) async {
 }
 
 Future<void> _report(BuildContext context, LaunchOutcome o, GameRow game) async {
+  if (!o.ok && o.wrongConsole != null) {
+    await showWrongConsoleDialog(context, game, o.wrongConsole!, o.reasons.join(' '));
+    return;
+  }
   if (!o.ok && o.missingEmulators.isNotEmpty) {
     await showGetEmulatorDialog(context, game.consoleId, o.missingEmulators);
     return;
@@ -296,3 +300,109 @@ class _EmulatorGetRow extends StatelessWidget {
   }
 }
 
+
+/// The game's file belongs to [actual], not the console it is filed under:
+/// move it to [actual] and play, get an emulator for [actual], or play anyway.
+Future<void> showWrongConsoleDialog(BuildContext context, GameRow game, String actual, String reason) async {
+  final s = servicesOf(context);
+  final actualName = consoleById(actual)?.name ?? actual;
+  final choices = await s.launcher.choicesFor(actual);
+  if (!context.mounted) return;
+  final playable = choices.any((c) => c.installed);
+  final action = await showDialog<String>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text('This looks like a $actualName game'),
+      content: SizedBox(
+        width: 560,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(reason),
+          const SizedBox(height: 10),
+          Text(
+            choices.isEmpty
+                ? 'GAMEBOX cannot launch $actualName games yet.'
+                : playable
+                    ? 'Move it to $actualName to play it with a $actualName emulator.'
+                    : 'No $actualName emulator is installed. You can get one from its official source.',
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(c, 'anyway'), child: const Text('Play anyway')),
+        if (choices.isNotEmpty && !playable)
+          TextButton(onPressed: () => Navigator.pop(c, 'get'), child: Text('Get $actualName emulator')),
+        if (choices.isNotEmpty)
+          TextButton(autofocus: true, onPressed: () => Navigator.pop(c, 'move'), child: Text('Move to $actualName and play')),
+      ],
+    ),
+  );
+  if (!context.mounted || action == null) return;
+  switch (action) {
+    case 'anyway':
+      final o = await s.launcher.play(game.id, checkConsole: false);
+      if (context.mounted) await _report(context, o, game);
+    case 'get':
+      await showGetEmulatorDialog(context, actual, [for (final c in choices) if (!c.installed) c.adapter.emulatorId],
+          title: 'Get a $actualName emulator');
+    case 'move':
+      await s.db.setGameConsole(game.id, actual);
+      final moved = await s.db.gameById(game.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Moved to $actualName')));
+      await playGame(context, moved);
+  }
+}
+
+/// The built-in player could not open [game]: offer the other emulators for
+/// its console (installed ones to play with, the others to get).
+Future<void> showOtherEmulatorsDialog(BuildContext context, GameRow game) async {
+  final s = servicesOf(context);
+  final console = consoleById(game.consoleId)?.name ?? game.consoleId;
+  final others = [
+    for (final c in await s.launcher.choicesFor(game.consoleId))
+      if (c.adapter.emulatorId != builtInPlayerId) c,
+  ];
+  if (!context.mounted) return;
+  final installed = others.where((c) => c.installed).toList();
+  final missing = [for (final c in others) if (!c.installed) c.adapter.emulatorId];
+  await showDialog<void>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('GAMEBOX could not open this game'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('The built-in $console emulator could not open ${game.title}. The file may be damaged, in a '
+                'format this emulator does not read, or meant for another console. Another emulator may open it.'),
+            const SizedBox(height: 12),
+            for (final ch in installed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TvButton(
+                  label: 'Play with ${ch.adapter.emulator.name}',
+                  icon: Icons.play_arrow_rounded,
+                  onPressed: () async {
+                    Navigator.pop(c);
+                    final o = await s.launcher.play(game.id, emulatorId: ch.adapter.emulatorId);
+                    if (context.mounted) await _report(context, o, game);
+                  },
+                ),
+              ),
+            if (missing.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(installed.isEmpty ? 'Get an emulator for $console:' : 'Or get another emulator:',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              for (final id in missing) _EmulatorGetRow(emulatorId: id),
+            ],
+            if (others.isEmpty) Text('GAMEBOX knows no other emulator for $console games.'),
+          ]),
+        ),
+      ),
+      actions: [TextButton(autofocus: true, onPressed: () => Navigator.pop(c), child: const Text('Close'))],
+    ),
+  );
+}

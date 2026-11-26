@@ -205,6 +205,12 @@ class MainActivity : FlutterActivity() {
                 "playerCrashReport" -> Background.run(result) {
                     com.gamebox.console.player.PlayerStatus.crashReport(applicationContext)
                 }
+                "coreOptions" -> result.success(
+                    com.gamebox.console.player.CoreOptions.load(applicationContext, call.argument<String>("core") ?: ""),
+                )
+                "resetCoreOptions" -> result.success(
+                    com.gamebox.console.player.CoreOptions.reset(applicationContext, call.argument<String>("core") ?: ""),
+                )
                 "closePlayer" -> {
                     com.gamebox.console.player.PlayerStatus.activity?.get()?.finish()
                     result.success(true)

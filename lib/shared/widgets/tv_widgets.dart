@@ -269,6 +269,17 @@ class PageFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    // A section opened as its own page (SubPage) gets a Back button.
+    final actions = context.dependOnInheritedWidgetOfExactType<_SubPageScope>() == null
+        ? this.actions
+        : [
+            TvButton(
+                label: 'Back',
+                icon: Icons.arrow_back_rounded,
+                autofocus: true,
+                onPressed: () => Navigator.of(context).maybePop()),
+            ...this.actions,
+          ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -300,6 +311,31 @@ class PageFrame extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Opens a launcher section screen (e.g. Storage, Controllers) as its own
+/// page, with the theme background and a Back button in its [PageFrame].
+class SubPage extends StatelessWidget {
+  const SubPage({super.key, required this.child});
+  final Widget child;
+
+  static Future<void> open(BuildContext context, Widget child) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SubPage(child: child)));
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: DecoratedBox(
+          decoration: GameboxPalette.of(context).decoration,
+          child: SafeArea(child: _SubPageScope(child: FocusScope(autofocus: true, child: child))),
+        ),
+      );
+}
+
+class _SubPageScope extends InheritedWidget {
+  const _SubPageScope({required super.child});
+  @override
+  bool updateShouldNotify(_SubPageScope oldWidget) => false;
 }
 
 AppServices servicesOf(BuildContext context) => AppScope.of(context);

@@ -19,12 +19,18 @@ class SourcesView extends StatelessWidget {
       builder: (context, snap) {
         final list = snap.data ?? const [];
         if (list.isEmpty) {
-          return const EmptyState(
-            icon: Icons.public_off_rounded,
-            title: 'No sources',
-            message: 'GAMEBOX includes no game sources. Add a homebrew or public-domain catalogue '
-                '(GAMEBOX catalogue format), or a direct link to a file you are allowed to download. '
-                'Websites are never scraped and logins are not supported.',
+          // Scrolls when the screen is short.
+          return ListView(
+            children: const [
+              EmptyState(
+                icon: Icons.public_off_rounded,
+                title: 'No sources',
+                message:
+                    'GAMEBOX includes no game sources. Add a homebrew or public-domain catalogue '
+                    '(GAMEBOX catalogue format), or a direct link to a file you are allowed to download. '
+                    'Websites are never scraped and logins are not supported.',
+              ),
+            ],
           );
         }
         return ListView(children: [for (final src in list) _SourceTile(src)]);
@@ -64,52 +70,72 @@ class _SourceTileState extends State<_SourceTile> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: GameboxPalette.of(context).card, borderRadius: BorderRadius.circular(12)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-            Text(src.name, style: t.titleMedium),
-            StatusChip(type.label, color: Colors.white54),
-            if (src.category != null) StatusChip(src.category!, color: Colors.white38),
-          ]),
-          Text(src.url, style: const TextStyle(fontSize: 12, color: Colors.white60), maxLines: 1, overflow: TextOverflow.ellipsis),
-          if (src.description != null) Text(src.description!, style: const TextStyle(fontSize: 12.5)),
-          Text(
-            'Status: ${src.connectionStatus}${src.lastCheckedAt != null ? ' · checked ${formatRelative(src.lastCheckedAt)}' : ''}',
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
-          ),
-          const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            TvButton(label: _busy ? 'Checking…' : 'Check connection', onPressed: _busy ? null : () => _run(() => s.sources.check(src.id))),
-            if (type.isCatalog)
-              TvButton(
-                label: 'Browse games',
-                primary: true,
-                onPressed: _busy
-                    ? null
-                    : () => _run(() async {
-                          final r = await s.sources.browse(src.id);
-                          if (context.mounted) await _showCatalog(context, src, r);
-                        }),
-              )
-            else
-              TvButton(
-                label: 'Download file',
-                primary: true,
-                onPressed: () async {
-                  try {
-                    await s.downloads.enqueue(url: src.url, sourceId: src.id, name: src.name);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to downloads')));
-                    }
-                  } on ArgumentError catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${e.message}')));
-                    }
-                  }
-                },
-              ),
-            TvButton(label: 'Delete source', onPressed: () => s.sources.remove(src.id)),
-          ]),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(src.name, style: t.titleMedium),
+                StatusChip(type.label, color: Colors.white54),
+                if (src.category != null) StatusChip(src.category!, color: Colors.white38),
+              ],
+            ),
+            Text(
+              src.url,
+              style: const TextStyle(fontSize: 12, color: Colors.white60),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (src.description != null) Text(src.description!, style: const TextStyle(fontSize: 12.5)),
+            Text(
+              'Status: ${src.connectionStatus}${src.lastCheckedAt != null ? ' · checked ${formatRelative(src.lastCheckedAt)}' : ''}',
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TvButton(
+                  label: _busy ? 'Checking…' : 'Check connection',
+                  onPressed: _busy ? null : () => _run(() => s.sources.check(src.id)),
+                ),
+                if (type.isCatalog)
+                  TvButton(
+                    label: 'Browse games',
+                    primary: true,
+                    onPressed: _busy
+                        ? null
+                        : () => _run(() async {
+                            final r = await s.sources.browse(src.id);
+                            if (context.mounted) await _showCatalog(context, src, r);
+                          }),
+                  )
+                else
+                  TvButton(
+                    label: 'Download file',
+                    primary: true,
+                    onPressed: () async {
+                      try {
+                        await s.downloads.enqueue(url: src.url, sourceId: src.id, name: src.name);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(content: Text('Added to downloads')));
+                        }
+                      } on ArgumentError catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${e.message}')));
+                        }
+                      }
+                    },
+                  ),
+                TvButton(label: 'Delete source', onPressed: () => s.sources.remove(src.id)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -126,38 +152,50 @@ Future<void> _showCatalog(BuildContext context, GameSourceRow src, BrowseResult 
         height: 420,
         child: r.error != null
             ? Text(r.error!, style: const TextStyle(color: Colors.redAccent))
-            : ListView(children: [
-                if (r.rejected.isNotEmpty)
-                  Text('${r.rejected.length} entries hidden (insecure link, invalid checksum or unknown console).',
-                      style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
-                for (final (i, CatalogEntry e) in r.entries.indexed)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: TvFocusable(
-                      autofocus: i == 0,
-                      scale: 1.01,
-                      padding: const EdgeInsets.all(10),
-                      onSelect: () async {
-                        await s.downloads.enqueue(url: e.url.toString(), sourceId: src.id, entry: e);
-                        if (c.mounted) {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(SnackBar(content: Text('Downloading ${e.title}')));
-                        }
-                      },
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(e.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text(
-                          '${consoleById(e.consoleId)?.name} · ${e.licenseStated ? 'Licence: ${e.license}' : 'Licence not stated'} · '
-                          '${e.size == null ? 'size unknown' : formatBytes(e.size)}'
-                          '${e.sha256 != null ? ' · SHA-256 verified' : ''}',
-                          style: const TextStyle(fontSize: 12, color: Colors.white70),
-                        ),
-                        if (e.description != null)
-                          Text(e.description!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
-                      ]),
+            : ListView(
+                children: [
+                  if (r.rejected.isNotEmpty)
+                    Text(
+                      '${r.rejected.length} entries hidden (insecure link, invalid checksum or unknown console).',
+                      style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
                     ),
-                  ),
-              ]),
+                  for (final (i, CatalogEntry e) in r.entries.indexed)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TvFocusable(
+                        autofocus: i == 0,
+                        scale: 1.01,
+                        padding: const EdgeInsets.all(10),
+                        onSelect: () async {
+                          await s.downloads.enqueue(url: e.url.toString(), sourceId: src.id, entry: e);
+                          if (c.mounted) {
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(SnackBar(content: Text('Downloading ${e.title}')));
+                          }
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            Text(
+                              '${consoleById(e.consoleId)?.name} · ${e.licenseStated ? 'Licence: ${e.license}' : 'Licence not stated'} · '
+                              '${e.size == null ? 'size unknown' : formatBytes(e.size)}'
+                              '${e.sha256 != null ? ' · SHA-256 verified' : ''}',
+                              style: const TextStyle(fontSize: 12, color: Colors.white70),
+                            ),
+                            if (e.description != null)
+                              Text(
+                                e.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
       ),
       actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close'))],
     ),
@@ -179,26 +217,41 @@ Future<void> showAddSourceDialog(BuildContext context) async {
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              TextField(controller: name, autofocus: true, decoration: const InputDecoration(labelText: 'Name')),
-              TextField(controller: url, decoration: const InputDecoration(labelText: 'URL (https://…)')),
-              TextField(controller: desc, decoration: const InputDecoration(labelText: 'Description (optional)')),
-              const SizedBox(height: 10),
-              TvButton(
-                label: 'Type: ${type.label}',
-                onPressed: () => setState(() => type = SourceType.values[(type.index + 1) % SourceType.values.length]),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  type.isCatalog
-                      ? 'The URL must return a GAMEBOX catalogue (JSON). Entries without a licence are shown as "Licence not stated".'
-                      : 'The URL must point directly to one file (not a web page).',
-                  style: const TextStyle(fontSize: 12, color: Colors.white60),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: name,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: 'Name'),
                 ),
-              ),
-              if (error != null) Text(error!, style: const TextStyle(color: Colors.redAccent)),
-            ]),
+                TextField(
+                  controller: url,
+                  decoration: const InputDecoration(labelText: 'URL (https://…)'),
+                ),
+                TextField(
+                  controller: desc,
+                  decoration: const InputDecoration(labelText: 'Description (optional)'),
+                ),
+                const SizedBox(height: 10),
+                TvButton(
+                  label: 'Type: ${type.label}',
+                  onPressed: () =>
+                      setState(() => type = SourceType.values[(type.index + 1) % SourceType.values.length]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    type.isCatalog
+                        ? 'The URL must return a GAMEBOX catalogue (JSON). Entries without a licence are shown as "Licence not stated".'
+                        : 'The URL must point directly to one file (not a web page).',
+                    style: const TextStyle(fontSize: 12, color: Colors.white60),
+                  ),
+                ),
+                if (error != null) Text(error!, style: const TextStyle(color: Colors.redAccent)),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -206,8 +259,7 @@ Future<void> showAddSourceDialog(BuildContext context) async {
           TextButton(
             onPressed: () async {
               try {
-                final id = await s.sources.add(
-                    name: name.text, url: url.text, type: type, description: desc.text);
+                final id = await s.sources.add(name: name.text, url: url.text, type: type, description: desc.text);
                 if (c.mounted) Navigator.pop(c);
                 await s.sources.check(id);
               } on ArgumentError catch (e) {

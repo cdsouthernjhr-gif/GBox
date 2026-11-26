@@ -1,5 +1,20 @@
 # Release notes
 
+## 0.15.0+20 — Simpler menu, systems on HOME, cover download fix (pre-release)
+
+**Changed — the side menu has 6 entries instead of 11:**
+* **HOME:** the focused game's cover and wallpaper, *Continue playing* (or *Recently added*), then **My systems**: one tile per console with **how many games** it has and **which emulator** plays them ("Built-in player", an app name, or "Needs an emulator"). A tile opens that console's games. Then *Favourites* and *Recently added*. The per-console rows moved to GAMES.
+* **GAMES** (was MY GAMES, CONSOLES, RECENTLY PLAYED, FAVOURITES): every game, with search, a filter per console, *Favourites*, *Missing*, and sorting by title, recently played or recently added.
+* **ADD GAMES** (was DOWNLOADS): *Find ROMs on this device*, *Import files*, *Find games online*, downloads and sources.
+* **EMULATORS:** the emulator apps, plus *Built-in emulator settings* and *Consoles* (compatibility per console).
+* **SETTINGS:** now also opens **Controllers** and **Storage and game folders** (each with a Back button).
+* **ANDROID APPS** unchanged.
+* The old dashboard (Settings → Home screen) was removed; device status is in the status bar and Settings → System.
+
+**Fixed:** *Download cover* saved the downloaded image to a folder apps can't write on Android, so it always failed. It now uses GAMEBOX's own cache folder and reports the reason when something goes wrong. When no exact name matches, GAMEBOX now fetches the console's list of covers once and matches the title loosely (regions, punctuation, case and "The" ignored), preferring USA/World/Europe releases.
+
+**Fixed:** some screens could overflow on 1080p TVs when headers had many buttons; *Add download link* / *Add source* moved from the header into the list.
+
 ## 0.14.0+19 — Emulator settings, cover-first HOME, cover downloads (pre-release)
 
 **New:**

@@ -174,14 +174,14 @@ void main() {
     for (var i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(find.text('MY GAMES'), findsOneWidget);
+    expect(find.text('ADD GAMES'), findsOneWidget);
     // main() forces landscape; this test bypasses main(), so the screen
     // orientation is whatever the emulator profile provides. At TV size
     // (CI uses the tv_1080p profile) the whole menu fits; the list is lazy,
     // so this also checks the menu is not taller than a TV.
     final size = tester.view.physicalSize / tester.view.devicePixelRatio;
     if (size.width > size.height) {
-      expect(find.text('ANDROID APPS'), findsOneWidget, reason: 'all 11 menu entries fit on a $size screen');
+      expect(find.text('ANDROID APPS'), findsOneWidget, reason: 'all 6 menu entries fit on a $size screen');
     }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

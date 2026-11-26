@@ -6,6 +6,8 @@ import '../../core/online/download_engine.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utilities/formatters.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../game_library/my_games_screen.dart' show importFiles;
+import '../setup/rom_search_screen.dart';
 import '../source_manager/find_online_screen.dart';
 import '../source_manager/sources_view.dart';
 import 'download_service.dart';
@@ -25,25 +27,37 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   @override
   Widget build(BuildContext context) {
     return PageFrame(
-      title: _sources ? 'Game sources' : 'Downloads',
-      subtitle: 'Authorised downloads only — files are never executed',
+      title: _sources ? 'Game sources' : 'Add games',
+      subtitle: 'Find games on this device or online, and your downloads. Files are never executed.',
       actions: [
+        TvButton(
+          label: 'Find ROMs on this device',
+          icon: Icons.manage_search_rounded,
+          primary: true,
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen())),
+        ),
+        TvButton(label: 'Import files', icon: Icons.file_open_rounded, onPressed: () => importFiles(context)),
         TvButton(
           label: 'Find games online',
           icon: Icons.travel_explore_rounded,
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
         ),
         TvButton(
-          label: _sources ? 'Show downloads' : 'Sources',
+          label: _sources ? 'Downloads' : 'Sources',
           icon: _sources ? Icons.download_rounded : Icons.public_rounded,
           onPressed: () => setState(() => _sources = !_sources),
         ),
-        if (_sources)
-          TvButton(label: 'Add source', icon: Icons.add_link_rounded, onPressed: () => showAddSourceDialog(context))
-        else
-          TvButton(label: 'Add download', icon: Icons.add_rounded, onPressed: () => showAddDownloadDialog(context)),
       ],
-      child: _sources ? const SourcesView() : const _QueueView(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Adding a link is less common than finding games: kept out of the header.
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _sources
+              ? TvButton(label: 'Add source', icon: Icons.add_link_rounded, onPressed: () => showAddSourceDialog(context))
+              : TvButton(label: 'Add download link', icon: Icons.add_rounded, onPressed: () => showAddDownloadDialog(context)),
+        ),
+        Expanded(child: _sources ? const SourcesView() : const _QueueView()),
+      ]),
     );
   }
 }

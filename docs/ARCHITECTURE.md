@@ -4,7 +4,7 @@
 
 ```
 ┌──────────────────────────── Presentation (lib/features, lib/shared) ─────────────────────────┐
-│ LauncherShell · Dashboard · Library · Consoles · Emulators · Controllers · Storage · Settings │
+│ LauncherShell · Home · Games · Add games · Emulators · Settings (Controllers, Storage) · Apps │
 └───────────────▲──────────────────────────────────────────────────────────────────────────────┘
                 │ ValueListenable / Stream (no direct MethodChannel or emulator access)
 ┌───────────────┴──────── Application (lib/app, lib/core/services, lib/core/device) ────────────┐
@@ -66,5 +66,5 @@ See the tree in the spec (Part 23). The empty Phase 2+ folders (`rom_manager`, `
 
 ## Game Home (0.11.0)
 
-`features/game_home/game_home_screen.dart`. HOME shows the game launcher when Settings → Home screen is *Games* (default; `SettingsKeys.homeStyle`), else the dashboard. `buildGameRows()` (pure, tested) turns the library into rows: Continue playing (last 15 played), Favourites, then one row per console ordered by `RowOrder`. Rows and cards are lazy `ListView.builder`s; covers are decoded at small sizes (`cacheWidth`). The focused game lives in a `ValueNotifier`, so moving between cards rebuilds only the panel and backdrop. Keys on a card: OK/A → `playGame`, Y → favourite, Menu/X → options, left on the first card / Start → `LauncherShell.openMenu()`. `LauncherShell` shrinks the side menu to icons while HOME shows the launcher and the menu has no focus; BACK on the menu returns focus to the last game (`_focusContent`, which schedules a frame).
+`features/game_home/game_home_screen.dart`. The side menu has six sections (`LauncherSection`): HOME, GAMES (`MyGamesScreen`: every game, filtered by console, favourites or missing, sorted by title / recently played / recently added), ADD GAMES (find ROMs on the device, import files, find online, downloads and sources), EMULATORS (apps, built-in emulator settings, consoles and compatibility), SETTINGS (with Controllers and Storage opened as `SubPage`s, which add a Back button to their `PageFrame`) and ANDROID APPS. HOME: `buildGameRows()` (pure, tested) gives Continue playing (last 15 played), Favourites and Recently added; `buildSystems()` the consoles with games, ordered by `RowOrder`. The first game row comes first (it has the focus), then *My systems*: one tile per console with its number of games and the emulator it plays with (`LaunchService.choicesFor` and the console default; "Needs an emulator" otherwise). A tile opens GAMES filtered to that console (`LauncherShellState.openGames`). Covers are decoded at small sizes (`cacheWidth`). The focused game lives in a `ValueNotifier`, so moving between cards (or hovering one with a mouse) rebuilds only the panel and the backdrop. Keys on a card: OK/A → `playGame`, Y → favourite, Menu/X → options, left on the first item / Start → `LauncherShell.openMenu()`. The side menu shrinks to icons on HOME while it has no focus; BACK on the menu returns focus to the last game (`_focusContent`, which schedules a frame).
 

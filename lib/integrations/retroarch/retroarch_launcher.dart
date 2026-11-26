@@ -76,10 +76,10 @@ class RetroArchLauncher extends GameLauncherAdapter {
     if (path == null) {
       reasons.add('RetroArch needs a file path, but this file was added from a source that has no path '
           '(e.g. Downloads or a cloud picker). Put the game in a folder on internal storage, USB or SD and '
-          'register that folder under STORAGE.');
+          'register that folder under SETTINGS → Storage.');
     } else if (env.sdkInt >= 30 && isAppPrivateExternalPath(path)) {
       reasons.add('On Android 11 and newer, RetroArch cannot read GAMEBOX\'s app folder ("Android/data"). '
-          'Open STORAGE → Setup wizard: allow storage access, then "Move games to ROMs". The game then '
+          'Open SETTINGS → Storage → Setup wizard: allow storage access, then "Move games to ROMs". The game then '
           'lives in Internal storage/ROMs, which RetroArch can read.');
     }
     if (reasons.isNotEmpty) return LaunchBlocked(reasons);

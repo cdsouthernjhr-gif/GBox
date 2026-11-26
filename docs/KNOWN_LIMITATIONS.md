@@ -43,7 +43,7 @@
 ## Emulator launching (Phase 3)
 
 * **Experimental:** the RetroArch and DuckStation launch intents follow those emulators' published Android interfaces but haven't been executed on a device yet.
-* RetroArch needs a real file path. On Android 11+ it can't read GAMEBOX's own folders (`Android/data`). Keep RetroArch games in a regular folder (e.g. `ROMs/`) registered under STORAGE.
+* RetroArch needs a real file path. On Android 11+ it can't read GAMEBOX's own folders (`Android/data`). Keep RetroArch games in a regular folder (e.g. `ROMs/`) registered under SETTINGS → Storage.
 * GAMEBOX can't check which RetroArch cores are installed. A missing core is reported by RetroArch itself.
 * The FileProvider only covers GAMEBOX folders on the **primary** volume. GAMEBOX folders on SD/USB are passed as paths.
 * Play time is the time GAMEBOX was in the background (an upper bound).

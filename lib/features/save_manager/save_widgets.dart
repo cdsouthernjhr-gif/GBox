@@ -28,7 +28,7 @@ class GameSavesSection extends StatelessWidget {
           const SectionHeader('Saves',
               subtitle: 'Save states only work in the emulator (and usually the version) that created them.'),
           if (saves.isEmpty)
-            const Text('No save files found. Register your emulator save folders under STORAGE → Save folders.',
+            const Text('No save files found. Register your emulator save folders under SETTINGS → Storage → Save folders.',
                 style: TextStyle(color: Colors.white60)),
           for (final sv in saves)
             InfoRow(

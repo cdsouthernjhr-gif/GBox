@@ -19,63 +19,69 @@ import '../setup/setup_screen.dart';
 
 /// One horizontal row of the game launcher.
 class GameRowData {
-  const GameRowData({required this.title, required this.games, this.consoleId});
+  const GameRowData({required this.title, required this.games});
   final String title;
   final List<GameWithStatus> games;
-
-  /// Set for console rows (used for the accent colour).
-  final String? consoleId;
 }
 
-/// Builds the launcher rows: continue playing, favourites, recently added,
-/// then one row per console that has games, in [order].
-List<GameRowData> buildGameRows({required List<GameWithStatus> all, required RowOrder order, int recentLimit = 15}) {
+/// Rows of games on HOME: continue playing, favourites, recently added.
+/// Every game of a console is under GAMES (a system tile opens it).
+List<GameRowData> buildGameRows({required List<GameWithStatus> all, int recentLimit = 15}) {
   final rows = <GameRowData>[];
   final played = all.where((g) => g.game.lastPlayedAt != null).toList()
     ..sort((a, b) => b.game.lastPlayedAt!.compareTo(a.game.lastPlayedAt!));
   if (played.isNotEmpty) rows.add(GameRowData(title: 'Continue playing', games: played.take(recentLimit).toList()));
-  final favs = all.where((g) => g.isFavorite).toList();
+  final favs = all.where((g) => g.isFavorite).toList()..sort((a, b) => a.game.sortTitle.compareTo(b.game.sortTitle));
   if (favs.isNotEmpty) rows.add(GameRowData(title: 'Favourites', games: favs));
+  final added = [...all]
+    ..sort((a, b) {
+      final c = b.game.addedAt.compareTo(a.game.addedAt);
+      return c != 0 ? c : a.game.sortTitle.compareTo(b.game.sortTitle);
+    });
+  if (added.isNotEmpty) rows.add(GameRowData(title: 'Recently added', games: added.take(recentLimit).toList()));
+  return rows;
+}
 
-  final byConsole = <String, List<GameWithStatus>>{};
+/// Consoles with games and how many, in [order].
+List<(String, int)> buildSystems({required List<GameWithStatus> all, required RowOrder order}) {
+  final count = <String, int>{};
+  final last = <String, DateTime>{};
   for (final g in all) {
-    (byConsole[g.game.consoleId] ??= []).add(g);
+    final c = g.game.consoleId;
+    count[c] = (count[c] ?? 0) + 1;
+    final p = g.game.lastPlayedAt;
+    if (p != null && (last[c] == null || p.isAfter(last[c]!))) last[c] = p;
   }
-  for (final list in byConsole.values) {
-    list.sort((a, b) => a.game.sortTitle.compareTo(b.game.sortTitle));
-  }
-  DateTime lastPlayed(List<GameWithStatus> l) => l
-      .map((g) => g.game.lastPlayedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-      .reduce((a, b) => a.isAfter(b) ? a : b);
   String name(String id) => consoleById(id)?.name ?? id;
-  final consoles = byConsole.keys.toList()
+  final ids = count.keys.toList()
     ..sort(switch (order) {
       RowOrder.mostGames => (a, b) {
-        final c = byConsole[b]!.length.compareTo(byConsole[a]!.length);
+        final c = count[b]!.compareTo(count[a]!);
         return c != 0 ? c : name(a).compareTo(name(b));
       },
       RowOrder.recentlyPlayed => (a, b) {
-        final c = lastPlayed(byConsole[b]!).compareTo(lastPlayed(byConsole[a]!));
+        final zero = DateTime.fromMillisecondsSinceEpoch(0);
+        final c = (last[b] ?? zero).compareTo(last[a] ?? zero);
         return c != 0 ? c : name(a).compareTo(name(b));
       },
       RowOrder.alphabetical => (a, b) => name(a).compareTo(name(b)),
     });
-  for (final c in consoles) {
-    rows.add(GameRowData(title: name(c), games: byConsole[c]!, consoleId: c));
-  }
-  return rows;
+  return [for (final id in ids) (id, count[id]!)];
 }
 
 /// Game launcher: opens straight on the games. A large panel shows the
-/// focused game; below, one horizontal row per console (plus continue
-/// playing and favourites). D-pad left/right moves within a row, up/down
-/// between rows. OK/A plays, Y favourites, Menu/X opens options, left on the
-/// first game (or Menu on an empty library) opens the side menu.
+/// focused game; below, continue playing, the systems (with their emulator
+/// and number of games), favourites and recently added. D-pad left/right
+/// moves within a row, up/down between rows. OK/A plays, Y favourites,
+/// Menu/X opens options, left on the first item opens the side menu.
 class GameHomeScreen extends StatefulWidget {
-  const GameHomeScreen({super.key, required this.onOpenMenu});
+  const GameHomeScreen({super.key, required this.onOpenMenu, required this.onOpenConsole});
 
   /// Shows the side menu (focus moves to it).
   final VoidCallback onOpenMenu;
+
+  /// Opens GAMES for a console.
+  final ValueChanged<String> onOpenConsole;
 
   @override
   State<GameHomeScreen> createState() => _GameHomeScreenState();
@@ -83,6 +89,25 @@ class GameHomeScreen extends StatefulWidget {
 
 class _GameHomeScreenState extends State<GameHomeScreen> {
   final ValueNotifier<GameWithStatus?> _focused = ValueNotifier(null);
+
+  /// Emulator each system plays with ("Built-in", an app name, or null when
+  /// none is installed), looked up once per HOME visit.
+  final Map<String, Future<String?>> _status = {};
+
+  Future<String?> _emulatorStatus(String consoleId) => _status[consoleId] ??= () async {
+    final s = servicesOf(context);
+    try {
+      final choices = await s.launcher.choicesFor(consoleId);
+      final profile = await s.db.defaultLaunchProfile(consoleId);
+      final c =
+          choices.where((c) => c.installed && c.adapter.emulatorId == profile?.emulatorId).firstOrNull ??
+          choices.where((c) => c.installed).firstOrNull;
+      if (c == null) return null;
+      return c.adapter.builtIn ? 'Built-in player' : c.adapter.emulator.name;
+    } catch (_) {
+      return null;
+    }
+  }();
 
   @override
   void dispose() {
@@ -140,7 +165,32 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
             return ValueListenableBuilder<SettingsState>(
               valueListenable: s.settings.state,
               builder: (context, st, _) {
-                final rows = buildGameRows(all: all, order: st.rowOrder);
+                final rows = buildGameRows(all: all);
+                final systems = buildSystems(all: all, order: st.rowOrder);
+                // The first row of games (continue playing, else recently
+                // added) has the focus; the systems come right below it.
+                const afterContinue = 1;
+                Widget gameRow(int r) => _GameRow(
+                  key: ValueKey('row-${rows[r].title}'),
+                  data: rows[r],
+                  covers: covers,
+                  autofocusFirst: r == 0 && afterContinue == 1,
+                  onFocusGame: (g) => _focused.value = g,
+                  onOpenMenu: widget.onOpenMenu,
+                  onOptions: _options,
+                );
+                final items = <Widget>[
+                  for (var r = 0; r < afterContinue; r++) gameRow(r),
+                  _SystemsRow(
+                    key: const ValueKey('row-systems'),
+                    systems: systems,
+                    autofocusFirst: afterContinue == 0,
+                    status: _emulatorStatus,
+                    onOpen: widget.onOpenConsole,
+                    onOpenMenu: widget.onOpenMenu,
+                  ),
+                  for (var r = afterContinue; r < rows.length; r++) gameRow(r),
+                ];
                 // Keep the panel in sync with the library (first game, or the
                 // focused game after e.g. a favourite toggle). Updated after
                 // this frame: listeners must not rebuild during build.
@@ -164,21 +214,9 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
                         children: [
                           // The focused game's cover is shown large; the rows below
                           // keep small cards so more games fit.
-                          _Hero(focused: _focused, covers: covers, height: (box.maxHeight * 0.46).clamp(150.0, 360.0)),
+                          _Hero(focused: _focused, covers: covers, height: (box.maxHeight * 0.42).clamp(140.0, 340.0)),
                           Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                              itemCount: rows.length,
-                              itemBuilder: (context, r) => _GameRow(
-                                key: ValueKey('row-${rows[r].title}'),
-                                data: rows[r],
-                                covers: covers,
-                                autofocusFirst: r == 0,
-                                onFocusGame: (g) => _focused.value = g,
-                                onOpenMenu: widget.onOpenMenu,
-                                onOptions: _options,
-                              ),
-                            ),
+                            child: ListView(padding: const EdgeInsets.fromLTRB(24, 0, 24, 24), children: items),
                           ),
                         ],
                       ),
@@ -371,7 +409,7 @@ class _GameRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = data.consoleId == null ? GameboxPalette.of(context).focus : consoleColor(data.consoleId!);
+    final accent = GameboxPalette.of(context).focus;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Column(
@@ -410,6 +448,175 @@ class _GameRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The consoles that have games: name, number of games and the emulator
+/// they play with. Selecting one opens its games under GAMES.
+class _SystemsRow extends StatelessWidget {
+  const _SystemsRow({
+    super.key,
+    required this.systems,
+    required this.autofocusFirst,
+    required this.status,
+    required this.onOpen,
+    required this.onOpenMenu,
+  });
+  final List<(String, int)> systems;
+  final bool autofocusFirst;
+  final Future<String?> Function(String consoleId) status;
+  final ValueChanged<String> onOpen;
+  final VoidCallback onOpenMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: GameboxPalette.of(context).focus,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text('My systems', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(width: 8),
+              Text('${systems.length}', style: const TextStyle(color: Colors.white54)),
+            ],
+          ),
+          SizedBox(
+            height: 104,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              itemCount: systems.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, i) {
+                final (id, count) = systems[i];
+                return _SystemTile(
+                  consoleId: id,
+                  games: count,
+                  status: status(id),
+                  autofocus: autofocusFirst && i == 0,
+                  firstInRow: i == 0,
+                  onOpen: () => onOpen(id),
+                  onOpenMenu: onOpenMenu,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SystemTile extends StatelessWidget {
+  const _SystemTile({
+    required this.consoleId,
+    required this.games,
+    required this.status,
+    required this.autofocus,
+    required this.firstInRow,
+    required this.onOpen,
+    required this.onOpenMenu,
+  });
+  final String consoleId;
+  final int games;
+  final Future<String?> status;
+  final bool autofocus;
+  final bool firstInRow;
+  final VoidCallback onOpen;
+  final VoidCallback onOpenMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = consoleColor(consoleId);
+    final name = consoleById(consoleId)?.name ?? consoleId;
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        final k = event.logicalKey;
+        if ((k == LogicalKeyboardKey.arrowLeft && firstInRow) || k == LogicalKeyboardKey.gameButtonStart) {
+          onOpenMenu();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: SizedBox(
+        width: 168,
+        child: TvFocusable(
+          autofocus: autofocus,
+          scale: 1.06,
+          borderRadius: 10,
+          semanticLabel: '$name, $games games',
+          color: color.withValues(alpha: 0.22),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          onSelect: onOpen,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Text(
+                    '$games',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(games == 1 ? '1 game' : '$games games', style: const TextStyle(fontSize: 11, color: Colors.white60)),
+              FutureBuilder<String?>(
+                future: status,
+                builder: (context, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Text('…', style: TextStyle(fontSize: 11, color: Colors.white38));
+                  }
+                  final emu = snap.data;
+                  return Row(
+                    children: [
+                      Icon(
+                        emu == null ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                        size: 12,
+                        color: emu == null ? Colors.orangeAccent : Colors.greenAccent,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          emu ?? 'Needs an emulator',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: emu == null ? Colors.orangeAccent : Colors.white70),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -546,53 +753,57 @@ class _EmptyLibrary extends StatelessWidget {
         return KeyEventResult.ignored;
       },
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.sports_esports_rounded, size: 56, color: Colors.white54),
-              const SizedBox(height: 10),
-              Text('No games yet', style: t.headlineSmall),
-              const SizedBox(height: 6),
-              const Text(
-                'Let GAMEBOX find the games already on this device, or set it up step by step. '
-                'Games you add appear here, one row per console.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 10,
-                children: [
-                  _LeftOpensMenu(
-                    onOpenMenu: onOpenMenu,
-                    child: TvButton(
-                      label: 'Set up GAMEBOX',
-                      icon: Icons.rocket_launch_rounded,
-                      primary: true,
-                      autofocus: true,
-                      onPressed: () => openSetup(context),
+        // Scrolls on small screens (or while the menu takes width).
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.sports_esports_rounded, size: 56, color: Colors.white54),
+                const SizedBox(height: 10),
+                Text('No games yet', style: t.headlineSmall),
+                const SizedBox(height: 6),
+                const Text(
+                  'Let GAMEBOX find the games already on this device, or set it up step by step. '
+                  'Games you add appear here, one row per console.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    _LeftOpensMenu(
+                      onOpenMenu: onOpenMenu,
+                      child: TvButton(
+                        label: 'Set up GAMEBOX',
+                        icon: Icons.rocket_launch_rounded,
+                        primary: true,
+                        autofocus: true,
+                        onPressed: () => openSetup(context),
+                      ),
                     ),
-                  ),
-                  TvButton(
-                    label: 'Find ROMs on this device',
-                    icon: Icons.travel_explore_rounded,
-                    onPressed: () =>
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen())),
-                  ),
-                  TvButton(
-                    label: 'Find games online',
-                    icon: Icons.public_rounded,
-                    onPressed: () =>
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
-                  ),
-                  TvButton(label: 'Menu', icon: Icons.menu_rounded, onPressed: onOpenMenu),
-                ],
-              ),
-            ],
+                    TvButton(
+                      label: 'Find ROMs on this device',
+                      icon: Icons.travel_explore_rounded,
+                      onPressed: () =>
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RomSearchScreen())),
+                    ),
+                    TvButton(
+                      label: 'Find games online',
+                      icon: Icons.public_rounded,
+                      onPressed: () =>
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindOnlineScreen())),
+                    ),
+                    TvButton(label: 'Menu', icon: Icons.menu_rounded, onPressed: onOpenMenu),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

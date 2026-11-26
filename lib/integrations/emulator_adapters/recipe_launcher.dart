@@ -96,7 +96,7 @@ class RecipeLauncher extends GameLauncherAdapter {
     final content = target.contentUri;
     final path = target.filesystemPath;
     const noLink = 'GAMEBOX could not create a shareable link for this file. Keep the game on internal storage in '
-        'the GAMEBOX folders, or register its folder under STORAGE.';
+        'the GAMEBOX folders, or register its folder under SETTINGS → Storage.';
 
     String? data;
     final extras = <String, String>{};
@@ -111,11 +111,11 @@ class RecipeLauncher extends GameLauncherAdapter {
       case FileHandoff.pathExtra:
         if (path == null) {
           return LaunchBlocked(['${emulator.name} needs a file path, but this file has none (added from Downloads '
-              'or a cloud picker). Register the game folder under STORAGE.']);
+              'or a cloud picker). Register the game folder under SETTINGS → Storage.']);
         }
         if (env.sdkInt >= 30 && isAppPrivateExternalPath(path)) {
           return LaunchBlocked(['On Android 11 and newer, ${emulator.name} cannot read files inside "Android/data" '
-              '(including the GAMEBOX folders). Move the game to a normal folder and register it under STORAGE.']);
+              '(including the GAMEBOX folders). Move the game to a normal folder and register it under SETTINGS → Storage.']);
         }
         extras[recipe.extraKey!] = path;
     }

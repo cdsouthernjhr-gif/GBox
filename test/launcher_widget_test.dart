@@ -12,6 +12,7 @@ import 'package:gamebox/core/rom/scan_planner.dart';
 import 'package:gamebox/features/source_manager/find_online_screen.dart';
 import 'package:gamebox/features/game_scraper/cover_art_service.dart';
 import 'package:gamebox/features/game_library/game_detail_screen.dart';
+import 'package:gamebox/features/launcher/launcher_shell.dart';
 import 'package:gamebox/features/settings/settings_screen.dart';
 import 'player_covers_test.dart' show ps2Iso;
 import 'package:gamebox/app/app_services.dart';
@@ -45,8 +46,7 @@ void main() {
       void Function(String appRoot)? prepare,
       void Function(FakeGateway)? configure,
       DownloadEngine? engine,
-      CoverFetcher? coverFetch,
-      HomeStyle home = HomeStyle.dashboard}) async {
+      CoverFetcher? coverFetch}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
     tester.view.physicalSize = const Size(1920, 1080);
@@ -67,9 +67,6 @@ void main() {
       coverFetch: coverFetch,
     );
     await tester.runAsync(() async {
-      // Most tests drive the side menu from the dashboard; the game launcher
-      // (the default) has its own tests.
-      await services.db.setSetting(SettingsKeys.homeStyle, home.name);
       await services.initialize();
       // Let background detection + first scan finish.
       for (var i = 0;
@@ -105,6 +102,12 @@ void main() {
     }
   }
 
+  /// Opens a menu section (focus on its menu entry).
+  Future<void> go(WidgetTester tester, LauncherSection section) async {
+    tester.state<LauncherShellState>(find.byType(LauncherShell)).select(section, focusNav: true);
+    await settle(tester);
+  }
+
   Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
     await tester.sendKeyEvent(key);
     await settle(tester);
@@ -112,30 +115,30 @@ void main() {
 
   testWidgets('launcher shows all navigation sections and offline status', (tester) async {
     await boot(tester);
-    for (final label in [
-      'HOME', 'MY GAMES', 'CONSOLES', 'RECENTLY PLAYED', 'FAVOURITES', 'DOWNLOADS',
-      'EMULATORS', 'CONTROLLERS', 'STORAGE', 'SETTINGS', 'ANDROID APPS',
-    ]) {
+    await go(tester, LauncherSection.home); // the menu has focus: full labels
+    for (final label in ['HOME', 'GAMES', 'ADD GAMES', 'EMULATORS', 'SETTINGS', 'ANDROID APPS']) {
       expect(find.text(label), findsWidgets, reason: label);
     }
+    expect(LauncherSection.values, hasLength(6));
     expect(find.text('Offline'), findsWidgets);
-    expect(find.text('WELCOME TO GAMEBOX'), findsOneWidget);
-    expect(find.text('1 controller'), findsOneWidget);
     expect(gateway.scanCount, 1);
     await shutdown(tester);
   });
 
   testWidgets('D-pad down moves through the menu and switches sections', (tester) async {
     await boot(tester);
-    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    await go(tester, LauncherSection.home);
+    await press(tester, LogicalKeyboardKey.arrowDown); // GAMES
     expect(find.text('No games in your library yet'), findsOneWidget);
-    await press(tester, LogicalKeyboardKey.arrowDown); // CONSOLES
-    expect(find.text('Retro systems'.toUpperCase()), findsOneWidget);
+    await press(tester, LogicalKeyboardKey.arrowDown); // ADD GAMES
+    expect(find.text('Add games'), findsOneWidget);
+    expect(find.text('Find ROMs on this device'), findsOneWidget);
     await shutdown(tester);
   });
 
   testWidgets('BACK never closes the launcher and returns to HOME', (tester) async {
     await boot(tester);
+    await go(tester, LauncherSection.home);
     await press(tester, LogicalKeyboardKey.arrowDown);
     await press(tester, LogicalKeyboardKey.arrowDown);
     // Simulate Android's system BACK (flutter/navigation popRoute).
@@ -148,17 +151,15 @@ void main() {
     final message = const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute'));
     await tester.binding.defaultBinaryMessenger
         .handlePlatformMessage('flutter/navigation', message, (_) {});
-    await tester.pump(const Duration(milliseconds: 300));
+    await settle(tester);
     expect(appExited, isFalse, reason: 'the launcher never closes on BACK');
-    expect(find.text('WELCOME TO GAMEBOX'), findsOneWidget);
+    expect(find.text('No games yet'), findsOneWidget, reason: 'back on HOME');
     await shutdown(tester);
   });
 
   testWidgets('emulator screen reflects detected installs', (tester) async {
     await boot(tester);
-    for (var i = 0; i < 6; i++) {
-      await press(tester, LogicalKeyboardKey.arrowDown);
-    }
+    await go(tester, LauncherSection.emulators);
     expect(find.text('Emulators'), findsOneWidget);
     expect(find.textContaining('Installed 1.17.1'), findsOneWidget);
     expect(find.text('Not installed'), findsWidgets);
@@ -167,9 +168,8 @@ void main() {
 
   testWidgets('settings change theme and persist to the database', (tester) async {
     await boot(tester);
-    for (var i = 0; i < 9; i++) {
-      await press(tester, LogicalKeyboardKey.arrowDown);
-    }
+    await go(tester, LauncherSection.settings);
+    await tester.scrollUntilVisible(find.text('Dark Gaming'), 200, scrollable: find.byType(Scrollable).last);
     expect(find.text('Dark Gaming'), findsOneWidget);
     await tester.runAsync(() => services.settings.set(SettingsKeys.theme, AppThemeId.retroArcade.name));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
@@ -182,7 +182,12 @@ void main() {
   testWidgets('unknown hardware values are shown as UNKNOWN', (tester) async {
     final scan = syntheticNativeScan(renderer: null, cpuInfo: null)..remove('buildId');
     await boot(tester, scan: scan);
-    await tester.tap(find.text('Device compatibility'.toUpperCase()));
+    await go(tester, LauncherSection.settings);
+    await tester.scrollUntilVisible(find.text('Device information & compatibility report'), 200,
+        scrollable: find.byType(Scrollable).last);
+    await tester.ensureVisible(find.text('Device information & compatibility report'));
+    await settle(tester);
+    await tester.tap(find.text('Device information & compatibility report'));
     await settle(tester);
     await settle(tester);
     expect(find.byType(DeviceReportScreen), findsOneWidget);
@@ -202,7 +207,7 @@ void main() {
           ..writeAsBytesSync(bytes);
       }
     });
-    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    await go(tester, LauncherSection.games);
     // Each card shows the title on the generated cover and in the caption.
     expect(find.text('Space Quest'), findsWidgets);
     expect(find.text('Farm Life'), findsWidgets);
@@ -223,7 +228,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsBytesSync(nesRom()),
     );
-    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    await go(tester, LauncherSection.games);
     await tester.tap(find.text('Space Quest').last);
     await settle(tester);
     await settle(tester);
@@ -251,9 +256,11 @@ void main() {
 
   testWidgets('mapping wizard: binds pad keys, ignores B→BACK fallback, remote BACK skips', (tester) async {
     await boot(tester);
-    for (var i = 0; i < 7; i++) {
-      await press(tester, LogicalKeyboardKey.arrowDown); // CONTROLLERS
-    }
+    await go(tester, LauncherSection.settings);
+    await tester.tap(find.text('Controllers'));
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Back'), findsOneWidget, reason: 'opened as its own page');
     await tester.tap(find.text('Map buttons'));
     await settle(tester);
     expect(find.text('A'), findsOneWidget);
@@ -312,9 +319,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsBytesSync(nesRom());
     });
-    for (var i = 0; i < 5; i++) {
-      await press(tester, LogicalKeyboardKey.arrowDown); // DOWNLOADS
-    }
+    await go(tester, LauncherSection.addGames);
     final now = DateTime.now();
     final insert = services.db.into(services.db.downloadQueue).insert(DownloadQueueCompanion.insert(
           name: 'demo.nes',
@@ -352,7 +357,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsBytesSync(nesRom()),
     );
-    await press(tester, LogicalKeyboardKey.arrowDown); // MY GAMES
+    await go(tester, LauncherSection.games);
     await tester.tap(find.text('Space Quest').last);
     await settle(tester);
     await settle(tester);
@@ -380,9 +385,7 @@ void main() {
 
   testWidgets('performance screen shows live data and honest unavailability', (tester) async {
     await boot(tester);
-    for (var i = 0; i < 9; i++) {
-      await press(tester, LogicalKeyboardKey.arrowDown); // SETTINGS
-    }
+    await go(tester, LauncherSection.settings);
     await tester.scrollUntilVisible(find.text('Performance & benchmarks'), 200,
         scrollable: find.byType(Scrollable).last);
     // Bring the whole row on screen (scrollUntilVisible can stop at the edge).
@@ -399,70 +402,86 @@ void main() {
     await shutdown(tester);
   });
 
-  testWidgets('Game Home: opens on the games, rows per console, A plays, left opens the menu', (tester) async {
+  testWidgets('HOME: games first, then the systems with their emulator and number of games', (tester) async {
     await boot(
       tester,
-      home: HomeStyle.games,
-      configure: (g) => g.installed['com.retroarch'] = '1.20.0',
       prepare: (root) {
         for (final (folder, name, bytes) in [
           ('NES', 'Alpha Quest.nes', nesRom()),
           ('NES', 'Beta Run.nes', nesRom()),
           ('GBA', 'Gamma Race.gba', gbaRom()),
+          // Saturn: no built-in emulator and none installed.
+          ('SATURN', 'Delta.cue', null),
         ]) {
-          File('$root/GAMEBOX/Games/$folder/$name')
-            ..createSync(recursive: true)
-            ..writeAsBytesSync(bytes);
+          final f = File('$root/GAMEBOX/Games/$folder/$name')..createSync(recursive: true);
+          bytes == null ? f.writeAsStringSync('FILE "Delta.bin" BINARY') : f.writeAsBytesSync(bytes);
         }
       },
     );
     expect(find.byKey(const ValueKey('game-home')), findsOneWidget);
-    // One row per console, most games first; the menu is icons only.
-    expect(find.text('NES'), findsOneWidget);
-    expect(find.text('Game Boy Advance'), findsOneWidget);
-    expect(find.text('MY GAMES'), findsNothing);
-    expect(tester.getTopLeft(find.text('NES')).dy,
-        lessThan(tester.getTopLeft(find.text('Game Boy Advance')).dy));
+    expect(find.text('ADD GAMES'), findsNothing, reason: 'the menu is icons only');
+    expect(find.text('Recently added'), findsOneWidget);
+    expect(find.text('My systems'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Recently added')).dy, lessThan(tester.getTopLeft(find.text('My systems')).dy));
+    // Systems: most games first, with the number of games and the emulator.
+    await settle(tester);
+    expect(find.text('2 games'), findsOneWidget);
+    expect(find.text('1 game'), findsNWidgets(2));
+    expect(find.text('Built-in player'), findsNWidgets(2));
+    expect(find.text('Needs an emulator'), findsOneWidget, reason: 'Saturn');
+    expect(find.text('Game Boy Advance'), findsWidgets);
 
-    // The first game has focus and fills the panel.
+    // The first game has focus and fills the panel; right moves to the next.
     Text hero() => tester.widget<Text>(find.byKey(const ValueKey('hero-title')));
-    expect(hero().data, 'Alpha Quest');
+    final first = hero().data;
     await press(tester, LogicalKeyboardKey.arrowRight);
-    expect(hero().data, 'Beta Run');
-    await press(tester, LogicalKeyboardKey.arrowDown);
-    expect(hero().data, 'Gamma Race');
-    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(hero().data, isNot(first));
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(hero().data, first);
 
     // Y toggles the favourite: a Favourites row appears.
     await press(tester, LogicalKeyboardKey.gameButtonY);
     await settle(tester);
     expect(find.text('Favourites'), findsOneWidget);
 
-    // A / OK plays straight away with the console default (built-in player).
+    // A / OK plays straight away.
     await press(tester, LogicalKeyboardKey.enter);
-    await settleUntil(tester, () => gateway.launchedSpecs.isNotEmpty);
+    await settleUntil(tester, () => gateway.launchedSpecs.isNotEmpty || find.textContaining('Get an emulator').evaluate().isNotEmpty);
     await settle(tester);
-    expect(gateway.launchedSpecs, hasLength(1));
-    expect(gateway.launchedSpecs.single['className'], 'com.gamebox.console.player.PlayerActivity');
-    expect(find.textContaining('Starting Alpha Quest in GAMEBOX Player'), findsOneWidget);
+    if (gateway.launchedSpecs.isEmpty) {
+      // The first game was Saturn's: the get-emulator popup.
+      await tester.tap(find.text('Close'));
+      await settle(tester);
+    } else {
+      expect(gateway.launchedSpecs.single['className'], 'com.gamebox.console.player.PlayerActivity');
+    }
 
-    // Left on the first game of a row opens the full menu.
+    // Down to the systems; OK on the first system opens its games under GAMES.
+    await press(tester, LogicalKeyboardKey.arrowDown);
     await press(tester, LogicalKeyboardKey.arrowLeft);
     await press(tester, LogicalKeyboardKey.arrowLeft);
     await press(tester, LogicalKeyboardKey.arrowLeft);
-    expect(find.text('MY GAMES'), findsOneWidget, reason: 'menu expanded');
-    // BACK on the menu returns to the games and shrinks the menu again.
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(find.text('ADD GAMES'), findsOneWidget, reason: 'left on the first system opens the menu');
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
         'flutter/navigation', const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')), (_) {});
     await settle(tester);
-    expect(find.text('MY GAMES'), findsNothing);
-    expect(find.byKey(const ValueKey('game-home')), findsOneWidget);
+    expect(find.text('ADD GAMES'), findsNothing, reason: 'BACK returns to the games');
+
+    await tester.tap(find.text('2 games'));
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Games'), findsOneWidget);
+    expect(find.text('Alpha Quest'), findsWidgets);
+    expect(find.text('Beta Run'), findsWidgets);
+    expect(find.text('Gamma Race'), findsNothing, reason: 'only NES games');
     expect(tester.takeException(), isNull);
     await shutdown(tester);
   });
 
   testWidgets('Game Home with an empty library offers setup and the ROM search', (tester) async {
-    await boot(tester, home: HomeStyle.games);
+    await boot(tester);
     expect(find.text('No games yet'), findsOneWidget);
     expect(find.text('Set up GAMEBOX'), findsOneWidget);
     expect(find.text('Find ROMs on this device'), findsOneWidget);
@@ -544,7 +563,6 @@ void main() {
   testWidgets('no emulator installed: a popup offers the official sources', (tester) async {
     await boot(
       tester,
-      home: HomeStyle.games,
       // Saturn: not built in, and no emulator installed.
       prepare: (root) => File('$root/GAMEBOX/Games/SATURN/Race.cue')
         ..createSync(recursive: true)
@@ -588,7 +606,6 @@ void main() {
   testWidgets('a PS2 disc in the PSP list: popup to move it or get a PS2 emulator', (tester) async {
     await boot(
       tester,
-      home: HomeStyle.games,
       prepare: (root) => File('$root/GAMEBOX/Games/PSP/Racer.iso')
         ..createSync(recursive: true)
         ..writeAsBytesSync(ps2Iso()),
@@ -614,7 +631,6 @@ void main() {
   testWidgets('the built-in player could not open the game: other emulators are offered', (tester) async {
     await boot(
       tester,
-      home: HomeStyle.games,
       prepare: (root) => File('$root/GAMEBOX/Games/NES/Hero.nes')
         ..createSync(recursive: true)
         ..writeAsBytesSync(nesRom()),

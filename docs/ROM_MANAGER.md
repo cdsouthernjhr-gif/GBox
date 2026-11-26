@@ -7,12 +7,12 @@ GAMEBOX only **references** game files. It never copies, moves, extracts or runs
 | Source | How | Permission |
 |---|---|---|
 | **GAMEBOX folders** | `ROMs/<system>/` (shared storage, see STORAGE_SUPPORT.md) is created automatically; the 0.9.0 app-folder `GAMEBOX/Games/<CONSOLE>/` is still scanned. Created on every mounted volume (internal, SD, USB) | none (app-specific storage) |
-| **Registered folders** | STORAGE → *Add game folder* (Storage Access Framework tree); access persists across reboots | user grants per folder |
-| **Manual import** | MY GAMES → *Import files* (system file picker, multi-select) | user grants per file |
+| **Registered folders** | SETTINGS → Storage → *Add game folder* (Storage Access Framework tree); access persists across reboots | user grants per folder |
+| **Manual import** | GAMES → *Import files* (system file picker, multi-select) | user grants per file |
 
 ## Scanning
 
-* Runs at startup and whenever storage is connected or removed (debounced 3 s), if **Settings → Gaming → Auto scan** is on. It can also be started manually from MY GAMES or STORAGE.
+* Runs at startup and whenever storage is connected or removed (debounced 3 s), if **Settings → Gaming → Auto scan** is on. It can also be started manually from GAMES or SETTINGS → Storage.
 * SAF folders are walked natively (`DocumentsContract`), breadth-first, up to 8 folder levels and 20,000 matching files per folder. Hidden entries are skipped. Only ROM, disc, archive and image extensions are listed.
 
 ### Console identification (`lib/core/rom/console_detector.dart`)

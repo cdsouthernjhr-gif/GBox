@@ -11,10 +11,14 @@ import '../../shared/widgets/tv_widgets.dart';
 import '../rom_manager/rom_library_service.dart';
 import 'library_screens.dart';
 
-/// My Games: offline library with search, console filter, favourites/missing
-/// filters, sorting, folder scan and manual import.
+/// GAMES: every game in the offline library, with search, console filter,
+/// favourites/missing filters, sorting (title, recently played, recently
+/// added), folder scan and manual import.
 class MyGamesScreen extends StatefulWidget {
-  const MyGamesScreen({super.key});
+  const MyGamesScreen({super.key, this.initialConsole});
+
+  /// Console filter to start with (a system chosen on HOME).
+  final String? initialConsole;
 
   @override
   State<MyGamesScreen> createState() => _MyGamesScreenState();
@@ -23,7 +27,7 @@ class MyGamesScreen extends StatefulWidget {
 class _MyGamesScreenState extends State<MyGamesScreen> {
   final _search = TextEditingController();
   String _query = '';
-  String? _console;
+  late String? _console = widget.initialConsole;
   bool _favoritesOnly = false;
   bool _missingOnly = false;
   GameSort? _sort;
@@ -51,7 +55,7 @@ class _MyGamesScreenState extends State<MyGamesScreen> {
     final s = servicesOf(context);
     final sort = _sort ?? s.settings.state.value.gameSort;
     return PageFrame(
-      title: 'My Games',
+      title: 'Games',
       subtitle: 'Your local library — available offline',
       actions: [
         TvButton(label: 'Import files', icon: Icons.file_open_rounded, onPressed: () => importFiles(context)),
@@ -261,7 +265,7 @@ Future<void> importFiles(BuildContext context) async {
   } on PlatformException catch (e) {
     messenger.showSnackBar(SnackBar(
         content: Text(e.code == 'saf_unavailable'
-            ? 'This device has no system file picker. Copy games into the ROMs/<system> folders instead (see STORAGE).'
+            ? 'This device has no system file picker. Copy games into the ROMs/<system> folders instead (see SETTINGS → Storage).'
             : 'Import failed: ${e.message}')));
   }
 }

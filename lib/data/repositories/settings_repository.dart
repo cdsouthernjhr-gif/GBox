@@ -41,7 +41,6 @@ class SettingsState {
     this.allowHttpDownloads = false,
     this.libraryLocation,
     this.setupCompleted = false,
-    this.homeStyle = HomeStyle.games,
     this.rowOrder = RowOrder.mostGames,
     this.playerTouch = PlayerTouch.auto,
     this.saveFolders = const [],
@@ -92,10 +91,8 @@ class SettingsState {
   /// The setup wizard was finished (or skipped) once.
   final bool setupCompleted;
 
-  /// What HOME shows: the game launcher (rows per console) or the dashboard.
-  final HomeStyle homeStyle;
 
-  /// Order of the console rows on the game launcher.
+  /// Order of the systems on HOME.
   final RowOrder rowOrder;
 
   /// On-screen controls of the built-in player.
@@ -154,7 +151,6 @@ class SettingsState {
       allowHttpDownloads: (m[SettingsKeys.allowHttpDownloads] ?? 'false') == 'true',
       libraryLocation: (m[SettingsKeys.libraryLocation]?.isEmpty ?? true) ? null : m[SettingsKeys.libraryLocation],
       setupCompleted: (m[SettingsKeys.setupCompleted] ?? 'false') == 'true',
-      homeStyle: HomeStyle.values.asNameMap()[m[SettingsKeys.homeStyle]] ?? HomeStyle.games,
       rowOrder: RowOrder.values.asNameMap()[m[SettingsKeys.rowOrder]] ?? RowOrder.mostGames,
       playerTouch: PlayerTouch.values.asNameMap()[m[SettingsKeys.playerTouch]] ?? PlayerTouch.auto,
       saveFolders: SaveFolder.decodeList(m[SettingsKeys.saveFolders]),
@@ -209,7 +205,6 @@ abstract final class SettingsKeys {
   static const allowHttpDownloads = 'downloads.allow_http';
   static const libraryLocation = 'storage.library_location';
   static const setupCompleted = 'setup.completed';
-  static const homeStyle = 'launcher.home_style';
   static const rowOrder = 'launcher.row_order';
   static const playerTouch = 'player.touch_controls';
   static const saveFolders = 'saves.folders';
@@ -241,14 +236,6 @@ class SettingsRepository {
       _db.setSetting(SettingsKeys.romFolders, jsonEncode(uris));
 
   void dispose() => _sub?.cancel();
-}
-
-enum HomeStyle {
-  /// Game launcher: rows of games per console, opens straight on a game.
-  games,
-
-  /// Dashboard with device status and summary rows (before 0.11.0).
-  dashboard,
 }
 
 enum RowOrder { mostGames, recentlyPlayed, alphabetical }

@@ -326,10 +326,10 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
             needed.isEmpty
                 ? 'Nothing required is missing for the consoles GAMEBOX checks.'
                 : 'Needed for ${needed.map((b) => consoleById(b.info.consoleId)!.name).join(', ')}: put your own BIOS '
-                    'dumps in GAMEBOX/BIOS/<console>/ (STORAGE → BIOS lists the file names). Only needed for those consoles.',
+                    'dumps in GAMEBOX/BIOS/<console>/ (SETTINGS → Storage → BIOS lists the file names). Only needed for those consoles.',
             style: _muted,
           ),
-          const Text('Saves: point each emulator at GAMEBOX/Saves/<emulator> (STORAGE → Emulator save folders) so '
+          const Text('Saves: point each emulator at GAMEBOX/Saves/<emulator> (SETTINGS → Storage → Emulator save folders) so '
               'GAMEBOX can back them up.', style: _muted),
         ]);
       },

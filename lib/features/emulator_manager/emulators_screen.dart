@@ -5,6 +5,8 @@ import '../../core/services/system_services.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import 'launch_dialogs.dart';
+import '../console_manager/consoles_screen.dart';
+import '../settings/settings_screen.dart' show PlayerCoresScreen;
 import '../../integrations/emulator_adapters/launcher_registry.dart';
 import '../game_library/game_detail_screen.dart' show ratingColor;
 
@@ -18,8 +20,18 @@ class EmulatorsScreen extends StatelessWidget {
     final s = servicesOf(context);
     return PageFrame(
       title: 'Emulators',
-      subtitle: 'Installed emulator apps detected on this device',
+      subtitle: 'The built-in emulators and the emulator apps on this device',
       actions: [
+        TvButton(
+          label: 'Built-in emulator settings',
+          icon: Icons.tune_rounded,
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PlayerCoresScreen())),
+        ),
+        TvButton(
+          label: 'Consoles',
+          icon: Icons.videogame_asset_rounded,
+          onPressed: () => SubPage.open(context, const ConsolesScreen()),
+        ),
         TvButton(label: 'Rescan', icon: Icons.refresh_rounded, onPressed: () => s.emulators.detect()),
       ],
       child: ValueListenableBuilder<List<EmulatorInstallation>?>(

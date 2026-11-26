@@ -2,7 +2,7 @@
 
 ## Emulator saves
 
-Emulators keep saves in **their own folders**. GAMEBOX doesn't move them. You register each save folder once (STORAGE → **Save folders** → *Add save folder*) through Android's folder picker and say which emulator uses it. Typical folders:
+Emulators keep saves in **their own folders**. GAMEBOX doesn't move them. You register each save folder once (SETTINGS → Storage → **Save folders** → *Add save folder*) through Android's folder picker and say which emulator uses it. Typical folders:
 
 | Emulator | Usual save folder (user-configurable in the emulator) |
 |---|---|
@@ -16,7 +16,7 @@ Emulators that keep saves inside `Android/data/<their package>` can't be registe
 
 ### Suggested save folders (0.9.0)
 
-GAMEBOX can't change where an emulator saves; each emulator has its own setting. STORAGE → **Emulator save folders** shows one suggested folder per emulator inside the GAMEBOX folder and how to point the emulator at it:
+GAMEBOX can't change where an emulator saves; each emulator has its own setting. SETTINGS → Storage → **Emulator save folders** shows one suggested folder per emulator inside the GAMEBOX folder and how to point the emulator at it:
 
 | Emulator | Folder | How |
 |---|---|---|
@@ -30,7 +30,7 @@ Backups (`Backups/saves`) and exports (`Exports/`) are still written to the app 
 
 ### BIOS (0.9.0)
 
-GAMEBOX never provides BIOS files. STORAGE → **BIOS** lists `GAMEBOX/BIOS/<CONSOLE>/` per console, which file names the emulators commonly look for (e.g. `scph5501.bin` for RetroArch Beetle PSX, `dc_boot.bin` for Flycast), whether one is present, and whether it's required or optional (built-in replacement available). Point the emulator at that folder; for RetroArch set Settings → Directory → System/BIOS to `GAMEBOX/BIOS/RetroArch` and copy the files there (Dreamcast files in `dc/`). File names come from the emulators' documentation as commonly published; check your emulator's documentation if one isn't recognised.
+GAMEBOX never provides BIOS files. SETTINGS → Storage → **BIOS** lists `GAMEBOX/BIOS/<CONSOLE>/` per console, which file names the emulators commonly look for (e.g. `scph5501.bin` for RetroArch Beetle PSX, `dc_boot.bin` for Flycast), whether one is present, and whether it's required or optional (built-in replacement available). Point the emulator at that folder; for RetroArch set Settings → Directory → System/BIOS to `GAMEBOX/BIOS/RetroArch` and copy the files there (Dreamcast files in `dc/`). File names come from the emulators' documentation as commonly published; check your emulator's documentation if one isn't recognised.
 
 ### Kinds (kept strictly separate)
 
@@ -44,7 +44,7 @@ A save file is linked to a game only when its name matches **exactly one** game 
 
 ### Backup, restore, export, import
 
-* **Back up**: game page → *Back up saves*, or STORAGE → *Back up all saves*. Files are copied to `GAMEBOX/Backups/saves/<timestamp>-<ms>-<n>/<game>/<emulator>/`. Every run gets a new folder, and backup files are **never overwritten**.
+* **Back up**: game page → *Back up saves*, or SETTINGS → Storage → *Back up all saves*. Files are copied to `GAMEBOX/Backups/saves/<timestamp>-<ms>-<n>/<game>/<emulator>/`. Every run gets a new folder, and backup files are **never overwritten**.
 * **Restore**: game page → *Restore…* → pick a backup. The current save file is first copied to a new backup ("Automatic copy before restore"), so every restore can be undone. Restoring needs write access, which is granted when the folder is registered.
 * **Export**: a ZIP of the game's current save files in `GAMEBOX/Exports/`.
 * **Import**: a GAMEBOX save ZIP is validated (same archive guard as downloads: no path traversal, size limits) and each entry overwrites the known save file with the same relative path, after a safety backup. Entries that don't match a known save file are reported and **not** written anywhere else.

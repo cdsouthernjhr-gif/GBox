@@ -8,6 +8,8 @@ import '../../data/repositories/settings_repository.dart';
 import '../../integrations/builtin/builtin_player_launcher.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../compatibility/device_report_screen.dart';
+import '../controller_manager/controllers_screen.dart';
+import '../storage_manager/storage_screen.dart';
 import '../performance/performance_screen.dart';
 import 'settings_actions.dart';
 
@@ -85,20 +87,24 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             action: 'Open',
           ),
           const SizedBox(height: 12),
-          const SectionHeader('General'),
-          _Choice<HomeStyle>(
-            title: 'Home screen',
-            value: st.homeStyle,
-            values: HomeStyle.values,
-            label: (v) => switch (v) {
-              HomeStyle.games => 'Games: rows of games per console (opens on your games)',
-              HomeStyle.dashboard => 'Dashboard: device status and summary rows',
-            },
-            onChanged: (v) => s.settings.set(SettingsKeys.homeStyle, v.name),
+          const SizedBox(height: 12),
+          const SectionHeader('Devices and storage'),
+          _Row(
+            title: 'Controllers',
+            value: 'Connected controllers, button mapping, calibration, dead zone, vibration, input test',
+            action: 'Open ›',
+            onSelect: () => SubPage.open(context, const ControllersScreen()),
           ),
-          if (st.homeStyle == HomeStyle.games)
+          _Row(
+            title: 'Storage and game folders',
+            value: 'Internal storage, USB drives and SD cards, game folders, GAMEBOX folders, BIOS, saves',
+            action: 'Open ›',
+            onSelect: () => SubPage.open(context, const StorageScreen()),
+          ),
+          const SizedBox(height: 12),
+          const SectionHeader('General'),
             _Choice<RowOrder>(
-              title: 'Console rows',
+              title: 'Systems on HOME',
               value: st.rowOrder,
               values: RowOrder.values,
               label: (v) => switch (v) {
@@ -194,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           ),
           _Row(
             title: 'Controllers',
-            value: 'Mapping, calibration, dead zone, vibration and player slots are under CONTROLLERS',
+            value: 'Mapping, calibration, dead zone, vibration and player slots are under SETTINGS → Controllers',
           ),
           const SizedBox(height: 12),
           const SectionHeader('Built-in player'),
@@ -300,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           ),
           const _Row(
               title: 'Save games',
-              value: 'Back up / restore emulator saves: STORAGE → Save folders, or on each game page.'),
+              value: 'Back up / restore emulator saves: SETTINGS → Storage → Save folders, or on each game page.'),
         ]),
       ),
     );

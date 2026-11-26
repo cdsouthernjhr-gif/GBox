@@ -48,7 +48,7 @@ Feedback on 0.9.0 (phone + RetroArch): **Play failed and RetroArch's own menu wa
 
 **Storage access:** Android 11+ "All files access" (`MANAGE_EXTERNAL_STORAGE`, opened from the wizard; GAMEBOX is distributed as an APK, not through Play); Android 7–10 the storage permission (`requestLegacyExternalStorage` for Android 10). Some Android TV firmwares have no "All files access" screen: the wizard then shows `adb shell appops set --uid com.gamebox.console MANAGE_EXTERNAL_STORAGE allow`, or the user picks a folder instead. Returning from the settings screen re-checks access and, when granted, creates the folders, registers save folders and scans.
 
-**Setup wizard** (dashboard banner until finished; STORAGE → Setup wizard), each step with ✓/✗ and one action:
+**Setup wizard** (HOME while the library is empty; SETTINGS → Storage → Setup wizard), each step with ✓/✗ and one action:
 1. Allow storage access (or pick a USB/SD folder).
 2. Put games in `ROMs/`: *Find ROMs on this device*, and *Move N games to ROMs* for games still in the app folder.
 3. Get RetroArch ready: install cores (Online Updater → Core Downloader), allow its storage access, write playlists, open RetroArch.

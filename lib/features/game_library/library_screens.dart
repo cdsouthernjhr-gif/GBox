@@ -112,55 +112,6 @@ class GeneratedCover extends StatelessWidget {
   }
 }
 
-/// Horizontal row of game cards fed by a database stream.
-class GameCardRow extends StatelessWidget {
-  const GameCardRow({super.key, required this.title, required this.stream, required this.emptyMessage});
-  final String title;
-  final Stream<List<GameWithStatus>> stream;
-  final String emptyMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    final db = servicesOf(context).db;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SectionHeader(title),
-      StreamBuilder<Map<int, String>>(
-        stream: db.watchCoverPaths(),
-        builder: (context, covers) => StreamBuilder<List<GameWithStatus>>(
-          stream: stream,
-          builder: (context, snap) {
-            final games = snap.data ?? const [];
-            if (games.isEmpty) {
-              return Container(
-                height: 64,
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: GameboxPalette.of(context).card.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(emptyMessage, style: const TextStyle(color: Colors.white60)),
-              );
-            }
-            return SizedBox(
-              height: 236,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                itemCount: games.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (_, i) =>
-                    GameCard(entry: games[i], coverPath: covers.data?[games[i].game.id]),
-              ),
-            );
-          },
-        ),
-      ),
-    ]);
-  }
-}
-
 class GameGrid extends StatelessWidget {
   const GameGrid({super.key, required this.stream, required this.empty});
   final Stream<List<GameWithStatus>> stream;
@@ -196,39 +147,4 @@ class GameGrid extends StatelessWidget {
       ),
     );
   }
-}
-
-class RecentlyPlayedScreen extends StatelessWidget {
-  const RecentlyPlayedScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => PageFrame(
-        title: 'Recently Played',
-        child: GameGrid(
-          stream: servicesOf(context).db.watchRecentlyPlayed(limit: 60),
-          empty: const EmptyState(
-            icon: Icons.history_rounded,
-            title: 'Nothing played yet',
-            message: 'Games you launch through GAMEBOX will appear here. '
-                'Game launching starts in Phase 3.',
-          ),
-        ),
-      );
-}
-
-class FavouritesScreen extends StatelessWidget {
-  const FavouritesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => PageFrame(
-        title: 'Favourites',
-        child: GameGrid(
-          stream: servicesOf(context).db.watchFavorites(),
-          empty: const EmptyState(
-            icon: Icons.star_outline_rounded,
-            title: 'No favourites yet',
-            message: 'Open a game and choose "Add to favourites".',
-          ),
-        ),
-      );
 }

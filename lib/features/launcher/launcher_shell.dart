@@ -5,34 +5,32 @@ import 'package:flutter/material.dart';
 import '../../app/app_services.dart';
 import '../../core/services/platform_gateway.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/repositories/settings_repository.dart';
 import '../../domain/entities/hardware_profile.dart';
 import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
-import '../console_manager/consoles_screen.dart';
-import '../controller_manager/controllers_screen.dart';
 import '../emulator_manager/launch_dialogs.dart';
 import '../game_home/game_home_screen.dart';
-import '../dashboard/dashboard_screen.dart';
 import '../download_manager/downloads_screen.dart';
 import '../emulator_manager/emulators_screen.dart';
-import '../game_library/library_screens.dart';
 import '../game_library/my_games_screen.dart';
 import '../settings/settings_screen.dart';
-import '../storage_manager/storage_screen.dart';
 import '../compatibility/rating_prompt.dart';
 import 'apps_screen.dart';
 
 enum LauncherSection {
+  /// Featured game, continue playing, systems, favourites, recently added.
   home('HOME', Icons.home_rounded),
-  myGames('MY GAMES', Icons.sports_esports_rounded),
-  consoles('CONSOLES', Icons.videogame_asset_rounded),
-  recent('RECENTLY PLAYED', Icons.history_rounded),
-  favourites('FAVOURITES', Icons.star_rounded),
-  downloads('DOWNLOADS', Icons.download_rounded),
+
+  /// Every game, filtered by console / favourites / missing, searchable.
+  games('GAMES', Icons.sports_esports_rounded),
+
+  /// Find ROMs on the device, find games online, downloads.
+  addGames('ADD GAMES', Icons.add_circle_outline_rounded),
+
+  /// Emulators per system, built-in emulator settings, compatibility.
   emulators('EMULATORS', Icons.memory_rounded),
-  controllers('CONTROLLERS', Icons.gamepad_rounded),
-  storage('STORAGE', Icons.sd_storage_rounded),
+
+  /// Settings, controllers, storage and the device report.
   settings('SETTINGS', Icons.settings_rounded),
   apps('ANDROID APPS', Icons.apps_rounded);
 
@@ -123,16 +121,22 @@ class LauncherShellState extends State<LauncherShell> {
     super.dispose();
   }
 
-  bool get _gamesHome => servicesOf(context).settings.state.value.homeStyle == HomeStyle.games;
+  /// Console filter GAMES opens with (from a system on HOME).
+  String? _gamesConsole;
 
   void goHome() {
     Navigator.of(context).popUntil((r) => r.isFirst);
-    if (_gamesHome) {
-      select(LauncherSection.home);
-      _focusContent();
-    } else {
-      select(LauncherSection.home, focusNav: true);
-    }
+    select(LauncherSection.home);
+    _focusContent();
+  }
+
+  /// Opens GAMES showing [consoleId]'s games (all games when null).
+  void openGames([String? consoleId]) {
+    setState(() {
+      _gamesConsole = consoleId;
+      _section = LauncherSection.games;
+    });
+    _focusContent();
   }
 
   /// Opens the side menu: focus moves to the current section's entry.
@@ -157,22 +161,21 @@ class LauncherShellState extends State<LauncherShell> {
   }
 
   void select(LauncherSection s, {bool focusNav = false}) {
-    if (_section != s) setState(() => _section = s);
+    if (_section != s) {
+      setState(() {
+        _section = s;
+        // From the menu, GAMES shows every game.
+        if (s == LauncherSection.games) _gamesConsole = null;
+      });
+    }
     if (focusNav) _navNodes[s.index].requestFocus();
   }
 
   Widget _content() => switch (_section) {
-        LauncherSection.home => _gamesHome
-            ? GameHomeScreen(onOpenMenu: openMenu)
-            : DashboardScreen(onNavigate: (s) => select(s, focusNav: true)),
-        LauncherSection.myGames => const MyGamesScreen(),
-        LauncherSection.consoles => const ConsolesScreen(),
-        LauncherSection.recent => const RecentlyPlayedScreen(),
-        LauncherSection.favourites => const FavouritesScreen(),
-        LauncherSection.downloads => const DownloadsScreen(),
+        LauncherSection.home => GameHomeScreen(onOpenMenu: openMenu, onOpenConsole: openGames),
+        LauncherSection.games => MyGamesScreen(key: ValueKey(_gamesConsole), initialConsole: _gamesConsole),
+        LauncherSection.addGames => const DownloadsScreen(),
         LauncherSection.emulators => const EmulatorsScreen(),
-        LauncherSection.controllers => const ControllersScreen(),
-        LauncherSection.storage => const StorageScreen(),
         LauncherSection.settings => const SettingsScreen(),
         LauncherSection.apps => const AppsScreen(),
       };
@@ -185,13 +188,11 @@ class LauncherShellState extends State<LauncherShell> {
       onPopInvokedWithResult: (didPop, _) {
         // BACK inside content returns focus to the menu; on the menu it
         // goes to HOME. The launcher itself never closes.
-        // With the game launcher, BACK on the menu returns to the games.
+        // BACK on the menu returns to the games on HOME.
         if (_contentScope.hasFocus) {
           _navNodes[_section.index].requestFocus();
-        } else if (_section != LauncherSection.home) {
-          select(LauncherSection.home, focusNav: !_gamesHome);
-          if (_gamesHome) _focusContent();
-        } else if (_gamesHome) {
+        } else {
+          select(LauncherSection.home);
           _focusContent();
         }
       },
@@ -201,24 +202,18 @@ class LauncherShellState extends State<LauncherShell> {
           decoration: palette.decoration,
           child: SafeArea(
             child: Row(children: [
-              ValueListenableBuilder<SettingsState>(
-                valueListenable: servicesOf(context).settings.state,
-                builder: (context, st, _) {
-                  final games = st.homeStyle == HomeStyle.games;
-                  return Focus(
-                    canRequestFocus: false,
-                    skipTraversal: true,
-                    onFocusChange: (f) => setState(() => _railFocused = f),
-                    child: _NavRail(
-                      nodes: _navNodes,
-                      selected: _section,
-                      onSelect: (s) => select(s),
-                      // On the game launcher the menu shrinks to icons until it has focus.
-                      collapsed: games && _section == LauncherSection.home && !_railFocused,
-                      autofocusHome: !games,
-                    ),
-                  );
-                },
+              Focus(
+                canRequestFocus: false,
+                skipTraversal: true,
+                onFocusChange: (f) => setState(() => _railFocused = f),
+                child: _NavRail(
+                  nodes: _navNodes,
+                  selected: _section,
+                  onSelect: (s) => select(s),
+                  // On HOME the menu shrinks to icons until it has focus.
+                  collapsed: _section == LauncherSection.home && !_railFocused,
+                  autofocusHome: false,
+                ),
               ),
               Expanded(
                 child: Column(children: [

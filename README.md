@@ -2,6 +2,8 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
+> **0.15.0:** a simpler menu: HOME, GAMES, ADD GAMES, EMULATORS, SETTINGS, ANDROID APPS (was 11 entries). HOME shows your systems with their emulator and number of games. *Download cover* fixed.
+>
 > **0.14.0:** settings for each built-in emulator (display filter, on-screen controls, the emulator's own options in game), HOME with small cards and the focused game's cover large and as wallpaper (also on mouse hover), *Download cover* on the game page, and a popup when a game belongs to another console or the built-in player can't open it.
 >
 > **0.13.0:** N64, Nintendo DS and PSP also play in the built-in player.
@@ -18,7 +20,7 @@ GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-scr
 
 | Area | Implemented |
 |---|---|
-| Launcher | HOME / DEFAULT / LEANBACK_LAUNCHER intent filters, set or change the default launcher (RoleManager on Android 10+, Home settings otherwise), BACK never exits, HOME returns to the dashboard, Android apps drawer and Android Settings shortcut, so you're never locked out |
+| Launcher | HOME / DEFAULT / LEANBACK_LAUNCHER intent filters, set or change the default launcher (RoleManager on Android 10+, Home settings otherwise), BACK never exits, HOME returns to the games, Android apps drawer and Android Settings shortcut, so you're never locked out |
 | Dashboard | 11 sections, D-pad/remote/gamepad focus navigation, status widgets (controllers, storage, device tier, online/offline, emulators), library rows backed by the database |
 | Device Intelligence | Manufacturer, model, build, ABIs, `/proc/cpuinfo` core types, core count, max frequency, RAM and memory pressure, GPU vendor/renderer (EGL probe), OpenGL ES version, Vulkan, display mode/refresh/density, storage volumes, input devices. Any value the device doesn't report is shown as **UNKNOWN** |
 | Adaptive engine | ENTRY / STANDARD / ADVANCED / HIGH PERFORMANCE tiers from CPU + GPU + RAM + ABI + GLES; per-console and per-emulator ratings, always labelled *hardware estimate* |

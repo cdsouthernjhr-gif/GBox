@@ -121,7 +121,7 @@ class _RomSearchScreenState extends State<RomSearchScreen> {
                   }
                   if (r.needsAccess) {
                     return const Text(
-                        'Searching the device needs storage access. Open the setup wizard (STORAGE → Setup wizard) '
+                        'Searching the device needs storage access. Open the setup wizard (SETTINGS → Storage → Setup wizard) '
                         'and allow "All files access" for GAMEBOX.',
                         style: TextStyle(color: Colors.orangeAccent));
                   }

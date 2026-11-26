@@ -30,7 +30,12 @@ void main() {
   group('plan', () {
     test('covers the bundled systems with one core each', () {
       expect(player.builtIn, isTrue);
-      expect(player.consoleIds, {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1'});
+      expect(player.consoleIds, {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1', 'n64', 'nds', 'psp'});
+      expect(builtInSupportsDevice('psp', ['arm64-v8a']), isTrue);
+      expect(builtInSupportsDevice('psp', ['x86_64', 'x86']), isFalse, reason: 'no x86 PPSSPP core');
+      expect(builtInSupportsDevice('psp', const []), isTrue, reason: 'unknown ABIs');
+      expect(builtInSupportsDevice('n64', ['x86_64']), isTrue);
+      expect(builtInSupportsDevice('saturn', ['arm64-v8a']), isFalse);
       for (final c in player.consoleIds) {
         expect(builtInCoreNames.containsKey(builtInCores[c]), isTrue, reason: c);
         expect(builtInTouchLayouts.containsKey(c), isTrue, reason: c);
@@ -61,7 +66,7 @@ void main() {
       expect(player.plan(const LaunchTarget(consoleId: 'nes', originalUri: 'x', extension: 'nes'), env, const {}),
           isA<LaunchBlocked>());
       expect(
-          player.plan(const LaunchTarget(consoleId: 'n64', originalUri: 'x', extension: 'z64', localPath: '/a.z64'), env,
+          player.plan(const LaunchTarget(consoleId: 'saturn', originalUri: 'x', extension: 'cue', localPath: '/a.cue'), env,
               const {}),
           isA<LaunchBlocked>());
       final b = player.plan(

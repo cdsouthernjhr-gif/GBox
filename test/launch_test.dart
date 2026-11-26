@@ -141,13 +141,13 @@ void main() {
         );
 
     test('no compatible emulator installed → clear message, nothing launched', () async {
-      // N64 isn't covered by the built-in player.
-      final id = await addGame('n64', safNes.replaceAll('NES/Space Quest.nes', 'N64/Kart.z64'));
+      // Saturn isn't covered by the built-in player.
+      final id = await addGame('saturn', safNes.replaceAll('NES/Space Quest.nes', 'SATURN/Race.cue'));
       final o = await launcher.play(id);
       expect(o.ok, isFalse);
       expect(o.reasons.single, contains('RetroArch'));
       // The UI offers where to get them, dedicated emulator first.
-      expect(o.missingEmulators, ['mupen64plus_fz', 'retroarch']);
+      expect(o.missingEmulators, ['retroarch']);
       expect(gateway.launchedSpecs, isEmpty);
     });
 

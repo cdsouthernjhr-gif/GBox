@@ -13,6 +13,9 @@ GAMEBOX is licensed under the **GNU General Public License v3.0** (see `LICENSE`
 | mGBA core (Game Boy Advance) | MPL-2.0 | github.com/libretro/mgba |
 | Genesis Plus GX core (Mega Drive, Master System) | Genesis Plus GX licence: **non-commercial use only** | github.com/libretro/Genesis-Plus-GX |
 | PCSX ReARMed core (PlayStation) | GPL-2.0 | github.com/libretro/pcsx_rearmed |
+| Mupen64Plus-Next core, GLES3 build (Nintendo 64) | GPL-2.0 | github.com/libretro/mupen64plus-libretro-nx |
+| DeSmuME core (Nintendo DS) | GPL-2.0 | github.com/libretro/desmume |
+| PPSSPP core and its assets `ppsspp.zip` (PSP; ARM builds only) | GPL-2.0-or-later | github.com/hrydgard/ppsspp |
 
 The core binaries are the prebuilt Android builds published by the Lemuroid project in github.com/Swordfish90/LemuroidCores at commit `fee2e824525daa22bcf318f96127fe43fa8a15ad`. `tool/fetch_cores.sh` downloads them at build time and verifies each file's SHA-256; they are not stored in this repository. Each core's source code is available from the repository listed above (and LemuroidCores documents how its builds are made).
 

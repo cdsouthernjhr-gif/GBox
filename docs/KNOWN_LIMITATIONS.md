@@ -92,11 +92,12 @@
 
 ## Built-in player (0.12.0)
 
-* Only six bundled cores: NES, SNES, Game Boy/Color/Advance, Mega Drive/Master System, PS1. PSP, N64, NDS, Dreamcast, PS2, GameCube/Wii still need an emulator app.
+* Bundled cores: NES, SNES, Game Boy/Color/Advance, Mega Drive/Master System, PS1, N64, NDS, PSP (PSP on ARM only). Saturn, Dreamcast, PS2, GameCube/Wii still need an emulator app.
+* N64, NDS and PSP have not run in CI (no freely licensed test images); only packaging is checked. N64/PSP are demanding on low-end TV boxes; the NDS touch screen needs a touch display.
 * Verified on Android emulators only (a synthetic NES image renders frames). Real games, speed on low-end TV boxes, controllers and touch controls are untested.
 * One save-state slot per game; no fast-forward, rewind, cheats or shaders yet. Single player (port 1) for the remote/touch; each physical controller uses its own port.
 * `.7z` archives aren't opened (ZIP is). PS1 without a real BIOS relies on PCSX ReARMed's replacement, which some games don't like.
-* APK size grows by about 15 MB per ABI. Builds that include Snes9x and Genesis Plus GX must not be sold (non-commercial licences).
+* APK size grows with the cores (PPSSPP and its assets add about 20 MB on ARM). Builds that include Snes9x and Genesis Plus GX must not be sold (non-commercial licences).
 
 ## Not yet implemented (by phase)
 

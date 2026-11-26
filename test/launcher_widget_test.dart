@@ -538,20 +538,20 @@ void main() {
     await boot(
       tester,
       home: HomeStyle.games,
-      prepare: (root) => File('$root/GAMEBOX/Games/N64/Kart.z64')
+      // Saturn: not built in, and no emulator installed.
+      prepare: (root) => File('$root/GAMEBOX/Games/SATURN/Race.cue')
         ..createSync(recursive: true)
-        ..writeAsBytesSync(Uint8List(4096)),
+        ..writeAsStringSync('FILE "Race.bin" BINARY'),
     );
     await press(tester, LogicalKeyboardKey.enter); // play the focused game
     await settleUntil(tester, () => find.textContaining('Get an emulator for').evaluate().isNotEmpty);
     expect(find.textContaining('Get an emulator for'), findsOneWidget);
-    expect(find.text('Mupen64Plus FZ'), findsOneWidget);
     expect(find.text('RetroArch'), findsOneWidget);
     expect(gateway.launchedSpecs, isEmpty);
 
     await tester.tap(find.text('Play Store').first);
     await settle(tester);
-    expect(gateway.openedUrls, ['market://details?id=org.mupen64plusae.v3.fzurita']);
+    expect(gateway.openedUrls, ['market://details?id=com.retroarch']);
 
     gateway.canOpenUrls = false;
     await tester.tap(find.text('Official site').first);

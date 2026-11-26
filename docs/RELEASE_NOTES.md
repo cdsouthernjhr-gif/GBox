@@ -1,5 +1,16 @@
 # Release notes
 
+## 0.13.0+18 — N64, Nintendo DS and PSP in the built-in player (pre-release)
+
+**New:** three more systems play directly in GAMEBOX, no emulator app needed:
+* **Nintendo 64** (Mupen64Plus-Next, GLES3): on phones an on-screen analog stick, A/B, C-buttons, L/R/Z.
+* **Nintendo DS** (DeSmuME, no BIOS needed): both screens stacked; tap the touch screen directly on phones.
+* **PSP** (PPSSPP; on ARM phones and TV boxes): analog stick, face buttons, L/R. Its support files are unpacked on the first PSP game.
+
+They become the default for these systems; PPSSPP, Mupen64Plus FZ, melonDS, DraStic and RetroArch stay under *Play with…*. Saturn, Dreamcast, PS2, GameCube and Wii still need an emulator app (no compatible built-in core).
+
+**Note:** N64 and PSP need a reasonably fast device. APKs are larger (PSP core and assets). Like the other cores, these are checked to be in every APK, but they have only run on emulators in CI for NES, not yet on a phone.
+
 ## 0.12.3+17 — Get emulators, find games online (pre-release)
 
 **New:**

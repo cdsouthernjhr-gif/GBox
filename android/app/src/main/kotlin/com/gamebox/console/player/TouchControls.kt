@@ -24,13 +24,24 @@ class TouchControls(
     context: Context,
     private val layout: Layout,
     private val send: (action: Int, keyCode: Int) -> Unit,
+    private val sendMotion: (source: Int, x: Float, y: Float) -> Unit,
     private val onMenu: () -> Unit,
 ) : View(context) {
 
     /** A face/shoulder button at a position relative to the right cluster. */
     data class Button(val key: Int, val label: String, val dx: Float, val dy: Float)
 
-    data class Layout(val buttons: List<Button>, val shoulders: List<Button> = emptyList())
+    /**
+     * [analog]: the left circle is an analog stick (N64, PSP) instead of a
+     * D-pad. [passThrough]: touches outside the controls reach the game
+     * (Nintendo DS touch screen).
+     */
+    data class Layout(
+        val buttons: List<Button>,
+        val shoulders: List<Button> = emptyList(),
+        val analog: Boolean = false,
+        val passThrough: Boolean = false,
+    )
 
     companion object {
         private const val A = KeyEvent.KEYCODE_BUTTON_A
@@ -45,6 +56,13 @@ class TouchControls(
         private val top = 0f to -1f
 
         private fun btn(key: Int, label: String, p: Pair<Float, Float>) = Button(key, label, p.first, p.second)
+
+        // N64 C-buttons: the right analog stick of the RetroPad.
+        const val C_UP = -101
+        const val C_DOWN = -102
+        const val C_LEFT = -103
+        const val C_RIGHT = -104
+        private val C_KEYS = setOf(C_UP, C_DOWN, C_LEFT, C_RIGHT)
 
         fun layoutFor(name: String): Layout = when (name) {
             "snes" -> Layout(
@@ -64,9 +82,36 @@ class TouchControls(
                     Button(KeyEvent.KEYCODE_BUTTON_L2, "L2", 0f, 0f), Button(KeyEvent.KEYCODE_BUTTON_R2, "R2", 0f, 0f),
                 ),
             )
+            // Mupen64Plus RetroPad: A = A, B = B, L2 = Z, right stick = C.
+            "n64" -> Layout(
+                listOf(
+                    Button(A, "A", 0.2f, 0.9f), Button(B, "B", -0.9f, 0.4f),
+                    Button(C_UP, "C▲", 0.6f, -1.2f), Button(C_DOWN, "C▼", 0.6f, -0.2f),
+                    Button(C_LEFT, "C◀", 0.0f, -0.7f), Button(C_RIGHT, "C▶", 1.2f, -0.7f),
+                ),
+                listOf(
+                    Button(KeyEvent.KEYCODE_BUTTON_L1, "L", 0f, 0f), Button(KeyEvent.KEYCODE_BUTTON_R1, "R", 0f, 0f),
+                    Button(KeyEvent.KEYCODE_BUTTON_L2, "LZ", 0f, 0f),
+                ),
+                analog = true,
+            )
+            "psp" -> Layout(
+                listOf(btn(A, "○", right), btn(B, "✕", bottom), btn(Y, "□", left), btn(X, "△", top)),
+                listOf(Button(KeyEvent.KEYCODE_BUTTON_L1, "L", 0f, 0f), Button(KeyEvent.KEYCODE_BUTTON_R1, "R", 0f, 0f)),
+                analog = true,
+            )
+            // Nintendo DS: X/Y/A/B, L/R; the touch screen stays touchable.
+            "nds" -> Layout(
+                listOf(btn(A, "A", right), btn(B, "B", bottom), btn(Y, "Y", left), btn(X, "X", top)),
+                listOf(Button(KeyEvent.KEYCODE_BUTTON_L1, "L", 0f, 0f), Button(KeyEvent.KEYCODE_BUTTON_R1, "R", 0f, 0f)),
+                passThrough = true,
+            )
             // NES and Game Boy: B and A side by side.
             else -> Layout(listOf(Button(A, "A", 0.6f, -0.4f), Button(B, "B", -0.6f, 0.4f)))
         }
+
+        /** Marker for "this pointer is on the analog stick". */
+        private const val STICK = -200
 
         private val DPAD = listOf(
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
@@ -111,7 +156,7 @@ class TouchControls(
         var li = 0
         var ri = 0
         for (b in layout.shoulders) {
-            val isLeft = b.label.startsWith("L")
+            val isLeft = b.label.startsWith("L") || b.label.startsWith("Z")
             val row = if (isLeft) li++ else ri++
             val top = unit * 1.3f + row * (sh + unit * 0.2f)
             val rect = if (isLeft) RectF(margin, top, margin + sw, top + sh) else RectF(w - margin - sw, top, w - margin, top + sh)
@@ -131,6 +176,12 @@ class TouchControls(
     override fun onDraw(canvas: Canvas) {
         val (dx, dy) = dpadCenter
         canvas.drawCircle(dx, dy, dpadRadius, fill)
+        if (layout.analog) {
+            canvas.drawCircle(dx + stick.first * dpadRadius * 0.6f, dy + stick.second * dpadRadius * 0.6f,
+                dpadRadius * 0.42f, if (stick != 0f to 0f) pressedFill else fill)
+            drawButtons(canvas)
+            return
+        }
         val arm = dpadRadius * 0.62f
         for ((key, ox, oy) in listOf(
             Triple(KeyEvent.KEYCODE_DPAD_UP, 0f, -arm), Triple(KeyEvent.KEYCODE_DPAD_DOWN, 0f, arm),
@@ -138,6 +189,10 @@ class TouchControls(
         )) {
             canvas.drawCircle(dx + ox, dy + oy, dpadRadius * 0.3f, if (key in pressed) pressedFill else fill)
         }
+        drawButtons(canvas)
+    }
+
+    private fun drawButtons(canvas: Canvas) {
         for (t in targets) {
             val p = if (t.key in pressed) pressedFill else fill
             if (t.round) canvas.drawOval(t.rect, p) else canvas.drawRoundRect(t.rect, 18f, 18f, p)
@@ -145,10 +200,15 @@ class TouchControls(
         }
     }
 
+    /** Current analog stick position, -1..1 on each axis. */
+    private var stick = 0f to 0f
+    private var stickPointer: Int? = null
+
     private fun keysAt(x: Float, y: Float): Set<Int> {
         val (cx, cy) = dpadCenter
         val ddx = x - cx
         val ddy = y - cy
+        if (layout.analog && hypot(ddx, ddy) <= dpadRadius * 1.15f) return setOf(STICK)
         if (hypot(ddx, ddy) <= dpadRadius * 1.15f) {
             val dead = dpadRadius * 0.2f
             val keys = mutableSetOf<Int>()
@@ -170,28 +230,73 @@ class TouchControls(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // DS touch screen: a touch that starts outside every control goes to
+        // the game underneath.
+        if (layout.passThrough && event.actionMasked == MotionEvent.ACTION_DOWN && keysAt(event.x, event.y).isEmpty()) {
+            return false
+        }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_MOVE -> {
                 for (i in 0 until event.pointerCount) {
-                    held[event.getPointerId(i)] = keysAt(event.getX(i), event.getY(i))
+                    val id = event.getPointerId(i)
+                    val keys = keysAt(event.getX(i), event.getY(i))
+                    if (STICK in keys || stickPointer == id) {
+                        if (stickPointer == null || stickPointer == id) {
+                            stickPointer = id
+                            moveStick(event.getX(i), event.getY(i))
+                        }
+                        held[id] = emptySet()
+                    } else {
+                        held[id] = keys
+                    }
                 }
             }
-            MotionEvent.ACTION_POINTER_UP -> held.remove(event.getPointerId(event.actionIndex))
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> held.clear()
+            MotionEvent.ACTION_POINTER_UP -> {
+                val id = event.getPointerId(event.actionIndex)
+                held.remove(id)
+                if (stickPointer == id) releaseStick()
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                held.clear()
+                releaseStick()
+            }
         }
         val now = held.values.flatten().toSet()
         if (KeyEvent.KEYCODE_BUTTON_MODE in now && KeyEvent.KEYCODE_BUTTON_MODE !in pressed) onMenu()
         val core = now - KeyEvent.KEYCODE_BUTTON_MODE
         val before = pressed - KeyEvent.KEYCODE_BUTTON_MODE
-        for (k in before - core) send(KeyEvent.ACTION_UP, k)
+        for (k in before - core) if (k !in C_KEYS) send(KeyEvent.ACTION_UP, k)
         for (k in core - before) {
-            send(KeyEvent.ACTION_DOWN, k)
+            if (k !in C_KEYS) send(KeyEvent.ACTION_DOWN, k)
             if (k !in DPAD) performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        }
+        // C-buttons drive the right stick.
+        if ((core intersect C_KEYS) != (before intersect C_KEYS)) {
+            val cx = (if (C_RIGHT in core) 1f else 0f) - (if (C_LEFT in core) 1f else 0f)
+            val cy = (if (C_DOWN in core) 1f else 0f) - (if (C_UP in core) 1f else 0f)
+            sendMotion(com.swordfish.libretrodroid.GLRetroView.MOTION_SOURCE_ANALOG_RIGHT, cx, cy)
         }
         if (now != pressed) {
             pressed = now
             invalidate()
         }
         return true
+    }
+
+    private fun moveStick(x: Float, y: Float) {
+        val (cx, cy) = dpadCenter
+        val nx = ((x - cx) / (dpadRadius * 0.8f)).coerceIn(-1f, 1f)
+        val ny = ((y - cy) / (dpadRadius * 0.8f)).coerceIn(-1f, 1f)
+        stick = nx to ny
+        sendMotion(com.swordfish.libretrodroid.GLRetroView.MOTION_SOURCE_ANALOG_LEFT, nx, ny)
+        invalidate()
+    }
+
+    private fun releaseStick() {
+        if (stickPointer == null && stick == 0f to 0f) return
+        stickPointer = null
+        stick = 0f to 0f
+        sendMotion(com.swordfish.libretrodroid.GLRetroView.MOTION_SOURCE_ANALOG_LEFT, 0f, 0f)
+        invalidate()
     }
 }

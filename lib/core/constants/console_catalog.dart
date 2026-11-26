@@ -225,11 +225,11 @@ const List<KnownEmulator> knownEmulators = [
   KnownEmulator(
     id: builtInPlayerId, name: 'GAMEBOX Player',
     packageIds: [gameboxPackage],
-    consoleIds: ['nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1'],
+    consoleIds: ['nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1', 'n64', 'nds', 'psp'],
     license: 'GPLv3 (LibretroDroid); cores: GPLv2, MPL-2.0, non-commercial — see THIRD_PARTY_LICENSES',
     strategy: IntegrationStrategy.libretro,
     notes: 'Built in: no app, core or setup needed. Cores: FCEUmm, Snes9x, Gambatte, mGBA, '
-        'Genesis Plus GX, PCSX ReARMed.',
+        'Genesis Plus GX, PCSX ReARMed, Mupen64Plus-Next, DeSmuME, PPSSPP (ARM).',
   ),
   KnownEmulator(
     id: 'retroarch', name: 'RetroArch',

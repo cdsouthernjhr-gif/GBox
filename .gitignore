@@ -49,3 +49,4 @@ app.*.map.json
 
 # libretro cores downloaded by tool/fetch_cores.sh
 /android/app/src/main/jniLibs/
+/android/app/src/main/assets/ppsspp.zip

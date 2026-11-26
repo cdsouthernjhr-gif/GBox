@@ -11,6 +11,7 @@ import '../../core/services/platform_gateway.dart';
 import '../../core/services/system_services.dart';
 import '../../domain/entities/performance_tier.dart';
 import 'player_files.dart';
+import '../../integrations/builtin/builtin_player_launcher.dart';
 import '../../integrations/emulator_adapters/emulator_adapter.dart';
 import '../../integrations/emulator_adapters/launcher_registry.dart';
 
@@ -110,7 +111,9 @@ class LaunchService {
         LaunchChoice(
           adapter: a,
           installedPackage: a.builtIn
-              ? gameboxPackage
+              ? (builtInSupportsDevice(consoleId, _device.state.value.profile?.supportedAbis ?? const [])
+                  ? gameboxPackage
+                  : null)
               : installs.where((i) => i.emulator.id == a.emulatorId).firstOrNull?.installedPackage,
           options: a.options(consoleId),
         ),

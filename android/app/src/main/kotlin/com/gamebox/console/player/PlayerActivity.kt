@@ -76,7 +76,13 @@ class PlayerActivity : ComponentActivity() {
         romFile = File(rom)
         if (!romFile.canRead()) return fail("GAMEBOX cannot read the game file:\n$rom")
         savesDir = File(intent.getStringExtra(EXTRA_SAVES) ?: File(filesDir, "saves").path).apply { mkdirs() }
-        val systemDir = File(intent.getStringExtra(EXTRA_SYSTEM) ?: File(filesDir, "system").path).apply { mkdirs() }
+        // PPSSPP keeps its own assets (fonts, flash0) in a private system
+        // folder, extracted from the APK on the first PSP game.
+        val systemDir = if (core == "ppsspp") {
+            File(filesDir, "system/ppsspp").also { if (!preparePpssppAssets(it)) return fail("PSP support files could not be prepared.") }
+        } else {
+            File(intent.getStringExtra(EXTRA_SYSTEM) ?: File(filesDir, "system").path).apply { mkdirs() }
+        }
 
         val data = GLRetroViewData(this).apply {
             coreFilePath = coreFile.absolutePath
@@ -99,6 +105,7 @@ class PlayerActivity : ComponentActivity() {
                 this,
                 TouchControls.layoutFor(intent.getStringExtra(EXTRA_LAYOUT) ?: "nes"),
                 send = { action, key -> retroView.sendKeyEvent(action, key, 0) },
+                sendMotion = { source, x, y -> retroView.sendMotionEvent(source, x, y, 0) },
                 onMenu = { showMenu() },
             )
             touch = pad
@@ -135,12 +142,45 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Extracts PPSSPP's assets (bundled as assets/ppsspp.zip) into
+     * [systemDir]/PPSSPP once; a marker file records the APK version.
+     */
+    private fun preparePpssppAssets(systemDir: File): Boolean = runCatching {
+        val target = File(systemDir, "PPSSPP")
+        val marker = File(target, ".gamebox-version")
+        @Suppress("DEPRECATION")
+        val version = packageManager.getPackageInfo(packageName, 0).versionCode.toString()
+        if (marker.isFile && marker.readText() == version) return@runCatching true
+        target.deleteRecursively()
+        target.mkdirs()
+        val root = target.canonicalPath + File.separator
+        java.util.zip.ZipInputStream(assets.open("ppsspp.zip")).use { zip ->
+            while (true) {
+                val e = zip.nextEntry ?: break
+                val out = File(target, e.name)
+                // Never write outside the folder.
+                if (!out.canonicalPath.startsWith(root)) continue
+                if (e.isDirectory) {
+                    out.mkdirs()
+                } else {
+                    out.parentFile?.mkdirs()
+                    out.outputStream().use { zip.copyTo(it) }
+                }
+            }
+        }
+        marker.writeText(version)
+        true
+    }.getOrDefault(false)
+
     /** Core options that make the bundled cores work without a BIOS where possible. */
     private fun coreVariables(core: String): Array<Variable> = when (core) {
         // PCSX ReARMed has a built-in BIOS replacement; a real BIOS in the
         // system folder is used automatically when present.
         "pcsx_rearmed" -> arrayOf(Variable("pcsx_rearmed_drc", "enabled"))
         "genesis_plus_gx" -> arrayOf(Variable("genesis_plus_gx_bram", "per game"))
+        // Touch screen through LibretroDroid's pointer; both screens stacked.
+        "desmume" -> arrayOf(Variable("desmume_pointer_type", "touch"), Variable("desmume_screens_layout", "top/bottom"))
         else -> arrayOf()
     }
 

@@ -17,7 +17,22 @@ const builtInCores = <String, String>{
   'megadrive': 'genesis_plus_gx',
   'sms': 'genesis_plus_gx',
   'ps1': 'pcsx_rearmed',
+  'n64': 'mupen64plus_next_gles3',
+  'nds': 'desmume',
+  'psp': 'ppsspp',
 };
+
+/// Cores bundled for ARM only (no x86_64 build).
+const armOnlyCores = {'ppsspp'};
+
+/// Whether the built-in player can run [consoleId] on a device with [abis]
+/// (unknown ABIs: assume yes).
+bool builtInSupportsDevice(String consoleId, List<String> abis) {
+  final core = builtInCores[consoleId];
+  if (core == null) return false;
+  if (!armOnlyCores.contains(core) || abis.isEmpty) return true;
+  return abis.any((a) => a.startsWith('arm'));
+}
 
 const builtInCoreNames = <String, String>{
   'fceumm': 'FCEUmm',
@@ -26,6 +41,9 @@ const builtInCoreNames = <String, String>{
   'mgba': 'mGBA',
   'genesis_plus_gx': 'Genesis Plus GX',
   'pcsx_rearmed': 'PCSX ReARMed',
+  'mupen64plus_next_gles3': 'Mupen64Plus-Next',
+  'desmume': 'DeSmuME',
+  'ppsspp': 'PPSSPP',
 };
 
 /// On-screen control layout per console (TouchControls.kt).
@@ -38,6 +56,9 @@ const builtInTouchLayouts = <String, String>{
   'gba': 'gba',
   'megadrive': 'md',
   'ps1': 'ps1',
+  'n64': 'n64',
+  'nds': 'nds',
+  'psp': 'psp',
 };
 
 /// File types each bundled core opens directly (archives are extracted by
@@ -51,6 +72,9 @@ const builtInExtensions = <String, Set<String>>{
   'megadrive': {'md', 'gen', 'smd', 'bin', '68k', 'sgd'},
   'sms': {'sms', 'bin'},
   'ps1': {'cue', 'bin', 'img', 'mdf', 'pbp', 'chd', 'iso', 'm3u', 'ccd', 'cbn', 'toc'},
+  'n64': {'n64', 'z64', 'v64', 'ndd'},
+  'nds': {'nds'},
+  'psp': {'iso', 'cso', 'pbp', 'elf', 'prx', 'chd'},
 };
 
 const playerActivity = 'com.gamebox.console.player.PlayerActivity';
@@ -73,7 +97,9 @@ class BuiltInPlayerLauncher extends GameLauncherAdapter {
 
   @override
   List<String> get knownLimitations => const [
-        'Only the bundled cores: NES, SNES, Game Boy / Color / Advance, Mega Drive, Master System, PS1.',
+        'Only the bundled cores: NES, SNES, Game Boy / Color / Advance, Mega Drive, Master System, PS1, '
+            'N64, Nintendo DS, PSP (PSP on ARM devices only).',
+        'N64 and PSP need a reasonably fast device; NDS touch screen works on phones (not with a TV remote).',
         'PS1 runs with the core\'s built-in BIOS replacement; a real BIOS in GAMEBOX/BIOS/PS1 improves compatibility.',
         '.7z archives are not supported (ZIP is extracted automatically).',
       ];

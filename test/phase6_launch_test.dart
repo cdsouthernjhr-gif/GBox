@@ -39,9 +39,10 @@ void main() {
     });
 
     test('built-in player first for the bundled systems; dedicated emulators for 3D/handheld', () {
-      expect(launchersForConsole('psp').first.emulatorId, 'ppsspp');
-      expect(launchersForConsole('n64').first.emulatorId, 'mupen64plus_fz');
+      expect(launchersForConsole('psp').map((l) => l.emulatorId).take(2), ['gamebox', 'ppsspp']);
+      expect(launchersForConsole('n64').map((l) => l.emulatorId).take(2), ['gamebox', 'mupen64plus_fz']);
       expect(launchersForConsole('n64').last.emulatorId, 'retroarch');
+      expect(launchersForConsole('saturn').map((l) => l.emulatorId), ['retroarch'], reason: 'not built in');
       expect(launchersForConsole('nes').map((l) => l.emulatorId).take(2), ['gamebox', 'retroarch']);
       expect(launchersForConsole('ps1').map((l) => l.emulatorId).take(2), ['gamebox', 'retroarch']);
     });
@@ -167,14 +168,21 @@ void main() {
       expect(gw.launchedSpecs, isEmpty);
     });
 
-    test('PSP prefers PPSSPP over RetroArch when both are installed', () async {
+    test('PSP: built-in player on ARM, then PPSSPP before RetroArch; no built-in PSP on x86', () async {
       final (svc, gw) = await setup(syntheticNativeScan());
       gw.installed['org.ppsspp.ppsspp'] = '1.18';
       gw.installed['com.retroarch'] = '1.20';
+      final choices = await svc.choicesFor('psp');
+      expect(choices.map((c) => c.adapter.emulatorId).take(3), ['gamebox', 'ppsspp', 'retroarch']);
+      expect(choices.first.installed, isTrue, reason: 'ARM device');
       final id = await addGame('psp', content);
-      final o = await svc.play(id);
+      final o = await svc.play(id, emulatorId: 'ppsspp');
       expect(o.emulatorName, 'PPSSPP');
       expect(gw.launchedSpecs.single['package'], 'org.ppsspp.ppsspp');
+
+      final (x86, _) = await setup(syntheticNativeScan()..['supportedAbis'] = ['x86_64', 'x86']);
+      expect((await x86.choicesFor('psp')).first.installed, isFalse, reason: 'PPSSPP core is ARM-only');
+      expect((await x86.choicesFor('n64')).first.installed, isTrue);
     });
   });
 }

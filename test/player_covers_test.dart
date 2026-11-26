@@ -45,6 +45,21 @@ void main() {
       expect(libretroThumbnailName('Ratchet & Clank: Going Commando?'), 'Ratchet _ Clank_ Going Commando_');
     });
 
+    test('loose matching: regions, punctuation, case and "The" are ignored', () {
+      expect(coverMatchKey('Legend of Zelda, The - A Link to the Past (USA).png'),
+          coverMatchKey('The Legend of Zelda: A Link to the Past'));
+      expect(coverMatchKey('Ratchet _ Clank (USA)'), coverMatchKey('Ratchet & Clank'));
+      final list = [
+        'Crash Bandicoot (Europe).png',
+        'Crash Bandicoot (USA) (Beta).png',
+        'Crash Bandicoot (USA).png',
+        'Crash Bandicoot 2 - Cortex Strikes Back (USA).png',
+      ];
+      expect(bestCoverMatch('crash bandicoot', list), 'Crash Bandicoot (USA)');
+      expect(bestCoverMatch('CRASH BANDICOOT 2: Cortex Strikes Back', list), 'Crash Bandicoot 2 - Cortex Strikes Back (USA)');
+      expect(bestCoverMatch('Spyro', list), isNull);
+    });
+
     test('URLs: the libretro server, then the same collection on GitHub', () {
       final urls = coverUrls('ps1', 'Crash Bandicoot (USA)');
       expect(urls.map((u) => u.toString()), [

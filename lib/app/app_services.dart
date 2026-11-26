@@ -51,7 +51,6 @@ class AppServices {
       appRoots: appRoots ?? _defaultAppRoots,
       artworkDir: artworkDir ?? _defaultArtworkDir,
     );
-    covers = CoverArtService(db: db, library: library, fetch: coverFetch);
     controllerConfig = ControllerConfigService(
       gateway: gateway,
       repo: ControllerProfileRepository(db),
@@ -107,6 +106,13 @@ class AppServices {
       )
       ..touchControls = ((core) => settings.state.value.touchFor(core).name)
       ..playerShader = ((core) => settings.state.value.shaderFor(core).wire);
+    covers = CoverArtService(
+      db: db,
+      library: library,
+      fetch: coverFetch,
+      // Hidden folder: the library scan skips it.
+      tempDir: () async => Directory('${await gameboxRoot()}/.cache').create(recursive: true),
+    );
     romSearch = RomSearchService(db: db, library: library, location: location);
     migration = RomsMigrationService(db, location);
     playlists = RetroArchPlaylistService(db, location);

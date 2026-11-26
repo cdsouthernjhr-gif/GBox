@@ -691,4 +691,35 @@ void main() {
     expect(gateway.savedCoreOptions['snes9x'], isNull);
     await shutdown(tester);
   });
+
+  testWidgets('Download cover: names that differ are matched through the cover list', (tester) async {
+    final png = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+    final asked = <String>[];
+    await boot(
+      tester,
+      prepare: (root) => File('$root/GAMEBOX/Games/NES/zelda.nes')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom()),
+      coverFetch: (url) async {
+        asked.add(url.toString());
+        if (url.host == 'api.github.com') {
+          return utf8.encode(url.path.endsWith('/master')
+              ? '{"tree":[{"path":"Named_Boxarts","type":"tree","sha":"abc"}]}'
+              : '{"tree":[{"path":"Zelda II (USA).png","type":"blob"},{"path":"Zelda (Japan).png","type":"blob"},'
+                  '{"path":"Zelda (USA).png","type":"blob"}]}');
+        }
+        return Uri.decodeComponent(url.pathSegments.last) == 'Zelda (USA).png' ? png : null;
+      },
+    );
+    final game = (await tester.runAsync(() => services.db.watchAllGames().first))!.single.game;
+    final r = await tester.runAsync(() => services.covers.download(game));
+    // "zelda (USA)" etc. are not exact names (case); the list gives "Zelda (USA)".
+    expect(r!.found, isTrue, reason: r.error);
+    expect(r.name, 'Zelda (USA)');
+    expect(r.tried.first, 'zelda');
+    expect(asked.where((u) => u.contains('api.github.com')), hasLength(2));
+    expect(asked.last, startsWith('https://thumbnails.libretro.com/'));
+    await shutdown(tester);
+  });
 }

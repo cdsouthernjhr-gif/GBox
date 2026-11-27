@@ -1,5 +1,19 @@
 # Release notes
 
+## 0.16.0+21 — Add your own emulators (pre-release)
+
+**New: EMULATORS → Add emulator.** Any emulator app installed on the device can be added, even one GAMEBOX doesn't know:
+1. choose the app from the list of installed apps (with search);
+2. give it a name and choose the **consoles** it plays;
+3. choose how GAMEBOX starts a game:
+   * **Open the game file (recommended):** like "Open with" in a file manager; most emulators accept it.
+   * **Game path in an extra (advanced):** for emulators whose documentation names an extra (e.g. `ROM_PATH`).
+   * **Open the app only:** the emulator opens and you choose the game in it.
+
+It then appears under **Added by you** (installed or not), in *Play with…* for those consoles, as the default when no other emulator for the console is installed, and in *My systems* on HOME. Select it to edit or remove it (the app itself isn't uninstalled).
+
+**Note:** GAMEBOX can't know how an unknown app accepts games, so whether the game opens depends on the emulator; if it opens without the game, edit it and choose *Open the app only*. Not yet tried on a device.
+
 ## 0.15.0+20 — Simpler menu, systems on HOME, cover download fix (pre-release)
 
 **Changed — the side menu has 6 entries instead of 11:**

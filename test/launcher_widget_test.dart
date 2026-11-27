@@ -13,6 +13,7 @@ import 'package:gamebox/features/source_manager/find_online_screen.dart';
 import 'package:gamebox/features/game_scraper/cover_art_service.dart';
 import 'package:gamebox/features/game_library/game_detail_screen.dart';
 import 'package:gamebox/features/launcher/launcher_shell.dart';
+import 'package:gamebox/integrations/emulator_adapters/custom_emulator.dart';
 import 'package:gamebox/features/settings/settings_screen.dart';
 import 'player_covers_test.dart' show ps2Iso;
 import 'package:gamebox/app/app_services.dart';
@@ -736,6 +737,52 @@ void main() {
     expect(r.tried.first, 'zelda');
     expect(asked.where((u) => u.contains('api.github.com')), hasLength(2));
     expect(asked.last, startsWith('https://thumbnails.libretro.com/'));
+    await shutdown(tester);
+  });
+
+  testWidgets('EMULATORS: add an emulator by hand, then games play with it', (tester) async {
+    await boot(
+      tester,
+      configure: (g) {
+        g.apps = const [InstalledApp('com.example.tv', 'Example TV', true), InstalledApp('org.example.yaba', 'Yaba Saturn', false)];
+        g.installed['org.example.yaba'] = '2.1';
+      },
+      prepare: (root) {
+        gateway.fileProviderBase = '$root/';
+        File('$root/GAMEBOX/Games/SATURN/Race.cue')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('FILE "Race.bin" BINARY');
+      },
+    );
+    await go(tester, LauncherSection.emulators);
+    await tester.tap(find.text('Add emulator'));
+    await settle(tester);
+    await tester.tap(find.text('Yaba Saturn'));
+    await settle(tester);
+    // Without a console it can't be saved.
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect(find.text('Choose at least one console it plays.'), findsOneWidget);
+    await tester.ensureVisible(find.text('Sega Saturn'));
+    await tester.tap(find.text('Sega Saturn'));
+    await settle(tester);
+    await tester.tap(find.text('Save'));
+    await settleUntil(tester, () => services.settings.state.value.customEmulators.isNotEmpty);
+    await settle(tester);
+    final e = services.settings.state.value.customEmulators.single;
+    expect((e.packageName, e.name, e.method), ('org.example.yaba', 'Yaba Saturn', CustomLaunchMethod.openFile));
+    expect(e.consoleIds, {'saturn'});
+    expect(find.text('Added by you'), findsWidgets);
+    expect(find.text('Installed 2.1'), findsOneWidget);
+
+    // The Saturn game now plays with it (no other Saturn emulator installed).
+    await go(tester, LauncherSection.home);
+    final game = (await tester.runAsync(() => services.db.watchAllGames().first))!.single.game;
+    final outcome = await tester.runAsync(() => services.launcher.play(game.id));
+    expect(outcome!.ok, isTrue, reason: outcome.reasons.join());
+    expect(outcome.emulatorName, 'Yaba Saturn');
+    expect(gateway.launchedSpecs.single['package'], 'org.example.yaba');
+    expect(gateway.launchedSpecs.single['action'], 'android.intent.action.VIEW');
     await shutdown(tester);
   });
 }

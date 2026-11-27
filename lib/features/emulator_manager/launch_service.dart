@@ -14,6 +14,7 @@ import '../../domain/entities/performance_tier.dart';
 import 'player_files.dart';
 import '../../integrations/builtin/builtin_player_launcher.dart';
 import '../../integrations/emulator_adapters/emulator_adapter.dart';
+import '../../integrations/emulator_adapters/custom_emulator.dart';
 import '../../integrations/emulator_adapters/launcher_registry.dart';
 
 class LaunchChoice {
@@ -129,15 +130,27 @@ class LaunchService {
   Future<List<LaunchChoice>> choicesFor(String consoleId) async {
     if (_emulators.installations.value == null) await _emulators.detect();
     final installs = _emulators.installations.value ?? const [];
+    final adapters = launchersForConsole(consoleId);
+    // User-added emulators: checked here (not part of the known list).
+    final customPackages = [for (final a in adapters) if (a is CustomLauncher) a.custom.packageName];
+    var customInstalled = const <String, String?>{};
+    if (customPackages.isNotEmpty) {
+      try {
+        customInstalled = await _gateway.installedVersions(customPackages);
+      } catch (_) {}
+    }
     return [
-      for (final a in launchersForConsole(consoleId))
+      for (final a in adapters)
         LaunchChoice(
           adapter: a,
-          installedPackage: a.builtIn
-              ? (builtInSupportsDevice(consoleId, _device.state.value.profile?.supportedAbis ?? const [])
-                  ? gameboxPackage
-                  : null)
-              : installs.where((i) => i.emulator.id == a.emulatorId).firstOrNull?.installedPackage,
+          installedPackage: switch (a) {
+            _ when a.builtIn => builtInSupportsDevice(consoleId, _device.state.value.profile?.supportedAbis ?? const [])
+                ? gameboxPackage
+                : null,
+            CustomLauncher(:final custom) =>
+              customInstalled.containsKey(custom.packageName) ? custom.packageName : null,
+            _ => installs.where((i) => i.emulator.id == a.emulatorId).firstOrNull?.installedPackage,
+          },
           options: a.options(consoleId),
         ),
     ];

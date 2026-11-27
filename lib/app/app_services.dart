@@ -12,6 +12,7 @@ import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
 import '../features/emulator_manager/player_files.dart';
+import '../integrations/emulator_adapters/launcher_registry.dart' show setCustomEmulators;
 import '../features/game_scraper/cover_art_service.dart';
 import '../features/emulator_manager/retroarch_playlist_service.dart';
 import '../features/rom_manager/rom_search_service.dart';
@@ -201,6 +202,10 @@ class AppServices {
       unawaited(_onStorageAccessMaybeChanged());
     });
     await settings.initialize();
+    // User-added emulators follow the settings.
+    void syncCustom() => setCustomEmulators(settings.state.value.customEmulators);
+    syncCustom();
+    settings.state.addListener(syncCustom);
     await device.initialize(rescan: false);
     await controllerConfig.initialize();
     // After a crash of the built-in player (which ends the app), report it.

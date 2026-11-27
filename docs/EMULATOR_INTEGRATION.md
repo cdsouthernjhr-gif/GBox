@@ -94,6 +94,10 @@ New RetroArch cores: N64 mupen64plus_next / parallel_n64 · NDS melonds / desmum
 | AetherSX2 / NetherSX2 | PS2 | PENDING | — |
 | RetroArch (new cores) | N64, NDS, PSP, Saturn, Dreamcast | PENDING | — |
 
+## Emulators added by the user (0.16.0)
+
+EMULATORS → *Add emulator* (`features/emulator_manager/custom_emulator_screen.dart`) stores `CustomEmulator`s as JSON in the setting `emulators.custom`: package, name, consoles, launch method and, for the path method, the extra name. Invalid entries (bad package name, unknown console, path method without extra) are dropped when read. `AppServices` keeps `customLaunchers` (`launcher_registry.dart`) in sync with the setting; `launchersForConsole` lists them after the emulators GAMEBOX knows, so they are never chosen ahead of a known one unless set as the console default. `CustomLauncher` reuses `RecipeLauncher`: *Open the game file* = `ACTION_VIEW` with the content URI and a read grant; *Game path in an extra* = `ACTION_VIEW` with the file path in that extra (blocked when there is no path, or the file is in `Android/data` on Android 11+); *Open the app only* = the app's `MAIN`/`LAUNCHER` activity, with a note to choose the game there. Installed state comes from `installedVersions` (apps with a launcher icon are visible through the manifest's `<queries>`). Emulator id: `custom:<package>` (launch profiles, play history). Unverified on devices by design: GAMEBOX can't know how an unknown app accepts games.
+
 ## BIOS
 
 Some systems (PS1 optional, Saturn, PS2) need user-supplied BIOS dumps. GAMEBOX will only point users to the emulator's own BIOS setting. It never downloads or ships BIOS files.

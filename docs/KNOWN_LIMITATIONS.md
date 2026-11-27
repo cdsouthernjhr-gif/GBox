@@ -90,6 +90,11 @@
 * GAMEBOX can't set emulators' save or BIOS folders; you point each emulator at them once.
 * Save backups and exports are kept in the app folder (deleted with GAMEBOX).
 
+## Emulators added by the user (0.16.0)
+
+* GAMEBOX can't know how an unknown emulator accepts games: *Open the game file* works only with apps that open files sent from a file manager; otherwise use *Open the app only*. Game files GAMEBOX can't share (no content link) can't be sent.
+* Only apps with a launcher icon can be picked (Android 11+ package visibility).
+
 ## Built-in player (0.12.0)
 
 * Bundled cores: NES, SNES, Game Boy/Color/Advance, Mega Drive/Master System, PS1, N64, NDS, PSP (PSP on ARM only). Saturn, Dreamcast, PS2, GameCube/Wii still need an emulator app.

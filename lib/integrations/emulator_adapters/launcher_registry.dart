@@ -2,6 +2,7 @@ import '../builtin/builtin_player_launcher.dart';
 import '../duckstation/duckstation_launcher.dart';
 import '../retroarch/retroarch_launcher.dart';
 import 'emulator_adapter.dart';
+import 'custom_emulator.dart';
 import 'recipe_launcher.dart';
 
 /// Emulators that GAMEBOX can hand a game to. All are experimental until a
@@ -106,8 +107,18 @@ final List<GameLauncherAdapter> gameLaunchers = [
   ),
 ];
 
+/// Emulators the user added (EMULATORS → Add emulator), from the settings.
+final List<CustomLauncher> customLaunchers = [];
+
+/// Replaces the user-added emulators (called when the settings change).
+void setCustomEmulators(List<CustomEmulator> list) {
+  customLaunchers
+    ..clear()
+    ..addAll([for (final e in list) CustomLauncher(e)]);
+}
+
 GameLauncherAdapter? launcherFor(String emulatorId) {
-  for (final l in gameLaunchers) {
+  for (final l in [...gameLaunchers, ...customLaunchers]) {
     if (l.emulatorId == emulatorId) return l;
   }
   return null;
@@ -119,6 +130,8 @@ const _standaloneFirst = {'n64', 'nds', 'psp', 'saturn', 'dreamcast', 'gamecube'
 
 List<GameLauncherAdapter> launchersForConsole(String consoleId) {
   final list = [for (final l in gameLaunchers) if (l.supports(consoleId)) l];
+  // User-added emulators come last: chosen by "Play with…" or as the
+  // console default, never ahead of an emulator GAMEBOX knows.
   if (_standaloneFirst.contains(consoleId)) {
     // Stable: RetroArch after the standalone emulators.
     final ra = list.where((l) => l.emulatorId == 'retroarch').toList();
@@ -126,5 +139,5 @@ List<GameLauncherAdapter> launchersForConsole(String consoleId) {
       ..removeWhere((l) => l.emulatorId == 'retroarch')
       ..addAll(ra);
   }
-  return list;
+  return [...list, for (final c in customLaunchers) if (c.supports(consoleId)) c];
 }

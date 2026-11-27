@@ -2,6 +2,8 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
+> **0.16.0:** add any installed emulator by hand (EMULATORS → Add emulator): choose the app, its consoles and how it opens games.
+>
 > **0.15.0:** a simpler menu: HOME, GAMES, ADD GAMES, EMULATORS, SETTINGS, ANDROID APPS (was 11 entries). HOME shows your systems with their emulator and number of games. *Download cover* fixed.
 >
 > **0.14.0:** settings for each built-in emulator (display filter, on-screen controls, the emulator's own options in game), HOME with small cards and the focused game's cover large and as wallpaper (also on mouse hover), *Download cover* on the game page, and a popup when a game belongs to another console or the built-in player can't open it.

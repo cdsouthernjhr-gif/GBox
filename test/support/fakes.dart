@@ -444,9 +444,10 @@ class FakeGateway implements PlatformGateway {
   @override
   Future<bool> openAppDetails(String packageName) async => true;
 
+  List<InstalledApp> apps = const [InstalledApp('com.example.tv', 'Example TV', true)];
+
   @override
-  Future<List<InstalledApp>> listApps() async =>
-      const [InstalledApp('com.example.tv', 'Example TV', true)];
+  Future<List<InstalledApp>> listApps() async => apps;
 
   @override
   Future<Uint8List?> appImage(String packageName, {bool banner = false}) async => null;

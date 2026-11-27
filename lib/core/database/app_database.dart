@@ -135,6 +135,27 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
+  /// Registers consoles the user added (games reference the consoles table).
+  /// Rows are never deleted: games of a removed system keep their row.
+  Future<void> upsertConsoles(List<ConsoleDefinition> list) async {
+    if (list.isEmpty) return;
+    await batch((b) {
+      b.insertAllOnConflictUpdate(consoles, [
+        for (final c in list)
+          ConsolesCompanion.insert(
+            id: c.id,
+            name: c.name,
+            manufacturer: c.manufacturer,
+            category: c.category.name,
+            folderName: c.folderName,
+            extensions: c.extensions.join(','),
+            minTier: c.minTier.name,
+            recommendedTier: c.recommendedTier.name,
+          ),
+      ]);
+    });
+  }
+
   /// Upserts the static console/emulator/connector catalogue so new app
   /// versions can extend it without a migration.
   Future<void> seedCatalog() async {

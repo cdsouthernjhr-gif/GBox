@@ -12,6 +12,9 @@ import '../core/services/system_services.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/controller_profile_repository.dart';
 import '../features/emulator_manager/player_files.dart';
+import '../core/constants/console_catalog.dart' show customConsoles;
+import '../core/constants/custom_console.dart';
+import '../core/rom/console_detector.dart';
 import '../integrations/emulator_adapters/launcher_registry.dart' show setCustomEmulators;
 import '../features/game_scraper/cover_art_service.dart';
 import '../features/emulator_manager/retroarch_playlist_service.dart';
@@ -206,6 +209,30 @@ class AppServices {
     void syncCustom() => setCustomEmulators(settings.state.value.customEmulators);
     syncCustom();
     settings.state.addListener(syncCustom);
+    // So do the systems the user added: registered in the database (games
+    // reference it), recognised by the scan, and given a ROMs/ folder.
+    String? lastConsoles;
+    Future<void> syncConsoles() async {
+      final list = settings.state.value.customConsoles;
+      final key = CustomConsole.encodeList(list);
+      if (key == lastConsoles) return;
+      // Folders are made when a system is added, not on every start.
+      final added = lastConsoles != null && list.isNotEmpty;
+      lastConsoles = key;
+      customConsoles
+        ..clear()
+        ..addAll([for (final c in list) c.toDefinition()]);
+      library.detector = ConsoleDetector();
+      try {
+        await db.upsertConsoles(customConsoles);
+        if (added) await location.ensureStructure();
+      } catch (e, st) {
+        AppLogger.instance.error('Registering added systems failed', e, st);
+      }
+    }
+
+    await syncConsoles();
+    settings.state.addListener(() => unawaited(syncConsoles()));
     await device.initialize(rescan: false);
     await controllerConfig.initialize();
     // After a crash of the built-in player (which ends the app), report it.

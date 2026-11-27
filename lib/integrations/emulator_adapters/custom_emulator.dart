@@ -41,6 +41,15 @@ class CustomEmulator {
   /// Extra name for [CustomLaunchMethod.pathExtra].
   final String? extraKey;
 
+  /// The same emulator without [consoleId] (a removed system).
+  CustomEmulator copyWithout(String consoleId) => CustomEmulator(
+        packageName: packageName,
+        name: name,
+        consoleIds: {...consoleIds}..remove(consoleId),
+        method: method,
+        extraKey: extraKey,
+      );
+
   /// Emulator id used for launch profiles and play history.
   String get id => idFor(packageName);
   static String idFor(String packageName) => 'custom:$packageName';

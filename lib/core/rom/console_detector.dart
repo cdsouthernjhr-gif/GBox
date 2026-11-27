@@ -50,13 +50,15 @@ class ConsoleMatch {
 }
 
 class ConsoleDetector {
-  ConsoleDetector({List<ConsoleDefinition> catalog = consoleCatalog}) {
+  ConsoleDetector({List<ConsoleDefinition>? catalog}) {
+    catalog ??= allConsoles;
     for (final c in catalog) {
       for (final e in c.extensions) {
         _byExtension.putIfAbsent(e, () => {}).add(c.id);
       }
       _known.add(c.id);
       _aliases[normalizeFolder(c.folderName)] = c.id;
+      if (c.category == ConsoleCategory.other) _userIds.add(c.id);
     }
     consoleFolderAliases.forEach((id, aliases) {
       if (!_known.contains(id)) return;
@@ -70,11 +72,13 @@ class ConsoleDetector {
   final Map<String, String> _aliases = {};
   final Set<String> _known = {};
 
+  /// Systems added by the user.
+  final Set<String> _userIds = {};
+
   static String normalizeFolder(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
   /// All extensions worth reporting from a scan (ROMs + archives + companions).
-  Set<String> get scannableExtensions =>
-      {..._byExtension.keys, ...archiveExtensions, ...companionExtensions};
+  Set<String> get scannableExtensions => {..._byExtension.keys, ...archiveExtensions, ...companionExtensions};
 
   bool isKnownExtension(String ext) => _byExtension.containsKey(ext) || archiveExtensions.contains(ext);
 
@@ -92,9 +96,13 @@ class ConsoleDetector {
     final folderConsole = consoleFromFolders(dirSegments);
 
     if (archiveExtensions.contains(ext)) {
-      return folderConsole != null && _archiveConsoles.contains(folderConsole)
-          ? ConsoleMatch(folderConsole, DetectionMethod.folder)
-          : null;
+      // Cartridge-era consoles, or a system added by the user that lists
+      // the archive type (e.g. arcade sets as .zip).
+      final ok =
+          folderConsole != null &&
+          (_archiveConsoles.contains(folderConsole) ||
+              (_userIds.contains(folderConsole) && (_byExtension[ext]?.contains(folderConsole) ?? false)));
+      return ok ? ConsoleMatch(folderConsole, DetectionMethod.folder) : null;
     }
     final candidates = _byExtension[ext];
     if (candidates == null || candidates.isEmpty) return null;
@@ -107,6 +115,10 @@ class ConsoleDetector {
     if (candidates.length == 1) {
       return ConsoleMatch(candidates.first, DetectionMethod.uniqueExtension);
     }
+    // Systems added by the user never make a known console's file type
+    // ambiguous: outside their folder they don't count.
+    final known = candidates.where((c) => !_userIds.contains(c)).toList();
+    if (known.length == 1) return ConsoleMatch(known.first, DetectionMethod.uniqueExtension);
     return null;
   }
 }

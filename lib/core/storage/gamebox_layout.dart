@@ -213,7 +213,7 @@ const retroArchBiosDir = '$dataDir/BIOS/RetroArch';
 
 /// Every folder of the layout, relative to the GAMEBOX root.
 List<String> gameboxFolders() => [
-      for (final c in consoleCatalog) gamesDirFor(c.id),
+      for (final c in allConsoles) gamesDirFor(c.id),
       '$dataDir/Artwork/Covers',
       '$dataDir/Artwork/Screenshots',
       '$dataDir/Artwork/Backgrounds',

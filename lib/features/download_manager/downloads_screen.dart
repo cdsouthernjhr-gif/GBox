@@ -266,7 +266,7 @@ Future<void> showAddDownloadDialog(BuildContext context) async {
               TvButton(
                 label: 'Console: ${console == null ? 'Detect automatically' : consoleById(console!)!.name}',
                 onPressed: () => setState(() {
-                  final ids = [null, ...consoleCatalog.map((e) => e.id)];
+                  final ids = [null, ...allConsoles.map((e) => e.id)];
                   console = ids[(ids.indexOf(console) + 1) % ids.length];
                 }),
               ),

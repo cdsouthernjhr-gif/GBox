@@ -209,6 +209,14 @@ class PerformanceClassifier {
     ConsoleDefinition console, {
     KnownEmulator? emulator,
   }) {
+    // Systems the user added: no requirements known, so no estimate.
+    if (console.category == ConsoleCategory.other) {
+      return const CompatibilityEstimate(
+        rating: CompatibilityRating.notTested,
+        evidence: EvidenceLevel.hardwareEstimate,
+        reasons: ['System added by you: GAMEBOX has no hardware estimate for it.'],
+      );
+    }
     final reasons = <String>[];
     final needsArm64 =
         console.requiresArm64 || (emulator?.requiresArm64 ?? false);

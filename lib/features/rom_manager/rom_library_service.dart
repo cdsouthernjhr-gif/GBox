@@ -105,14 +105,15 @@ class RomLibraryService {
     required this._appRoots,
     required this._artworkDir,
     ConsoleDetector? detector,
-  }) : detector = detector ?? ConsoleDetector();
+  }) : detector = detector ?? ConsoleDetector(catalog: allConsoles);
 
   final PlatformGateway _gateway;
   final AppDatabase _db;
   final SettingsRepository _settings;
   final Future<List<String>> Function() _appRoots;
   final Future<String> Function() _artworkDir;
-  final ConsoleDetector detector;
+  /// Rebuilt when the user adds or removes a system.
+  ConsoleDetector detector;
 
   final ValueNotifier<ScanProgress> progress = ValueNotifier(const ScanProgress());
   Future<void>? _running;

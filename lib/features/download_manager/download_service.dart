@@ -453,7 +453,7 @@ class DownloadService {
   /// Consoles a file extension could belong to (for the import chooser).
   static List<ConsoleDefinition> consolesForFile(String path) {
     final ext = extensionOf(path);
-    final list = consoleCatalog.where((c) => c.extensions.contains(ext)).toList();
-    return list.isEmpty ? consoleCatalog : list;
+    final list = allConsoles.where((c) => c.extensions.contains(ext)).toList();
+    return list.isEmpty ? allConsoles : list;
   }
 }

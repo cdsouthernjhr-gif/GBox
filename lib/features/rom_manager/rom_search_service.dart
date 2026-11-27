@@ -190,7 +190,7 @@ class RomSearchService {
         final byHeader = await _headerConsole(e);
         if (byHeader == null && (archiveExtensions.contains(ext) || companionExtensions.contains(ext))) continue;
         if ((e.size ?? minSize) < minSize) continue;
-        final candidates = [for (final c in consoleCatalog) if (c.extensions.contains(ext)) c.id];
+        final candidates = [for (final c in allConsoles) if (c.extensions.contains(ext)) c.id];
         hits.add(RomSearchHit(
           files: [e],
           primary: e,
@@ -241,7 +241,7 @@ class RomSearchService {
   /// Console identified from the file's own header, or null.
   Future<String?> _headerConsole(ScannedEntry e) async {
     final ext = e.extension;
-    final candidates = [for (final c in consoleCatalog) if (c.extensions.contains(ext)) c.id];
+    final candidates = [for (final c in allConsoles) if (c.extensions.contains(ext)) c.id];
     if (candidates.isEmpty) return null;
     Uint8List bytes;
     try {

@@ -186,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           _Choice<String>(
             title: 'Default console',
             value: st.defaultConsoleId ?? 'none',
-            values: ['none', ...consoleCatalog.map((c) => c.id)],
+            values: ['none', ...allConsoles.map((c) => c.id)],
             label: (v) => v == 'none' ? 'None' : consoleById(v)!.name,
             onChanged: (v) => s.settings.set(SettingsKeys.defaultConsole, v == 'none' ? '' : v),
           ),

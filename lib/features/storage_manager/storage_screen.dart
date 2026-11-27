@@ -127,7 +127,7 @@ class StorageScreen extends StatelessWidget {
         const SizedBox(height: 18),
         const SectionHeader('Folder layout'),
         Text(
-          '$romsDir/  ${consoleCatalog.map((c) => gamesDirFor(c.id).split('/').last).join('/  ')}/\n'
+          '$romsDir/  ${allConsoles.map((c) => gamesDirFor(c.id).split('/').last).join('/  ')}/\n'
           '$dataDir/\n'
           '  Saves/  ${saveLayouts.map((l) => l.root.split('/').last).join('/  ')}/\n'
           '  BIOS/  ${[for (final b in biosInfo) consoleById(b.consoleId)!.folderName, 'RetroArch'].join('/  ')}/\n'

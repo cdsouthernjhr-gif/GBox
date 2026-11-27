@@ -43,7 +43,7 @@ class ConsoleDefinition {
   final String? notes;
 }
 
-enum ConsoleCategory { retro, gen32_64, handheld, console3d }
+enum ConsoleCategory { retro, gen32_64, handheld, console3d, other }
 
 extension ConsoleCategoryLabel on ConsoleCategory {
   String get label => switch (this) {
@@ -51,6 +51,7 @@ extension ConsoleCategoryLabel on ConsoleCategory {
         ConsoleCategory.gen32_64 => '32-bit & 64-bit systems',
         ConsoleCategory.handheld => 'Handheld systems',
         ConsoleCategory.console3d => '3D consoles',
+        ConsoleCategory.other => 'Systems added by you',
       };
 }
 
@@ -172,8 +173,15 @@ const List<ConsoleDefinition> consoleCatalog = [
   ),
 ];
 
+/// Systems the user added (see `core/constants/custom_console.dart`), kept
+/// in sync with the settings by AppServices.
+final List<ConsoleDefinition> customConsoles = [];
+
+/// Every console GAMEBOX knows, then the ones the user added.
+List<ConsoleDefinition> get allConsoles => [...consoleCatalog, ...customConsoles];
+
 ConsoleDefinition? consoleById(String id) {
-  for (final c in consoleCatalog) {
+  for (final c in allConsoles) {
     if (c.id == id) return c;
   }
   return null;

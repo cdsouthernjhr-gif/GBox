@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.17.0+22 — Add systems GAMEBOX doesn't list (pre-release)
+
+**New:** when a console or system isn't in GAMEBOX's list (e.g. Neo Geo, arcade, Atari 2600, 3DS), add it yourself:
+* **EMULATORS → Add emulator → Consoles it plays → *Other system…***, or **EMULATORS → Consoles → *Add system***.
+* Give it a **name**, a **games folder** (`ROMs/<folder>`, suggested from the name) and its **file types** (e.g. `zip, neo`).
+* GAMEBOX creates the folder; a scan adds the files of those types found there. Files of a type only it uses (e.g. `.neo`) are recognised anywhere, like other consoles. Archives (`.zip`, `.7z`) count only inside its folder.
+* It appears in GAMES (filter), on HOME (*My systems*), in *Play with…* with the emulators you set up for it, and under *Systems added by you* in Consoles (select to edit or remove).
+
+**Safeguards:** a new system can't take a folder or name already used by a known console, and it never takes files away from a known console (a `.nes` file outside its folder stays NES). A system that still has games in the library can't be removed. GAMEBOX shows "Not tested" instead of a hardware estimate for systems you add.
+
 ## 0.16.0+21 — Add your own emulators (pre-release)
 
 **New: EMULATORS → Add emulator.** Any emulator app installed on the device can be added, even one GAMEBOX doesn't know:

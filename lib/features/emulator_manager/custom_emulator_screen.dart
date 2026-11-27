@@ -5,6 +5,7 @@ import '../../core/services/platform_gateway.dart';
 import '../../core/theme/app_theme.dart';
 import '../../integrations/emulator_adapters/custom_emulator.dart';
 import '../../shared/widgets/tv_widgets.dart';
+import '../console_manager/custom_console_dialog.dart';
 
 /// Add an emulator by hand: pick an installed app, then name it, choose the
 /// consoles it plays and how GAMEBOX hands it a game. With [existing], edits
@@ -76,6 +77,16 @@ class _CustomEmulatorScreenState extends State<CustomEmulatorScreen> {
     ];
     await s.settings.setCustomEmulators(list);
     if (mounted) Navigator.pop(context, true);
+  }
+
+  Future<void> _addSystem() async {
+    final id = await showCustomConsoleDialog(context);
+    if (id == null) return;
+    // The new system is registered when the settings update.
+    for (var i = 0; i < 40 && consoleById(id) == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    if (mounted) setState(() => _consoles.add(id));
   }
 
   Future<void> _remove() async {
@@ -232,7 +243,7 @@ class _CustomEmulatorScreenState extends State<CustomEmulatorScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final c in consoleCatalog)
+            for (final c in allConsoles)
               chip(
                 c.name,
                 _consoles.contains(c.id),
@@ -240,6 +251,16 @@ class _CustomEmulatorScreenState extends State<CustomEmulatorScreen> {
                   if (!_consoles.remove(c.id)) _consoles.add(c.id);
                 }),
               ),
+            // A system GAMEBOX doesn't list.
+            TvFocusable(
+              borderRadius: 20,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              onSelect: _addSystem,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [Icon(Icons.add_rounded, size: 16), SizedBox(width: 4), Text('Other system…', style: TextStyle(fontSize: 13))],
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 14),

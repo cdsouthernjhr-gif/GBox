@@ -116,7 +116,7 @@ class _MyGamesScreenState extends State<MyGamesScreen> {
                   selected: _console == null,
                   onSelect: () => setState(() => _console = null),
                 ),
-                for (final c in consoleCatalog)
+                for (final c in allConsoles)
                   if (counts[c.id] != null)
                     _Chip(
                       label: '${c.name} (${counts[c.id]})',
@@ -272,8 +272,8 @@ Future<void> importFiles(BuildContext context) async {
 
 Future<String?> chooseConsole(BuildContext context, List<ScannedEntry> files) {
   final ext = files.map((f) => f.extension).toSet();
-  final candidates = consoleCatalog.where((c) => c.extensions.any(ext.contains)).toList();
-  final list = candidates.isEmpty ? consoleCatalog : candidates;
+  final candidates = allConsoles.where((c) => c.extensions.any(ext.contains)).toList();
+  final list = candidates.isEmpty ? allConsoles : candidates;
   return showDialog<String>(
     context: context,
     builder: (c) => AlertDialog(

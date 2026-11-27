@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import '../../core/constants/custom_console.dart';
 import '../../core/database/app_database.dart';
 import '../../integrations/emulator_adapters/custom_emulator.dart';
 
@@ -49,7 +50,11 @@ class SettingsState {
     this.wallpaperImagePath,
     this.playerCores = const {},
     this.customEmulators = const [],
+    this.customConsoles = const [],
   });
+
+  /// Systems the user added (not in GAMEBOX's list).
+  final List<CustomConsole> customConsoles;
 
   /// Emulators the user added (EMULATORS → Add emulator).
   final List<CustomEmulator> customEmulators;
@@ -162,6 +167,7 @@ class SettingsState {
       accentColor: int.tryParse(m[SettingsKeys.accentColor] ?? ''),
       wallpaperImagePath: (m[SettingsKeys.wallpaperImage]?.isEmpty ?? true) ? null : m[SettingsKeys.wallpaperImage],
       customEmulators: CustomEmulator.decodeList(m[SettingsKeys.customEmulators]),
+      customConsoles: CustomConsole.decodeList(m[SettingsKeys.customConsoles]),
       playerCores: {
         for (final e in m.entries)
           if (e.key.startsWith(SettingsKeys.playerCorePrefix) && e.value.isNotEmpty) e.key: e.value,
@@ -218,6 +224,7 @@ abstract final class SettingsKeys {
   static const wallpaperImage = 'theme.wallpaper_image';
   static const playerCorePrefix = 'player.core.';
   static const customEmulators = 'emulators.custom';
+  static const customConsoles = 'consoles.custom';
   static String playerCore(String core, String name) => '$playerCorePrefix$core.$name';
 }
 
@@ -242,6 +249,10 @@ class SettingsRepository {
   /// Saves the user-added emulators (one per app).
   Future<void> setCustomEmulators(List<CustomEmulator> list) =>
       _db.setSetting(SettingsKeys.customEmulators, CustomEmulator.encodeList(list));
+
+  /// Saves the systems the user added.
+  Future<void> setCustomConsoles(List<CustomConsole> list) =>
+      _db.setSetting(SettingsKeys.customConsoles, CustomConsole.encodeList(list));
 
   Future<void> setRomFolders(List<String> uris) =>
       _db.setSetting(SettingsKeys.romFolders, jsonEncode(uris));

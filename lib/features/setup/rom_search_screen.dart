@@ -57,7 +57,7 @@ class _RomSearchScreenState extends State<RomSearchScreen> {
   }
 
   Future<void> _chooseConsole(RomSearchHit h) async {
-    final ids = h.candidates.isNotEmpty ? h.candidates : [for (final c in consoleCatalog) c.id];
+    final ids = h.candidates.isNotEmpty ? h.candidates : [for (final c in allConsoles) c.id];
     final picked = await showDialog<String>(
       context: context,
       builder: (c) => SimpleDialog(

@@ -4,6 +4,7 @@ import '../../core/constants/console_catalog.dart';
 import '../../core/database/app_database.dart';
 import '../../core/errors/app_logger.dart';
 import '../../core/online/archive_guard.dart';
+import '../../core/rom/console_detector.dart' show archiveGameConsoles;
 import '../../core/rom/rom_path_resolver.dart';
 import '../../core/rom/title_normalizer.dart';
 import '../../core/services/platform_gateway.dart';
@@ -76,6 +77,16 @@ class PlayerFiles {
       if (path == null) return const PlayerPreparation(problem: 'GAMEBOX could not read the game file.');
 
       final ext = extensionOf(path);
+      // Arcade romsets are read as archives by the core (never extracted).
+      if (archiveGameConsoles.contains(game.consoleId)) {
+        final bios = biosInfo.where((b) => b.consoleId == game.consoleId).firstOrNull;
+        final base = await _dataBase();
+        final system = '$base/${bios?.dir ?? '$dataDir/BIOS/ARCADE'}';
+        final saves = '$base/$dataDir/Saves/GAMEBOX/${gamesDirFor(game.consoleId).split('/').last}';
+        await Directory(system).create(recursive: true);
+        await Directory(saves).create(recursive: true);
+        return PlayerPreparation(romPath: path, systemDir: system, savesDir: saves);
+      }
       if (ext == '7z') {
         return const PlayerPreparation(
             problem: '.7z archives are not supported by the built-in player. Extract the game, or use "Play with…".');

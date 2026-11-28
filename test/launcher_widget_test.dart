@@ -794,49 +794,49 @@ void main() {
     await boot(
       tester,
       configure: (g) {
-        g.apps = const [InstalledApp('org.example.neo', 'Neo Emu', false)];
-        g.installed['org.example.neo'] = '1.0';
+        g.apps = const [InstalledApp('org.example.stella', 'Stella Emu', false)];
+        g.installed['org.example.stella'] = '1.0';
       },
     );
     await go(tester, LauncherSection.emulators);
     await tester.tap(find.text('Add emulator'));
     await settle(tester);
-    await tester.tap(find.text('Neo Emu'));
+    await tester.tap(find.text('Stella Emu'));
     await settle(tester);
     await tester.ensureVisible(find.text('Other system…'));
     await tester.tap(find.text('Other system…'));
     await settle(tester);
-    await tester.enterText(find.byKey(const ValueKey('console-name')), 'Neo Geo');
+    await tester.enterText(find.byKey(const ValueKey('console-name')), 'Atari 2600');
     await settle(tester);
-    expect(tester.widget<TextField>(find.byKey(const ValueKey('console-folder'))).controller!.text, 'neogeo');
+    expect(tester.widget<TextField>(find.byKey(const ValueKey('console-folder'))).controller!.text, 'atari2600');
     await tester.tap(find.text('Save').last);
     await settle(tester);
     expect(find.byKey(const ValueKey('console-error')), findsOneWidget, reason: 'file types are required');
-    await tester.enterText(find.byKey(const ValueKey('console-exts')), 'zip, neo');
+    await tester.enterText(find.byKey(const ValueKey('console-exts')), 'a26, zip');
     await tester.tap(find.text('Save').last);
     await settleUntil(tester, () => services.settings.state.value.customConsoles.isNotEmpty);
     await settleUntil(tester, () => find.byType(AlertDialog).evaluate().isEmpty);
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
     await settle(tester);
-    expect(services.settings.state.value.customConsoles.single.id, 'user_neogeo');
+    expect(services.settings.state.value.customConsoles.single.id, 'user_atari2600');
     // Selected for the emulator straight away.
     await tester.tap(find.text('Save'));
     await settleUntil(tester, () => services.settings.state.value.customEmulators.isNotEmpty);
-    expect(services.settings.state.value.customEmulators.single.consoleIds, {'user_neogeo'});
+    expect(services.settings.state.value.customEmulators.single.consoleIds, {'user_atari2600'});
 
     // Games in its folder are scanned into it and play with its emulator.
     final root = (await tester.runAsync(() => services.gameboxRoot()))!;
     await tester.runAsync(() async {
-      File('$root/Games/neogeo/kof98.zip')
+      File('$root/Games/atari2600/pitfall.a26')
         ..createSync(recursive: true)
         ..writeAsBytesSync(List.filled(4096, 1));
       await services.library.scanAll();
     });
     await settle(tester);
     final games = (await tester.runAsync(() => services.db.watchAllGames().first))!;
-    expect(games.single.game.consoleId, 'user_neogeo');
-    final choices = (await tester.runAsync(() => services.launcher.choicesFor('user_neogeo')))!;
-    expect(choices.single.adapter.emulator.name, 'Neo Emu');
+    expect(games.single.game.consoleId, 'user_atari2600');
+    final choices = (await tester.runAsync(() => services.launcher.choicesFor('user_atari2600')))!;
+    expect(choices.single.adapter.emulator.name, 'Stella Emu');
     expect(choices.single.installed, isTrue);
     await shutdown(tester);
   });

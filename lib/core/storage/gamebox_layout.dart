@@ -29,6 +29,8 @@ const romFolderNames = <String, String>{
   'snes': 'snes',
   'sms': 'mastersystem',
   'megadrive': 'megadrive',
+  'neogeo': 'neogeo',
+  'arcade': 'arcade',
   'gb': 'gb',
   'gbc': 'gbc',
   'gba': 'gba',
@@ -130,8 +132,13 @@ class BiosInfo {
     required this.note,
     this.files = const [],
     this.anyDump = false,
+    this.folder,
   });
   final String consoleId;
+
+  /// BIOS folder name when it isn't the console's own (Neo Geo and arcade
+  /// share FinalBurn Neo's).
+  final String? folder;
 
   /// False when the emulators have a built-in replacement (HLE) for most games.
   final bool required;
@@ -141,10 +148,25 @@ class BiosInfo {
   /// The emulator accepts any dump; file names don't matter.
   final bool anyDump;
 
-  String get dir => '$dataDir/BIOS/${consoleById(consoleId)!.folderName}';
+  String get dir => '$dataDir/BIOS/${folder ?? consoleById(consoleId)!.folderName}';
 }
 
 const biosInfo = <BiosInfo>[
+  BiosInfo(
+    consoleId: 'neogeo',
+    required: true,
+    folder: 'ARCADE',
+    note: 'FinalBurn Neo needs the Neo Geo BIOS set neogeo.zip (a dump of your own, matching the core version). '
+        'It may also sit next to the games; GAMEBOX does not list it as a game.',
+    files: [BiosFile('neogeo.zip', 'any', usedBy: 'FinalBurn Neo')],
+  ),
+  BiosInfo(
+    consoleId: 'arcade',
+    required: false,
+    folder: 'ARCADE',
+    note: 'Only some boards need a BIOS set (e.g. neogeo.zip for Neo Geo games, pgm.zip for PGM). Same folder as Neo Geo.',
+    files: [BiosFile('neogeo.zip', 'any', usedBy: 'FinalBurn Neo (Neo Geo games)'), BiosFile('pgm.zip', 'any', usedBy: 'FinalBurn Neo (PGM)')],
+  ),
   BiosInfo(
     consoleId: 'ps1',
     required: true,
@@ -212,7 +234,8 @@ const biosInfo = <BiosInfo>[
 const retroArchBiosDir = '$dataDir/BIOS/RetroArch';
 
 /// Every folder of the layout, relative to the GAMEBOX root.
-List<String> gameboxFolders() => [
+/// (Each folder once: some consoles share a BIOS folder.)
+List<String> gameboxFolders() => {
       for (final c in allConsoles) gamesDirFor(c.id),
       '$dataDir/Artwork/Covers',
       '$dataDir/Artwork/Screenshots',
@@ -224,7 +247,7 @@ List<String> gameboxFolders() => [
       '$dataDir/Backups',
       '$dataDir/Downloads',
       '$dataDir/Exports',
-    ];
+    }.toList();
 
 /// Folders of the 0.9.0 layout (`Games/<CONSOLE>` inside the GAMEBOX
 /// folder), moved into `ROMs/<system>` by the migration.

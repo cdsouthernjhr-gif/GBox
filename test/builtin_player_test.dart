@@ -30,7 +30,7 @@ void main() {
   group('plan', () {
     test('covers the bundled systems with one core each', () {
       expect(player.builtIn, isTrue);
-      expect(player.consoleIds, {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1', 'n64', 'nds', 'psp'});
+      expect(player.consoleIds, {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1', 'n64', 'nds', 'psp', 'neogeo', 'arcade'});
       expect(builtInSupportsDevice('psp', ['arm64-v8a']), isTrue);
       expect(builtInSupportsDevice('psp', ['x86_64', 'x86']), isFalse, reason: 'no x86 PPSSPP core');
       expect(builtInSupportsDevice('psp', const []), isTrue, reason: 'unknown ABIs');

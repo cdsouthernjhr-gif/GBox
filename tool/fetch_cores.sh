@@ -6,12 +6,12 @@
 # LemuroidCores), pinned to one commit and verified by SHA-256. Licences:
 # docs/THIRD_PARTY_LICENSES.md (fceumm, gambatte, pcsx_rearmed, desmume,
 # mupen64plus-next: GPLv2; ppsspp: GPLv2+; mgba: MPL-2.0; snes9x,
-# genesis_plus_gx: non-commercial).
+# genesis_plus_gx, fbneo: non-commercial).
 set -euo pipefail
 COMMIT=fee2e824525daa22bcf318f96127fe43fa8a15ad
 BASE="https://raw.githubusercontent.com/Swordfish90/LemuroidCores/$COMMIT"
 DEST="$(cd "$(dirname "$0")/.." && pwd)/android/app/src/main/jniLibs"
-CORES="fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed mupen64plus_next_gles3 desmume"
+CORES="fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed mupen64plus_next_gles3 desmume fbneo"
 # PPSSPP has no x86_64 build in LemuroidCores (PSP is ARM-only in GAMEBOX).
 ARM_ONLY_CORES="ppsspp"
 ABIS="arm64-v8a armeabi-v7a x86_64"
@@ -42,6 +42,9 @@ c7e44a9f6bfc67411a76d0253e12b546cd36746cc5adf2fffe68146544fe8d7a  arm64-v8a/libm
 d1ecc0bad6ad6ff573b88315202eb1ffdf7ba4da18c1709c098e1f2744276e0c  arm64-v8a/libdesmume_libretro_android.so
 a90af50930057c3643d6a1d5840f716d958b48de90c903736f4d9347571f93ba  armeabi-v7a/libdesmume_libretro_android.so
 72e5faa3a613db0b68afe9ec84aa62db8fad1ca5568750d315b27606728ab2a6  x86_64/libdesmume_libretro_android.so
+88fd9f4aa9d8f235b58e64e78947ede0965c1e7ff85caf03dbcfcfe914b2e583  arm64-v8a/libfbneo_libretro_android.so
+52d96ed7a86e865dfabeb77392793867ac688e289d55f605c07b9ee1844010aa  armeabi-v7a/libfbneo_libretro_android.so
+144876bf1c0897ed506efd431a745ccb0e6cd6d87c9d778a67cb4c0a2f5736ef  x86_64/libfbneo_libretro_android.so
 2d5370602e07df1e5bc0fb20467cff52aafa8ccbade904b5d7f60b3eebd2ff23  arm64-v8a/libppsspp_libretro_android.so
 c0e5522565afc64c034b858cec96d5122adaeca1cdf1a33d9c090f77fec9bbf3  armeabi-v7a/libppsspp_libretro_android.so
 2ae4b85598b1759ee405cefeea2d8cf8a75971ff641b860b7fc45a8c83eca0d5  assets/ppsspp.zip

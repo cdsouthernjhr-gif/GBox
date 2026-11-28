@@ -13,6 +13,8 @@ const retroArchDbNames = <String, String>{
   'nes': 'Nintendo - Nintendo Entertainment System',
   'snes': 'Nintendo - Super Nintendo Entertainment System',
   'sms': 'Sega - Master System - Mark III',
+  'neogeo': 'SNK - Neo Geo',
+  'arcade': 'FBNeo - Arcade Games',
   'megadrive': 'Sega - Mega Drive - Genesis',
   'gb': 'Nintendo - Game Boy',
   'gbc': 'Nintendo - Game Boy Color',

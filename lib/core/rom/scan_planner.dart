@@ -97,6 +97,11 @@ ScanPlan planScan(List<ScannedEntry> entries, ConsoleDetector detector) {
       if (detector.isKnownExtension(ext) || descriptorExtensions.contains(ext)) unresolved.add(e);
       continue;
     }
+    // BIOS/device sets next to arcade games (neogeo.zip, …) aren't games.
+    if (archiveGameConsoles.contains(match.consoleId) && arcadeBiosSets.contains(stripExtension(e.name).toLowerCase())) {
+      skipped++;
+      continue;
+    }
     final info = normalizeTitle(e.name);
     if (info.disc != null || ext == 'm3u') {
       final key = '${match.consoleId}|${e.dirKey}|${info.matchKey}';

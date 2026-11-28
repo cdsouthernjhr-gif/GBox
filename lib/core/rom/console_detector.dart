@@ -14,6 +14,8 @@ const Map<String, List<String>> consoleFolderAliases = {
   'nes': ['nes', 'famicom', 'fc', 'nintendo', 'nintendoentertainmentsystem', 'fds'],
   'snes': ['snes', 'superfamicom', 'sfc', 'supernintendo', 'supernes'],
   'sms': ['sms', 'mastersystem', 'segamastersystem'],
+  'neogeo': ['neogeo', 'neo', 'neogeoaes', 'neogeomvs', 'snkneogeo'],
+  'arcade': ['arcade', 'fbneo', 'fba', 'finalburnneo', 'mame', 'cps1', 'cps2', 'cps3'],
   'megadrive': ['megadrive', 'genesis', 'md', 'segagenesis', 'segamegadrive'],
   'gb': ['gb', 'gameboy'],
   'gbc': ['gbc', 'gameboycolor', 'gameboycolour'],
@@ -32,7 +34,16 @@ const Map<String, List<String>> consoleFolderAliases = {
 /// Archive formats accepted only when the folder identifies a cartridge-era
 /// console (most emulators for those systems can open them directly).
 const archiveExtensions = {'zip', '7z'};
-const _archiveConsoles = {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'n64'};
+const _archiveConsoles = {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'n64', 'neogeo', 'arcade'};
+
+/// Consoles whose games *are* archives (arcade romsets): played as they are.
+const archiveGameConsoles = {'neogeo', 'arcade'};
+
+/// BIOS and device sets that sit next to arcade games but aren't games.
+const arcadeBiosSets = {
+  'neogeo', 'pgm', 'skns', 'decocass', 'isgsm', 'nmk004', 'ym2608', 'cchip', 'bubsys', 'midssio',
+  'namcoc69', 'namcoc70', 'namcoc75', 'qsound', 'spec128', 'msx', 'coleco', 'channelf',
+};
 
 /// Descriptor files that reference other files of a disc image.
 const descriptorExtensions = {'cue', 'gdi', 'ccd', 'mds', 'm3u'};

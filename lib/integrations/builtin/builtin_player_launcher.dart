@@ -20,6 +20,8 @@ const builtInCores = <String, String>{
   'n64': 'mupen64plus_next_gles3',
   'nds': 'desmume',
   'psp': 'ppsspp',
+  'neogeo': 'fbneo',
+  'arcade': 'fbneo',
 };
 
 /// Cores bundled for ARM only (no x86_64 build).
@@ -44,6 +46,7 @@ const builtInCoreNames = <String, String>{
   'mupen64plus_next_gles3': 'Mupen64Plus-Next',
   'desmume': 'DeSmuME',
   'ppsspp': 'PPSSPP',
+  'fbneo': 'FinalBurn Neo',
 };
 
 /// On-screen control layout per console (TouchControls.kt).
@@ -59,6 +62,8 @@ const builtInTouchLayouts = <String, String>{
   'n64': 'n64',
   'nds': 'nds',
   'psp': 'psp',
+  'neogeo': 'snes',
+  'arcade': 'snes',
 };
 
 /// File types each bundled core opens directly (archives are extracted by
@@ -75,6 +80,9 @@ const builtInExtensions = <String, Set<String>>{
   'n64': {'n64', 'z64', 'v64', 'ndd'},
   'nds': {'nds'},
   'psp': {'iso', 'cso', 'pbp', 'elf', 'prx', 'chd'},
+  // Arcade romsets: the archive itself, as named by FinalBurn Neo.
+  'neogeo': {'zip', '7z'},
+  'arcade': {'zip', '7z'},
 };
 
 const playerActivity = 'com.gamebox.console.player.PlayerActivity';
@@ -98,7 +106,9 @@ class BuiltInPlayerLauncher extends GameLauncherAdapter {
   @override
   List<String> get knownLimitations => const [
         'Only the bundled cores: NES, SNES, Game Boy / Color / Advance, Mega Drive, Master System, PS1, '
-            'N64, Nintendo DS, PSP (PSP on ARM devices only).',
+            'N64, Nintendo DS, PSP (PSP on ARM devices only), Neo Geo and arcade (FinalBurn Neo).',
+        'Arcade and Neo Geo games are romset archives whose names and contents must match the FinalBurn Neo '
+            'version; Neo Geo also needs neogeo.zip.',
         'N64 and PSP need a reasonably fast device; NDS touch screen works on phones (not with a TV remote).',
         'PS1 runs with the core\'s built-in BIOS replacement; a real BIOS in GAMEBOX/BIOS/PS1 improves compatibility.',
         '.7z archives are not supported (ZIP is extracted automatically).',

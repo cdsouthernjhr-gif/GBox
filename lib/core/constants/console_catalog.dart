@@ -77,6 +77,25 @@ const List<ConsoleDefinition> consoleCatalog = [
     minTier: PerformanceTier.entry, recommendedTier: PerformanceTier.entry,
     plannedPhase: 3,
   ),
+  // Arcade sets are ZIP archives played as they are (never extracted);
+  // the set name must match the FBNeo version (romsets).
+  ConsoleDefinition(
+    id: 'neogeo', name: 'Neo Geo', manufacturer: 'SNK',
+    category: ConsoleCategory.retro, folderName: 'NEOGEO',
+    extensions: ['zip', '7z'],
+    minTier: PerformanceTier.entry, recommendedTier: PerformanceTier.standard,
+    plannedPhase: 0,
+    notes: 'Needs neogeo.zip (BIOS set, user-supplied) in GAMEBOX/BIOS/ARCADE or next to the games. '
+        'Sets must match the FinalBurn Neo version.',
+  ),
+  ConsoleDefinition(
+    id: 'arcade', name: 'Arcade', manufacturer: 'Various',
+    category: ConsoleCategory.retro, folderName: 'ARCADE',
+    extensions: ['zip', '7z'],
+    minTier: PerformanceTier.entry, recommendedTier: PerformanceTier.standard,
+    plannedPhase: 0,
+    notes: 'FinalBurn Neo romsets (CPS1/2/3, Neo Geo, many boards). Sets must match the FinalBurn Neo version.',
+  ),
   ConsoleDefinition(
     id: 'megadrive', name: 'Sega Mega Drive', manufacturer: 'Sega',
     category: ConsoleCategory.retro, folderName: 'MEGADRIVE',
@@ -244,7 +263,7 @@ const List<KnownEmulator> knownEmulators = [
     packageIds: ['com.retroarch', 'com.retroarch.aarch64', 'com.retroarch.ra32'],
     consoleIds: [
       'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1', 'n64',
-      'saturn', 'nds', 'psp', 'dreamcast',
+      'saturn', 'nds', 'psp', 'dreamcast', 'neogeo', 'arcade',
     ],
     license: 'GPLv3 (cores vary)',
     strategy: IntegrationStrategy.libretro,

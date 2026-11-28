@@ -8,7 +8,7 @@
   3. Accept Android 7.0 as the minimum. Most TV boxes still in use run 7.1 or later, but this is an assumption, not data.
 * **No physical TV box tested yet.** Since Phase 8 the app runs on Android emulators in CI (API 24 and API 34, x86_64, 1920×1080), which pass the on-device tests and HOME-launcher checks. Emulators aren't TV boxes: ARM firmware, real remotes/controllers, USB/SD, GPU drivers and emulator launches are still PENDING (TESTING_GUIDE).
 * **No Android TV system image in CI:** the API 30 android-tv image is 32-bit x86, which Flutter doesn't support; the API 34 android-tv x86_64 image didn't boot on the GitHub runner. The leanback filter is checked, but leanback-specific behaviour is untested.
-* **Release signing:** without signing secrets / `key.properties`, release APKs use the debug key. The release workflow refuses to publish such builds. No release has been published yet.
+* **Release signing:** without signing secrets / `key.properties`, release APKs use the debug key. The release workflow refuses to publish such builds. Releases since v0.8.0 are signed with the release key (GitHub secrets).
 * The dev container couldn't download the Android SDK (`dl.google.com` blocked), so APKs are built and device-tested in GitHub Actions only.
 
 ## Launcher

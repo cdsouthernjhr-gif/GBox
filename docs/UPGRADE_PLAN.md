@@ -8,7 +8,14 @@ Strategy: **preserve and upgrade** 0.17.0. Every phase:
 
 Each phase ends with a report: completed, incomplete and known issues. Hardware tests stay PENDING until a device run is reported.
 
-## Decisions needed before Phase 1
+## Decisions (approved 2026-11-28)
+
+All recommendations below were approved by the owner:
+* **D1:** Android 7.0 (API 24) is the 1.0 floor; Android 6 is out of scope.
+* **D2:** integer keys stay; `uuid` columns are added; new tables use UUID keys.
+* **D4:** dashboard sections go in HOME; the menu keeps 6 entries.
+* **D3 and D5–D12:** as written.
+
 
 The brief leaves these open, or asks for something the audit found impossible or risky. Each has a recommendation.
 

@@ -31,6 +31,9 @@ const romFolderNames = <String, String>{
   'megadrive': 'megadrive',
   'neogeo': 'neogeo',
   'arcade': 'arcade',
+  'atari2600': 'atari2600',
+  'atari7800': 'atari7800',
+  'atarilynx': 'atarilynx',
   'gb': 'gb',
   'gbc': 'gbc',
   'gba': 'gba',
@@ -152,6 +155,18 @@ class BiosInfo {
 }
 
 const biosInfo = <BiosInfo>[
+  BiosInfo(
+    consoleId: 'atarilynx',
+    required: true,
+    note: 'Handy needs the Lynx boot ROM, a dump of your own.',
+    files: [BiosFile('lynxboot.img', 'any', usedBy: 'Handy')],
+  ),
+  BiosInfo(
+    consoleId: 'atari7800',
+    required: false,
+    note: 'Optional: ProSystem plays without it; the BIOS only adds the start-up screen.',
+    files: [BiosFile('7800 BIOS (U).rom', 'USA', usedBy: 'ProSystem')],
+  ),
   BiosInfo(
     consoleId: 'neogeo',
     required: true,

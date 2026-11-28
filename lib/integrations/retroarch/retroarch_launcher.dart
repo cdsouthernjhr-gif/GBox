@@ -35,6 +35,9 @@ const Map<String, Map<String, String>> retroArchCores = {
   'saturn': {'yabasanshiro': 'YabaSanshiro', 'yabause': 'Yabause', 'mednafen_saturn': 'Beetle Saturn (very heavy)'},
   'dreamcast': {'flycast': 'Flycast'},
   'neogeo': {'fbneo': 'FinalBurn Neo'},
+  'atari2600': {'stella': 'Stella'},
+  'atari7800': {'prosystem': 'ProSystem'},
+  'atarilynx': {'handy': 'Handy'},
   'arcade': {'fbneo': 'FinalBurn Neo', 'mame2003_plus': 'MAME 2003-Plus'},
 };
 

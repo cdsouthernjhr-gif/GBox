@@ -6,12 +6,13 @@
 # LemuroidCores), pinned to one commit and verified by SHA-256. Licences:
 # docs/THIRD_PARTY_LICENSES.md (fceumm, gambatte, pcsx_rearmed, desmume,
 # mupen64plus-next: GPLv2; ppsspp: GPLv2+; mgba: MPL-2.0; snes9x,
-# genesis_plus_gx, fbneo: non-commercial).
+# genesis_plus_gx, fbneo: non-commercial; stella, prosystem: GPLv2;
+# handy: zlib).
 set -euo pipefail
 COMMIT=fee2e824525daa22bcf318f96127fe43fa8a15ad
 BASE="https://raw.githubusercontent.com/Swordfish90/LemuroidCores/$COMMIT"
 DEST="$(cd "$(dirname "$0")/.." && pwd)/android/app/src/main/jniLibs"
-CORES="fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed mupen64plus_next_gles3 desmume fbneo"
+CORES="fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed mupen64plus_next_gles3 desmume fbneo stella prosystem handy"
 # PPSSPP has no x86_64 build in LemuroidCores (PSP is ARM-only in GAMEBOX).
 ARM_ONLY_CORES="ppsspp"
 ABIS="arm64-v8a armeabi-v7a x86_64"
@@ -45,6 +46,15 @@ a90af50930057c3643d6a1d5840f716d958b48de90c903736f4d9347571f93ba  armeabi-v7a/li
 88fd9f4aa9d8f235b58e64e78947ede0965c1e7ff85caf03dbcfcfe914b2e583  arm64-v8a/libfbneo_libretro_android.so
 52d96ed7a86e865dfabeb77392793867ac688e289d55f605c07b9ee1844010aa  armeabi-v7a/libfbneo_libretro_android.so
 144876bf1c0897ed506efd431a745ccb0e6cd6d87c9d778a67cb4c0a2f5736ef  x86_64/libfbneo_libretro_android.so
+3154ccca93fa67d6bcabe1fe47cc5e69299501a5617ba005769757cd15450c2b  arm64-v8a/libstella_libretro_android.so
+de9e5385817c7439723bc8d310c03b1571eae118122256889e2425f5718883b9  armeabi-v7a/libstella_libretro_android.so
+70305e490a8173afc6b796eb3c69bf4d47c463beb83fffacc9b51f15b4e00890  x86_64/libstella_libretro_android.so
+a4cccee6c86de93e3af14b8dcea47383cb7a6502fe84685ed29ad830b70f5dec  arm64-v8a/libprosystem_libretro_android.so
+f6bcf873825a2d6ef86255119c42d35f5979af719452b6d2a197ae63a2551b56  armeabi-v7a/libprosystem_libretro_android.so
+01c8c2f40bc24c865a031b0455ea7203dbc77ba18a35ef27aa791dba0cf9d763  x86_64/libprosystem_libretro_android.so
+8da01c2bc5f92d648baa70b7f6e702b800485343516e18035e6665574b4881e5  arm64-v8a/libhandy_libretro_android.so
+e9be7eab7446daf79ebcb22d7ab773d35ed69e39ed4c2361a93392be97015243  armeabi-v7a/libhandy_libretro_android.so
+b51e4cd347546153926ddff8247898002ae66795286a567b01d2503812cd1962  x86_64/libhandy_libretro_android.so
 2d5370602e07df1e5bc0fb20467cff52aafa8ccbade904b5d7f60b3eebd2ff23  arm64-v8a/libppsspp_libretro_android.so
 c0e5522565afc64c034b858cec96d5122adaeca1cdf1a33d9c090f77fec9bbf3  armeabi-v7a/libppsspp_libretro_android.so
 2ae4b85598b1759ee405cefeea2d8cf8a75971ff641b860b7fc45a8c83eca0d5  assets/ppsspp.zip

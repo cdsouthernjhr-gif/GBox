@@ -96,6 +96,30 @@ const List<ConsoleDefinition> consoleCatalog = [
     plannedPhase: 0,
     notes: 'FinalBurn Neo romsets (CPS1/2/3, Neo Geo, many boards). Sets must match the FinalBurn Neo version.',
   ),
+  // Atari: `.bin` is shared with other systems, so it counts only inside
+  // the system's folder.
+  ConsoleDefinition(
+    id: 'atari2600', name: 'Atari 2600', manufacturer: 'Atari',
+    category: ConsoleCategory.retro, folderName: 'ATARI2600',
+    extensions: ['a26', 'bin'],
+    minTier: PerformanceTier.entry, recommendedTier: PerformanceTier.entry,
+    plannedPhase: 0,
+  ),
+  ConsoleDefinition(
+    id: 'atari7800', name: 'Atari 7800', manufacturer: 'Atari',
+    category: ConsoleCategory.retro, folderName: 'ATARI7800',
+    extensions: ['a78', 'bin'],
+    minTier: PerformanceTier.entry, recommendedTier: PerformanceTier.entry,
+    plannedPhase: 0,
+  ),
+  ConsoleDefinition(
+    id: 'atarilynx', name: 'Atari Lynx', manufacturer: 'Atari',
+    category: ConsoleCategory.handheld, folderName: 'LYNX',
+    extensions: ['lnx'],
+    minTier: PerformanceTier.entry, recommendedTier: PerformanceTier.entry,
+    plannedPhase: 0,
+    notes: 'Needs lynxboot.img (Lynx boot ROM, user-supplied) in GAMEBOX/BIOS/LYNX.',
+  ),
   ConsoleDefinition(
     id: 'megadrive', name: 'Sega Mega Drive', manufacturer: 'Sega',
     category: ConsoleCategory.retro, folderName: 'MEGADRIVE',
@@ -263,7 +287,7 @@ const List<KnownEmulator> knownEmulators = [
     packageIds: ['com.retroarch', 'com.retroarch.aarch64', 'com.retroarch.ra32'],
     consoleIds: [
       'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'ps1', 'n64',
-      'saturn', 'nds', 'psp', 'dreamcast', 'neogeo', 'arcade',
+      'saturn', 'nds', 'psp', 'dreamcast', 'neogeo', 'arcade', 'atari2600', 'atari7800', 'atarilynx',
     ],
     license: 'GPLv3 (cores vary)',
     strategy: IntegrationStrategy.libretro,

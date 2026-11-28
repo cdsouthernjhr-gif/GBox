@@ -15,6 +15,9 @@ const Map<String, List<String>> consoleFolderAliases = {
   'snes': ['snes', 'superfamicom', 'sfc', 'supernintendo', 'supernes'],
   'sms': ['sms', 'mastersystem', 'segamastersystem'],
   'neogeo': ['neogeo', 'neo', 'neogeoaes', 'neogeomvs', 'snkneogeo'],
+  'atari2600': ['atari2600', 'a2600', 'vcs', 'atarivcs'],
+  'atari7800': ['atari7800', 'a7800'],
+  'atarilynx': ['atarilynx', 'lynx'],
   'arcade': ['arcade', 'fbneo', 'fba', 'finalburnneo', 'mame', 'cps1', 'cps2', 'cps3'],
   'megadrive': ['megadrive', 'genesis', 'md', 'segagenesis', 'segamegadrive'],
   'gb': ['gb', 'gameboy'],
@@ -34,7 +37,9 @@ const Map<String, List<String>> consoleFolderAliases = {
 /// Archive formats accepted only when the folder identifies a cartridge-era
 /// console (most emulators for those systems can open them directly).
 const archiveExtensions = {'zip', '7z'};
-const _archiveConsoles = {'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'n64', 'neogeo', 'arcade'};
+const _archiveConsoles = {
+  'nes', 'snes', 'sms', 'megadrive', 'gb', 'gbc', 'gba', 'n64', 'neogeo', 'arcade', 'atari2600', 'atari7800', 'atarilynx',
+};
 
 /// Consoles whose games *are* archives (arcade romsets): played as they are.
 const archiveGameConsoles = {'neogeo', 'arcade'};

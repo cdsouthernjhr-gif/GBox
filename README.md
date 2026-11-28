@@ -2,6 +2,8 @@
 
 GAMEBOX turns an Android TV box into a dedicated gaming console. It's a full-screen launcher that can be set as the Android HOME app. It scans the device's hardware, keeps an offline game library and detects controllers and storage. It also manages external emulator apps.
 
+> **0.19.0 (Phase 2):** Neo Geo and arcade (FinalBurn Neo), Atari 2600, 7800 and Lynx in the built-in player; missing-BIOS warnings; console availability.
+>
 > **0.18.0 (GAMEBOX 1.0 Phase 1):** Modern Retro theme, HOME quick actions and status, bottom navigation on phones held upright, database v6 (profiles, unique ids) with a backup and checks before upgrading.
 >
 > **0.17.0:** add systems GAMEBOX doesn't list (name, `ROMs/` folder, file types), with their own emulators.

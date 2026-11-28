@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
@@ -32,10 +33,16 @@ class LaunchOutcome {
       : ok = true,
         reasons = const [],
         missingEmulators = const [],
-        wrongConsole = null;
-  const LaunchOutcome.blocked(this.reasons, {this.emulatorName, this.missingEmulators = const [], this.wrongConsole})
+        wrongConsole = null,
+        missingBios = null;
+  const LaunchOutcome.blocked(this.reasons,
+      {this.emulatorName, this.missingEmulators = const [], this.wrongConsole, this.missingBios})
       : ok = false,
         notes = const [];
+
+  /// BIOS files the built-in player needs for this game but can't find
+  /// (the UI explains where they go and offers to play anyway).
+  final List<String>? missingBios;
   final bool ok;
 
   /// The console the game file really belongs to, when it is filed under
@@ -165,6 +172,7 @@ class LaunchService {
     Map<String, String>? options,
     bool remember = false,
     bool checkConsole = true,
+    bool checkBios = true,
   }) async {
     final game = await _db.gameById(gameId);
     final files = await _db.filesForGame(gameId);
@@ -230,6 +238,15 @@ class LaunchService {
           ? PlayerPreparation(romPath: resolveFilesystemPath(primary.uri))
           : await pf.prepare(game, files);
       if (prep.problem != null) return LaunchOutcome.blocked([prep.problem!], emulatorName: choice.adapter.emulator.name);
+      if (checkBios) {
+        final missing = await missingBuiltInBios(game.consoleId, prep);
+        if (missing.isNotEmpty) {
+          return LaunchOutcome.blocked([
+            '${consoleById(game.consoleId)?.name ?? game.consoleId} games need ${missing.join(', ')} '
+                '(a BIOS dump of your own), which GAMEBOX could not find.',
+          ], emulatorName: choice.adapter.emulator.name, missingBios: missing);
+        }
+      }
     }
 
     final path = resolveFilesystemPath(primary.uri);
@@ -282,6 +299,29 @@ class LaunchService {
         AppLogger.instance.info('Launched game $gameId with $name (${env.installedPackage})');
         return LaunchOutcome.started(emulatorName: name, notes: notes);
     }
+  }
+
+  /// BIOS files the built-in player's core can't run [consoleId] without,
+  /// that are neither in its BIOS folder nor next to the game. Only for
+  /// cores without a built-in replacement (FinalBurn Neo: neogeo.zip).
+  Future<List<String>> missingBuiltInBios(String consoleId, PlayerPreparation prep) async {
+    const needs = {'neogeo': ['neogeo.zip'], 'atarilynx': ['lynxboot.img']};
+    final wanted = needs[consoleId];
+    if (wanted == null) return const [];
+    Future<Set<String>> names(String? dir) async {
+      if (dir == null) return const {};
+      try {
+        return {
+          await for (final e in Directory(dir).list())
+            if (e is File) e.uri.pathSegments.last.toLowerCase(),
+        };
+      } catch (_) {
+        return const {};
+      }
+    }
+
+    final found = {...await names(prep.systemDir), ...await names(prep.romPath == null ? null : File(prep.romPath!).parent.path)};
+    return [for (final w in wanted) if (!found.contains(w.toLowerCase())) w];
   }
 
   /// Hardware-based warning when this device is below the estimated tier for

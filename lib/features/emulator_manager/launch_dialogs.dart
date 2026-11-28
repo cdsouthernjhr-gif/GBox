@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/constants/console_catalog.dart';
 import '../../core/constants/emulator_links.dart';
+import '../../core/storage/gamebox_layout.dart' show biosInfo;
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/tv_widgets.dart';
@@ -32,6 +33,10 @@ Future<void> playGameWith(BuildContext context, GameRow game) async {
 }
 
 Future<void> _report(BuildContext context, LaunchOutcome o, GameRow game) async {
+  if (!o.ok && o.missingBios != null) {
+    await _showMissingBiosDialog(context, o, game);
+    return;
+  }
   if (!o.ok && o.wrongConsole != null) {
     await showWrongConsoleDialog(context, game, o.wrongConsole!, o.reasons.join(' '));
     return;
@@ -405,4 +410,30 @@ Future<void> showOtherEmulatorsDialog(BuildContext context, GameRow game) async 
       actions: [TextButton(autofocus: true, onPressed: () => Navigator.pop(c), child: const Text('Close'))],
     ),
   );
+}
+
+/// The built-in player needs a BIOS the user hasn't provided: where it goes,
+/// or play anyway (some games may still start).
+Future<void> _showMissingBiosDialog(BuildContext context, LaunchOutcome o, GameRow game) async {
+  final s = servicesOf(context);
+  final bios = biosInfo.where((b) => b.consoleId == game.consoleId).firstOrNull;
+  final where = bios == null ? 'the BIOS folder' : '${bios.dir}/';
+  final anyway = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('BIOS needed'),
+      content: SizedBox(
+        width: 560,
+        child: Text('${o.reasons.join(' ')}\n\nPut ${o.missingBios!.join(', ')} in $where, or next to the game. '
+            'GAMEBOX does not provide BIOS files. SETTINGS → Storage → BIOS shows what is found.'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Close')),
+        TextButton(autofocus: true, onPressed: () => Navigator.pop(c, true), child: const Text('Play anyway')),
+      ],
+    ),
+  );
+  if (anyway != true || !context.mounted) return;
+  final again = await s.launcher.play(game.id, checkBios: false);
+  if (context.mounted) await _report(context, again, game);
 }

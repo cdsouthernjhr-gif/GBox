@@ -22,6 +22,9 @@ const builtInCores = <String, String>{
   'psp': 'ppsspp',
   'neogeo': 'fbneo',
   'arcade': 'fbneo',
+  'atari2600': 'stella',
+  'atari7800': 'prosystem',
+  'atarilynx': 'handy',
 };
 
 /// Cores bundled for ARM only (no x86_64 build).
@@ -47,6 +50,9 @@ const builtInCoreNames = <String, String>{
   'desmume': 'DeSmuME',
   'ppsspp': 'PPSSPP',
   'fbneo': 'FinalBurn Neo',
+  'stella': 'Stella',
+  'prosystem': 'ProSystem',
+  'handy': 'Handy',
 };
 
 /// On-screen control layout per console (TouchControls.kt).
@@ -64,6 +70,9 @@ const builtInTouchLayouts = <String, String>{
   'psp': 'psp',
   'neogeo': 'snes',
   'arcade': 'snes',
+  'atari2600': 'nes',
+  'atari7800': 'nes',
+  'atarilynx': 'nes',
 };
 
 /// File types each bundled core opens directly (archives are extracted by
@@ -83,6 +92,9 @@ const builtInExtensions = <String, Set<String>>{
   // Arcade romsets: the archive itself, as named by FinalBurn Neo.
   'neogeo': {'zip', '7z'},
   'arcade': {'zip', '7z'},
+  'atari2600': {'a26', 'bin'},
+  'atari7800': {'a78', 'bin'},
+  'atarilynx': {'lnx'},
 };
 
 const playerActivity = 'com.gamebox.console.player.PlayerActivity';
@@ -106,7 +118,8 @@ class BuiltInPlayerLauncher extends GameLauncherAdapter {
   @override
   List<String> get knownLimitations => const [
         'Only the bundled cores: NES, SNES, Game Boy / Color / Advance, Mega Drive, Master System, PS1, '
-            'N64, Nintendo DS, PSP (PSP on ARM devices only), Neo Geo and arcade (FinalBurn Neo).',
+            'N64, Nintendo DS, PSP (PSP on ARM devices only), Neo Geo and arcade (FinalBurn Neo), '
+            'Atari 2600, 7800 and Lynx.',
         'Arcade and Neo Geo games are romset archives whose names and contents must match the FinalBurn Neo '
             'version; Neo Geo also needs neogeo.zip.',
         'N64 and PSP need a reasonably fast device; NDS touch screen works on phones (not with a TV remote).',

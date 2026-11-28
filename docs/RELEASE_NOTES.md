@@ -1,5 +1,32 @@
 # Release notes
 
+## 0.19.0+24 — GAMEBOX 1.0 Phase 2: Neo Geo, arcade and Atari in the built-in player (pre-release)
+
+**New systems, played directly in GAMEBOX:**
+
+| System | Folder | Core | Files | BIOS |
+|---|---|---|---|---|
+| Neo Geo | `ROMs/neogeo` | FinalBurn Neo | romset `.zip`/`.7z` | `neogeo.zip` **required** |
+| Arcade | `ROMs/arcade` | FinalBurn Neo (CPS1/2/3 and many other boards) | romset `.zip`/`.7z` | only some boards (e.g. `pgm.zip`) |
+| Atari 2600 | `ROMs/atari2600` | Stella | `.a26`, `.bin` | — |
+| Atari 7800 | `ROMs/atari7800` | ProSystem | `.a78`, `.bin` | optional |
+| Atari Lynx | `ROMs/atarilynx` | Handy | `.lnx` | `lynxboot.img` **required** |
+
+* **Arcade games are romset archives**, played as they are (never unpacked). The set names and contents must match the FinalBurn Neo version.
+* **BIOS location:** arcade BIOS sets (`neogeo.zip`, …) go in `GAMEBOX/BIOS/ARCADE`, or next to the games. They are not listed as games.
+* **ZIP files count only inside these folders**, and `.bin` only inside the Atari folders.
+* **Missing BIOS:** when a required BIOS is missing, GAMEBOX says which file is needed and where it goes before starting, with *Play anyway*.
+* **Consoles screen** (EMULATORS → Consoles) shows how each system plays: *Built-in*, *Needs an emulator app* or *Not playable yet*.
+* RetroArch can also play these systems (FinalBurn Neo, MAME 2003-Plus, Stella, ProSystem, Handy cores).
+
+**Size:** the APKs grow by about 16 MB, mostly FinalBurn Neo; it takes about 63 MB once installed on ARM64.
+
+**Licences:** FinalBurn Neo is non-commercial, like Snes9x and Genesis Plus GX (see THIRD_PARTY_LICENSES).
+
+**Not yet checked:** none of the new cores have run yet, on a device or in CI. Only packaging, checksums and alignment are checked.
+
+**Note:** if you added "Neo Geo" or "Atari" yourself in 0.17.0, your system keeps its games. New systems can't reuse these folders.
+
 ## 0.18.0+23 — GAMEBOX 1.0 Phase 1: new look, phone layout, profile-ready database (pre-release)
 
 **New:**

@@ -113,7 +113,7 @@ class _ConsoleTile extends StatelessWidget {
                   color: est == null ? Colors.white54 : ratingColor(context, est.rating),
                 ),
                 const SizedBox(width: 6),
-                if (launchersForConsole(console.id).isEmpty) const StatusChip('No launcher yet', color: Colors.white54),
+                Flexible(child: _availabilityChip(console.id)),
               ],
             ),
           ],
@@ -155,4 +155,16 @@ class _ConsoleTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// How a console's games can be played: in GAMEBOX itself, with an emulator
+/// app (installed or not), or not at all yet. Never "playable" without a
+/// way to launch it.
+Widget _availabilityChip(String consoleId) {
+  final launchers = launchersForConsole(consoleId);
+  if (launchers.any((l) => l.builtIn)) {
+    return const StatusChip('Built-in', color: Colors.greenAccent, icon: Icons.play_arrow_rounded);
+  }
+  if (launchers.isNotEmpty) return const StatusChip('Needs an emulator app', color: Colors.orangeAccent);
+  return const StatusChip('Not playable yet', color: Colors.white54);
 }

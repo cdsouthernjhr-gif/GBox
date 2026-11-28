@@ -134,7 +134,7 @@ jobs:
           done
           # The built-in player's cores must be in every APK (PPSSPP: ARM only).
           for f in *-release.apk; do
-            for core in fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed mupen64plus_next_gles3 desmume fbneo; do
+            for core in fceumm snes9x gambatte mgba genesis_plus_gx pcsx_rearmed mupen64plus_next_gles3 desmume fbneo stella prosystem handy; do
               unzip -l "$f" | grep -q "lib/.*/lib${core}_libretro_android.so" || { echo "$f is missing the $core core" >&2; exit 1; }
             done
             if unzip -l "$f" | grep -qE "lib/(arm64-v8a|armeabi-v7a)/"; then

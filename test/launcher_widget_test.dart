@@ -794,49 +794,49 @@ void main() {
     await boot(
       tester,
       configure: (g) {
-        g.apps = const [InstalledApp('org.example.stella', 'Stella Emu', false)];
-        g.installed['org.example.stella'] = '1.0';
+        g.apps = const [InstalledApp('org.example.vec', 'Vec Emu', false)];
+        g.installed['org.example.vec'] = '1.0';
       },
     );
     await go(tester, LauncherSection.emulators);
     await tester.tap(find.text('Add emulator'));
     await settle(tester);
-    await tester.tap(find.text('Stella Emu'));
+    await tester.tap(find.text('Vec Emu'));
     await settle(tester);
     await tester.ensureVisible(find.text('Other system…'));
     await tester.tap(find.text('Other system…'));
     await settle(tester);
-    await tester.enterText(find.byKey(const ValueKey('console-name')), 'Atari 2600');
+    await tester.enterText(find.byKey(const ValueKey('console-name')), 'Vectrex');
     await settle(tester);
-    expect(tester.widget<TextField>(find.byKey(const ValueKey('console-folder'))).controller!.text, 'atari2600');
+    expect(tester.widget<TextField>(find.byKey(const ValueKey('console-folder'))).controller!.text, 'vectrex');
     await tester.tap(find.text('Save').last);
     await settle(tester);
     expect(find.byKey(const ValueKey('console-error')), findsOneWidget, reason: 'file types are required');
-    await tester.enterText(find.byKey(const ValueKey('console-exts')), 'a26, zip');
+    await tester.enterText(find.byKey(const ValueKey('console-exts')), 'vec, zip');
     await tester.tap(find.text('Save').last);
     await settleUntil(tester, () => services.settings.state.value.customConsoles.isNotEmpty);
     await settleUntil(tester, () => find.byType(AlertDialog).evaluate().isEmpty);
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
     await settle(tester);
-    expect(services.settings.state.value.customConsoles.single.id, 'user_atari2600');
+    expect(services.settings.state.value.customConsoles.single.id, 'user_vectrex');
     // Selected for the emulator straight away.
     await tester.tap(find.text('Save'));
     await settleUntil(tester, () => services.settings.state.value.customEmulators.isNotEmpty);
-    expect(services.settings.state.value.customEmulators.single.consoleIds, {'user_atari2600'});
+    expect(services.settings.state.value.customEmulators.single.consoleIds, {'user_vectrex'});
 
     // Games in its folder are scanned into it and play with its emulator.
     final root = (await tester.runAsync(() => services.gameboxRoot()))!;
     await tester.runAsync(() async {
-      File('$root/Games/atari2600/pitfall.a26')
+      File('$root/Games/vectrex/minestorm.vec')
         ..createSync(recursive: true)
         ..writeAsBytesSync(List.filled(4096, 1));
       await services.library.scanAll();
     });
     await settle(tester);
     final games = (await tester.runAsync(() => services.db.watchAllGames().first))!;
-    expect(games.single.game.consoleId, 'user_atari2600');
-    final choices = (await tester.runAsync(() => services.launcher.choicesFor('user_atari2600')))!;
-    expect(choices.single.adapter.emulator.name, 'Stella Emu');
+    expect(games.single.game.consoleId, 'user_vectrex');
+    final choices = (await tester.runAsync(() => services.launcher.choicesFor('user_vectrex')))!;
+    expect(choices.single.adapter.emulator.name, 'Vec Emu');
     expect(choices.single.installed, isTrue);
     await shutdown(tester);
   });
@@ -919,6 +919,36 @@ void main() {
         .push(MaterialPageRoute<void>(builder: (_) => GameDetailScreen(gameId: game.id)));
     await settle(tester);
     expect(tester.takeException(), isNull, reason: 'game page');
+    await shutdown(tester);
+  });
+
+  testWidgets('Neo Geo without neogeo.zip: GAMEBOX says where the BIOS goes; with it, the game starts', (tester) async {
+    late String root0;
+    await boot(
+      tester,
+      prepare: (root) {
+        root0 = root;
+        File('$root/GAMEBOX/Games/NEOGEO/mslug.zip')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(List.filled(64, 1));
+      },
+    );
+    final game = (await tester.runAsync(() => services.db.watchAllGames().first))!.single.game;
+    expect(game.consoleId, 'neogeo');
+    final blocked = (await tester.runAsync(() => services.launcher.play(game.id)))!;
+    expect(blocked.ok, isFalse);
+    expect(blocked.missingBios, ['neogeo.zip']);
+    expect(gateway.launchedSpecs, isEmpty);
+
+    // A BIOS set next to the game is found (and is not a game itself).
+    await tester.runAsync(() async {
+      File('$root0/GAMEBOX/Games/NEOGEO/neogeo.zip').writeAsBytesSync(List.filled(64, 2));
+      await services.library.scanAll();
+    });
+    expect((await tester.runAsync(() => services.db.watchAllGames().first))!, hasLength(1), reason: 'neogeo.zip is no game');
+    final started = (await tester.runAsync(() => services.launcher.play(game.id)))!;
+    expect(started.ok, isTrue, reason: started.reasons.join());
+    expect((gateway.launchedSpecs.single['extras'] as Map)['core'], 'fbneo');
     await shutdown(tester);
   });
 }

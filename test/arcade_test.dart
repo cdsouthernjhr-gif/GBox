@@ -81,4 +81,19 @@ void main() {
       expect(plan.spec.extras['rom'], set.path);
     });
   });
+
+  test('Atari 2600, 7800 and Lynx: own file types anywhere, .bin only in their folders', () {
+    final d = ConsoleDetector();
+    expect(builtInCores['atari2600'], 'stella');
+    expect(builtInCores['atari7800'], 'prosystem');
+    expect(builtInCores['atarilynx'], 'handy');
+    expect(d.detect('pitfall.a26', ['Download'])?.consoleId, 'atari2600');
+    expect(d.detect('galaga.a78', ['Download'])?.consoleId, 'atari7800');
+    expect(d.detect('chip.lnx', ['Download'])?.consoleId, 'atarilynx');
+    expect(d.detect('pitfall.bin', ['ROMs', 'atari2600'])?.consoleId, 'atari2600');
+    expect(d.detect('pitfall.bin', ['Download']), isNull, reason: '.bin is shared');
+    expect(gamesDirFor('atarilynx'), 'ROMs/atarilynx');
+    final lynx = biosInfo.firstWhere((b) => b.consoleId == 'atarilynx');
+    expect((lynx.required, lynx.dir), (true, 'GAMEBOX/BIOS/LYNX'));
+  });
 }

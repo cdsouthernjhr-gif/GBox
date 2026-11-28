@@ -47,11 +47,13 @@ void main() {
       void Function(String appRoot)? prepare,
       void Function(FakeGateway)? configure,
       DownloadEngine? engine,
-      CoverFetcher? coverFetch}) async {
+      CoverFetcher? coverFetch,
+      Size physicalSize = const Size(1920, 1080),
+      double pixelRatio = 2}) async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     // 1920x1080 at xhdpi = 960x540 logical, a typical Android TV layout size.
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = physicalSize;
+    tester.view.devicePixelRatio = pixelRatio;
     addTearDown(tester.view.reset);
 
     gateway = FakeGateway(scan: scan);
@@ -886,6 +888,37 @@ void main() {
     await settle(tester);
     expect(find.text('Device compatibility report'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await shutdown(tester);
+  });
+
+  testWidgets('phone held upright: bottom navigation; every section lays out without overflow', (tester) async {
+    // 1080x2340 at 3x = 360x780 logical, a common phone.
+    await boot(
+      tester,
+      physicalSize: const Size(1080, 2340),
+      pixelRatio: 3,
+      prepare: (root) {
+        for (final (folder, name, bytes) in [('NES', 'Alpha Quest (USA).nes', nesRom()), ('GBA', 'Gamma Race.gba', gbaRom())]) {
+          File('$root/GAMEBOX/Games/$folder/$name')
+            ..createSync(recursive: true)
+            ..writeAsBytesSync(bytes);
+        }
+      },
+    );
+    expect(find.byKey(const ValueKey('bottom-nav')), findsOneWidget);
+    expect(find.text('ADD GAMES'), findsNothing, reason: 'no side menu');
+    for (final label in ['Games', 'Add', 'Emulators', 'Settings', 'Apps', 'Home']) {
+      await tester.tap(find.descendant(of: find.byKey(const ValueKey('bottom-nav')), matching: find.text(label)));
+      await settle(tester);
+      expect(tester.takeException(), isNull, reason: label);
+    }
+    expect(find.byKey(const ValueKey('game-home')), findsOneWidget);
+    // The game page too.
+    final game = (await tester.runAsync(() => services.db.watchAllGames().first))!.first.game;
+    Navigator.of(tester.element(find.byType(Scaffold).first))
+        .push(MaterialPageRoute<void>(builder: (_) => GameDetailScreen(gameId: game.id)));
+    await settle(tester);
+    expect(tester.takeException(), isNull, reason: 'game page');
     await shutdown(tester);
   });
 }

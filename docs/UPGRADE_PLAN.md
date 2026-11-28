@@ -36,6 +36,8 @@ The brief leaves these open, or asks for something the audit found impossible or
 
 ## Phase 1: new UI, baseline protected (target 0.18)
 
+**Status:** done in 0.18.0, except the x86_64 asset and the on-device upgrade test; see [PHASE1_REPORT.md](PHASE1_REPORT.md).
+
 1. **Database v6** (only what Phase 1 needs):
    * automatic pre-migration backup;
    * integrity checks;

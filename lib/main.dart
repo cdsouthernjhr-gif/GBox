@@ -26,8 +26,15 @@ Future<void> main() async {
     return true;
   };
 
-  await SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+  // TVs and tablets: landscape. Phones (shortest side under 600 dp) may
+  // also be held upright; the launcher then shows a bottom navigation.
+  final view = PlatformDispatcher.instance.views.firstOrNull;
+  final shortest = view == null ? null : (view.physicalSize / view.devicePixelRatio).shortestSide;
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+    if (shortest != null && shortest > 0 && shortest < 600) ...[DeviceOrientation.portraitUp],
+  ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   try {

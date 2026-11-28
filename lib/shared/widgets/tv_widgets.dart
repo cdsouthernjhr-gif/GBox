@@ -10,8 +10,7 @@ class MotionSettings extends InheritedWidget {
   final bool animate;
   final bool sounds;
 
-  static MotionSettings? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<MotionSettings>();
+  static MotionSettings? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<MotionSettings>();
 
   @override
   bool updateShouldNotify(MotionSettings old) => animate != old.animate || sounds != old.sounds;
@@ -78,13 +77,8 @@ class _TvFocusableState extends State<TvFocusable> {
           decoration: BoxDecoration(
             color: widget.color ?? palette.card,
             borderRadius: radius,
-            border: Border.all(
-              color: _focused ? palette.focus : Colors.transparent,
-              width: 2.5,
-            ),
-            boxShadow: _focused
-                ? [BoxShadow(color: palette.focus.withValues(alpha: 0.35), blurRadius: 14)]
-                : null,
+            border: Border.all(color: _focused ? palette.focus : Colors.transparent, width: 2.5),
+            boxShadow: _focused ? [BoxShadow(color: palette.focus.withValues(alpha: 0.35), blurRadius: 14)] : null,
           ),
           child: Material(
             type: MaterialType.transparency,
@@ -100,9 +94,11 @@ class _TvFocusableState extends State<TvFocusable> {
                 setState(() => _focused = f);
                 widget.onFocus?.call(f);
                 if (f) {
-                  Scrollable.ensureVisible(context,
-                      alignment: 0.5,
-                      duration: animate ? const Duration(milliseconds: 160) : Duration.zero);
+                  Scrollable.ensureVisible(
+                    context,
+                    alignment: 0.5,
+                    duration: animate ? const Duration(milliseconds: 160) : Duration.zero,
+                  );
                 }
               },
               child: Padding(padding: widget.padding, child: widget.child),
@@ -156,18 +152,28 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.6)),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.6)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[Icon(icon, size: 14, color: color), const SizedBox(width: 4)],
+        // Shrinks (with an ellipsis) when the space is narrower than the label.
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700),
+          ),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 14, color: color), const SizedBox(width: 4)],
-          Text(label,
-              style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
-        ]),
-      );
+      ],
+    ),
+  );
 }
 
 /// Honest empty state used when there is no real data yet.
@@ -184,15 +190,21 @@ class EmptyState extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 460),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 52, color: Colors.white38),
-          const SizedBox(height: 12),
-          Text(title, style: t.titleLarge, textAlign: TextAlign.center),
-          const SizedBox(height: 6),
-          Text(message,
-              style: t.bodyMedium?.copyWith(color: Colors.white60), textAlign: TextAlign.center),
-          if (action != null) ...[const SizedBox(height: 16), action!],
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 52, color: Colors.white38),
+            const SizedBox(height: 12),
+            Text(title, style: t.titleLarge, textAlign: TextAlign.center),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              style: t.bodyMedium?.copyWith(color: Colors.white60),
+              textAlign: TextAlign.center,
+            ),
+            if (action != null) ...[const SizedBox(height: 16), action!],
+          ],
+        ),
       ),
     );
   }
@@ -230,17 +242,27 @@ class TvButton extends StatelessWidget {
       color: !enabled
           ? palette.surface
           : play
-              ? palette.play
-              : primary
-                  ? palette.accent
-                  : palette.surface,
+          ? palette.play
+          : primary
+          ? palette.accent
+          : palette.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       child: Opacity(
         opacity: enabled ? 1 : 0.45,
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 6)],
-          Text(label, style: Theme.of(context).textTheme.labelLarge),
-        ]),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 6)],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -258,19 +280,24 @@ class InfoRow extends StatelessWidget {
     final text = (value == null || '$value'.isEmpty) ? 'UNKNOWN' : '$value';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(
-          width: 190,
-          child: Text(label, style: t.bodyMedium?.copyWith(color: Colors.white60)),
-        ),
-        Expanded(
-          child: Text(text,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 190,
+            child: Text(label, style: t.bodyMedium?.copyWith(color: Colors.white60)),
+          ),
+          Expanded(
+            child: Text(
+              text,
               style: t.bodyMedium?.copyWith(
                 color: text == 'UNKNOWN' ? Colors.orangeAccent : Colors.white,
                 fontWeight: FontWeight.w600,
-              )),
-        ),
-      ]),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -291,41 +318,53 @@ class PageFrame extends StatelessWidget {
         ? this.actions
         : [
             TvButton(
-                label: 'Back',
-                icon: Icons.arrow_back_rounded,
-                autofocus: true,
-                onPressed: () => Navigator.of(context).maybePop()),
+              label: 'Back',
+              icon: Icons.arrow_back_rounded,
+              autofocus: true,
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
             ...this.actions,
           ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // The title always keeps at least 40% of the width; actions wrap onto
-        // a second line instead of squeezing it (1080p TVs are ~960 px wide).
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            flex: 2,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: t.headlineSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-              if (subtitle != null)
-                Text(subtitle!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.bodyMedium?.copyWith(color: Colors.white60)),
-            ]),
-          ),
-          if (actions.isNotEmpty)
-            Expanded(
-              flex: 3,
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Wrap(alignment: WrapAlignment.end, spacing: 10, runSpacing: 8, children: actions),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The title always keeps at least 40% of the width; actions wrap onto
+          // a second line instead of squeezing it (1080p TVs are ~960 px wide).
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: t.headlineSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.bodyMedium?.copyWith(color: Colors.white60),
+                      ),
+                  ],
+                ),
               ),
-            ),
-        ]),
-        const SizedBox(height: 14),
-        Expanded(child: child),
-      ]),
+              if (actions.isNotEmpty)
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Wrap(alignment: WrapAlignment.end, spacing: 10, runSpacing: 8, children: actions),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Expanded(child: child),
+        ],
+      ),
     );
   }
 }
@@ -341,12 +380,14 @@ class SubPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.transparent,
-        body: DecoratedBox(
-          decoration: GameboxPalette.of(context).decoration,
-          child: SafeArea(child: _SubPageScope(child: FocusScope(autofocus: true, child: child))),
-        ),
-      );
+    backgroundColor: Colors.transparent,
+    body: DecoratedBox(
+      decoration: GameboxPalette.of(context).decoration,
+      child: SafeArea(
+        child: _SubPageScope(child: FocusScope(autofocus: true, child: child)),
+      ),
+    ),
+  );
 }
 
 class _SubPageScope extends InheritedWidget {

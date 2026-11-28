@@ -103,6 +103,9 @@ jobs:
       - name: Build signed APKs
         run: flutter build apk --release --split-per-abi
 
+      - name: Check native libraries (16 KB alignment, pinned core builds)
+        run: tool/check_native_libs.sh android/app/src/main/jniLibs build/app/outputs/flutter-apk/*-release.apk
+
       - name: Check R8 kept the built-in player's JNI names
         run: |
           # R8 must keep the names LibretroDroid's native code looks up (JNI),

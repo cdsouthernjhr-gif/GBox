@@ -1,5 +1,33 @@
 # Release notes
 
+## 0.18.0+23 — GAMEBOX 1.0 Phase 1: new look, phone layout, profile-ready database (pre-release)
+
+**New:**
+* **Modern Retro theme** (new default): dark navy, electric blue focus, purple accents, orange Play buttons. If you picked a theme earlier, it is kept; the other themes are still in Settings.
+* **HOME** now also has:
+  * **Quick actions:** Add games, Find ROMs, Emulators, Controllers, Settings.
+  * **Status:** connected controllers; free space and USB/SD; device tier, Android version, RAM and network.
+  Each tile opens its screen.
+* **Phones held upright:**
+  * bottom navigation instead of the side menu;
+  * GAMES filters move under the search box;
+  * the status bar is compact.
+  TVs, tablets and phones in landscape keep the side menu.
+
+**Database (schema v6):** prepares local profiles (Phase 4).
+* All your favourites and play history now belong to a default profile, "Player 1". Nothing changes on screen.
+* Games, files and play sessions get a stable unique id.
+* **Upgrade safety:**
+  * Before upgrading, GAMEBOX keeps a copy, `gamebox.before-v6.sqlite`, which *Settings → Restore library…* lists.
+  * The upgrade runs as one transaction with integrity checks. If anything fails, nothing is changed, and the start screen says so.
+  * To go back to 0.17.0: install it and restore that copy.
+
+**CI:** every APK is checked for 16 KB-aligned native libraries, and for core build IDs equal to the pinned downloads.
+
+**Not yet checked on a device:**
+* the upgrade of a real 0.17.0 library on a phone or TV box (tested with databases of every earlier schema);
+* the portrait layout on a real phone.
+
 ## 0.17.0+22 — Add systems GAMEBOX doesn't list (pre-release)
 
 **New:** when a console or system isn't in GAMEBOX's list (e.g. Neo Geo, arcade, Atari 2600, 3DS), add it yourself:

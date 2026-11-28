@@ -72,6 +72,9 @@ jobs:
       - name: Build release APKs (per ABI)
         run: flutter build apk --release --split-per-abi
 
+      - name: Check native libraries (16 KB alignment, pinned core builds)
+        run: tool/check_native_libs.sh android/app/src/main/jniLibs build/app/outputs/flutter-apk/*-release.apk
+
       - name: Checksums and APK details
         run: |
           cd build/app/outputs/flutter-apk

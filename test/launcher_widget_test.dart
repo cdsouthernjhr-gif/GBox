@@ -470,6 +470,8 @@ void main() {
     await settle(tester);
     expect(find.text('ADD GAMES'), findsNothing, reason: 'BACK returns to the games');
 
+    await tester.ensureVisible(find.text('2 games', skipOffstage: false));
+    await settle(tester);
     await tester.tap(find.text('2 games'));
     await settle(tester);
     await settle(tester);

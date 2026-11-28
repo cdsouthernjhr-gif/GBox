@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamebox/app/app_services.dart';
 import 'package:gamebox/app/gamebox_app.dart';
+import 'package:gamebox/core/constants/console_catalog.dart';
 import 'package:gamebox/core/database/app_database.dart';
 import 'package:gamebox/core/device/device_intelligence_service.dart';
 import 'package:gamebox/core/services/platform_gateway.dart';
@@ -46,7 +47,7 @@ void main() {
     final file = File('${dir.path}/ci_device_test.sqlite');
     if (file.existsSync()) file.deleteSync();
     final db = AppDatabase(NativeDatabase(file));
-    expect(await db.select(db.consoles).get(), hasLength(16));
+    expect(await db.select(db.consoles).get(), hasLength(consoleCatalog.length));
     await db.setSetting('ci', 'ok');
     final backup = '${dir.path}/ci_device_test_backup.sqlite';
     await db.backupTo(backup);

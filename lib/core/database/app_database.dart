@@ -10,6 +10,9 @@ import '../../domain/entities/performance_tier.dart';
 import '../constants/console_catalog.dart';
 import '../device/performance_classifier.dart';
 import 'tables.dart';
+import 'uuid.dart';
+
+export 'tables.dart' show defaultProfileId;
 
 part 'app_database.g.dart';
 
@@ -21,6 +24,7 @@ class GameWithStatus {
 }
 
 @DriftDatabase(tables: [
+  Profiles,
   Devices,
   DeviceHardwareProfiles,
   DeviceCompatibility,
@@ -49,13 +53,27 @@ class GameWithStatus {
   AppSettings,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase(super.e);
+  AppDatabase(super.e, {this.preUpgradeBackup});
 
   /// Opens the on-device database file (`gamebox.sqlite` in app support dir).
-  factory AppDatabase.open() => AppDatabase(driftDatabase(
-        name: 'gamebox',
-        native: DriftNativeOptions(databasePath: databaseFilePath),
-      ));
+  /// Before a schema upgrade, a copy is kept as
+  /// `gamebox.before-v<new version>.sqlite` next to it.
+  factory AppDatabase.open() => AppDatabase(
+        driftDatabase(name: 'gamebox', native: DriftNativeOptions(databasePath: databaseFilePath)),
+        preUpgradeBackup: (from, to) async {
+          final db = await databaseFilePath();
+          return '${File(db).parent.path}/${preUpgradeBackupName(to)}';
+        },
+      );
+
+  /// File name of the copy taken before upgrading to schema [to].
+  static String preUpgradeBackupName(int to) => 'gamebox.before-v$to.sqlite';
+
+  /// Where to copy the database before an upgrade (null: no copy).
+  final Future<String?> Function(int from, int to)? preUpgradeBackup;
+
+  /// Profile whose favourites and play history are read and written.
+  String activeProfileId = defaultProfileId;
 
   /// `<app documents>/gamebox.sqlite` (drift_flutter's default location,
   /// made explicit so backup/restore target the same file).
@@ -92,7 +110,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Bump on every schema change and add a step in [migration].
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -100,8 +118,53 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (m, from, to) async {
-          // One step per version; never drop user tables.
-          // See docs/DATABASE_SCHEMA.md.
+          // A consistent copy first (outside any transaction: VACUUM can't
+          // run inside one). Restorable from Settings → Restore library.
+          final backup = await preUpgradeBackup?.call(from, to);
+          if (backup != null) await backupTo(backup);
+          // All steps in one transaction: a failure leaves the database as it
+          // was (drift updates the version only after this returns).
+          await transaction(() async {
+            final before = await _libraryCounts();
+            await _upgradeSteps(m, from);
+            await _verifyUpgrade(before);
+          });
+        },
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON');
+          await customStatement(
+              'INSERT OR IGNORE INTO profiles (id, name, is_default, created_at) VALUES (?, ?, 1, ?)',
+              [defaultProfileId, 'Player 1', DateTime.now().millisecondsSinceEpoch ~/ 1000]);
+          await seedCatalog();
+        },
+      );
+
+  /// Row counts that a migration must keep.
+  Future<Map<String, int>> _libraryCounts() async {
+    final out = <String, int>{};
+    for (final t in const ['games', 'game_files', 'favorites', 'game_history', 'save_states', 'controller_profiles']) {
+      final r = await customSelect('SELECT COUNT(*) AS n FROM $t').getSingle();
+      out[t] = r.read<int>('n');
+    }
+    return out;
+  }
+
+  /// Fails (and so rolls the upgrade back) when data was lost or broken.
+  Future<void> _verifyUpgrade(Map<String, int> before) async {
+    final after = await _libraryCounts();
+    for (final e in before.entries) {
+      if (after[e.key] != e.value) {
+        throw StateError('Upgrade check failed: ${e.key} had ${e.value} rows, now ${after[e.key]}');
+      }
+    }
+    final fk = await customSelect('PRAGMA foreign_key_check').get();
+    if (fk.isNotEmpty) throw StateError('Upgrade check failed: ${fk.length} foreign key problem(s)');
+    final ok = await customSelect('PRAGMA integrity_check').getSingle();
+    if (ok.data.values.first != 'ok') throw StateError('Upgrade check failed: ${ok.data.values.first}');
+  }
+
+  /// One step per version; never drop user data. See docs/DATABASE_SCHEMA.md.
+  Future<void> _upgradeSteps(Migrator m, int from) async {
           if (from < 2) {
             await m.addColumn(games, games.regions);
             await m.addColumn(gameFiles, gameFiles.rootUri);
@@ -128,12 +191,37 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(saveStates, saveStates.relativePath);
             await m.addColumn(saveStates, saveStates.lastModified);
           }
-        },
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-          await seedCatalog();
-        },
-      );
+          if (from < 6) {
+            // Profiles: everything that existed belongs to the default one.
+            await m.createTable(profiles);
+            await customStatement(
+                'INSERT INTO profiles (id, name, is_default, created_at) VALUES (?, ?, 1, ?)',
+                [defaultProfileId, 'Player 1', DateTime.now().millisecondsSinceEpoch ~/ 1000]);
+            await m.alterTable(TableMigration(
+              favorites,
+              newColumns: [favorites.profileId],
+              columnTransformer: {favorites.profileId: const Constant(defaultProfileId)},
+            ));
+            await m.addColumn(gameHistory, gameHistory.profileId);
+            await customStatement('UPDATE game_history SET profile_id = ?', [defaultProfileId]);
+            // Stable ids next to the integer keys.
+            await m.addColumn(games, games.uuid);
+            await m.addColumn(gameFiles, gameFiles.uuid);
+            await m.addColumn(gameHistory, gameHistory.uuid);
+            for (final t in const ['games', 'game_files', 'game_history']) {
+              await customStatement('UPDATE $t SET uuid = $_sqlUuid WHERE uuid IS NULL');
+            }
+            await m.create(idxGamesUuid);
+            await m.create(idxGameFilesUuid);
+            await m.create(idxHistoryUuid);
+            await m.create(idxHistoryProfile);
+          }
+  }
+
+  /// SQL expression for a random version-4 UUID (SQLite's randomblob).
+  static const _sqlUuid = "lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || "
+      "substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || "
+      "substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))";
 
   /// Registers consoles the user added (games reference the consoles table).
   /// Rows are never deleted: games of a removed system keep their row.
@@ -354,7 +442,7 @@ class AppDatabase extends _$AppDatabase {
     final q = select(games);
     configure(q);
     final joined = q.join([
-      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id)),
+      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id) & favorites.profileId.equals(activeProfileId)),
     ]);
     if (favoritesOnly) joined.where(favorites.gameId.isNotNull());
     return joined.watch().map((rows) => [
@@ -396,7 +484,7 @@ class AppDatabase extends _$AppDatabase {
     final words = query.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
     // Each word must appear in the title (bound parameters, LIKE-escaped).
     final q2 = select(games).join([
-      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id)),
+      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id) & favorites.profileId.equals(activeProfileId)),
     ]);
     for (final w in words) {
       q2.where(games.title.lower().like('%${_escapeLike(w)}%', escapeChar: r'\'));
@@ -578,6 +666,7 @@ class AppDatabase extends _$AppDatabase {
           gameId: gameId,
           emulatorId: Value(emulatorId),
           startedAt: at,
+          profileId: Value(activeProfileId),
         ));
         await customStatement(
           'UPDATE games SET last_played_at = ?, play_count = play_count + 1 WHERE id = ?',
@@ -613,7 +702,7 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<GameWithStatus?> watchGame(int gameId) {
     final q = select(games).join([
-      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id)),
+      leftOuterJoin(favorites, favorites.gameId.equalsExp(games.id) & favorites.profileId.equals(activeProfileId)),
     ])
       ..where(games.id.equals(gameId));
     return q.watchSingleOrNull().map((r) => r == null
@@ -638,9 +727,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setFavorite(int gameId, bool favorite) async {
     if (favorite) {
       await into(favorites).insertOnConflictUpdate(
-          FavoritesCompanion.insert(gameId: Value(gameId), addedAt: DateTime.now()));
+          FavoritesCompanion.insert(profileId: activeProfileId, gameId: gameId, addedAt: DateTime.now()));
     } else {
-      await (delete(favorites)..where((f) => f.gameId.equals(gameId))).go();
+      await (delete(favorites)..where((f) => f.gameId.equals(gameId) & f.profileId.equals(activeProfileId))).go();
     }
   }
 

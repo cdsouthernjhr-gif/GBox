@@ -5,6 +5,29 @@
 // ROM binaries are never stored here: only file references and metadata.
 import 'package:drift/drift.dart';
 
+import 'uuid.dart';
+
+// --------------------------------------------------------------- profiles --
+
+/// Id of the profile created by the v6 migration; every row that existed
+/// before profiles belongs to it.
+const defaultProfileId = '00000000-0000-4000-8000-000000000001';
+
+/// Local player profiles (schema v6). The game library is shared; favourites,
+/// play history (and later saves and settings) belong to a profile.
+@DataClassName('ProfileRow')
+class Profiles extends Table {
+  TextColumn get id => text().clientDefault(newUuid)();
+  TextColumn get name => text()();
+  TextColumn get avatar => text().nullable()();
+  TextColumn get themeId => text().nullable()();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ---------------------------------------------------------------- devices --
 
 @DataClassName('DeviceRow')
@@ -166,6 +189,7 @@ class EmulatorAdapters extends Table {
 @DataClassName('GameRow')
 @TableIndex(name: 'idx_games_console', columns: {#consoleId})
 @TableIndex(name: 'idx_games_last_played', columns: {#lastPlayedAt})
+@TableIndex(name: 'idx_games_uuid', columns: {#uuid}, unique: true)
 class Games extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
@@ -180,12 +204,16 @@ class Games extends Table {
 
   /// Comma-separated regions parsed from the file name (schema v2).
   TextColumn get regions => text().nullable()();
+
+  /// Stable id for export and sync (schema v6; integer ids stay the keys).
+  TextColumn get uuid => text().nullable().clientDefault(newUuid)();
 }
 
 @DataClassName('GameFileRow')
 @TableIndex(name: 'idx_game_files_hash', columns: {#sha1})
 @TableIndex(name: 'idx_game_files_root', columns: {#rootUri})
 @TableIndex(name: 'idx_game_files_game', columns: {#gameId})
+@TableIndex(name: 'idx_game_files_uuid', columns: {#uuid}, unique: true)
 class GameFiles extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get gameId =>
@@ -215,6 +243,9 @@ class GameFiles extends Table {
   /// valid | invalid | notChecked (see rom_header_validator.dart).
   TextColumn get headerStatus => text().nullable()();
   TextColumn get headerDetail => text().nullable()();
+
+  // ---- schema v6 ----
+  TextColumn get uuid => text().nullable().clientDefault(newUuid)();
 }
 
 @DataClassName('GameMetadataRow')
@@ -252,16 +283,20 @@ class GameArtworks extends Table {
 
 @DataClassName('FavoriteRow')
 class Favorites extends Table {
+  /// Schema v6: favourites belong to a profile (key profile + game).
+  TextColumn get profileId => text().references(Profiles, #id, onDelete: KeyAction.cascade)();
   IntColumn get gameId =>
       integer().references(Games, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get addedAt => dateTime()();
 
   @override
-  Set<Column> get primaryKey => {gameId};
+  Set<Column> get primaryKey => {profileId, gameId};
 }
 
 @DataClassName('GameHistoryRow')
 @TableIndex(name: 'idx_history_started', columns: {#startedAt})
+@TableIndex(name: 'idx_history_uuid', columns: {#uuid}, unique: true)
+@TableIndex(name: 'idx_history_profile', columns: {#profileId})
 class GameHistory extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get gameId =>
@@ -271,6 +306,11 @@ class GameHistory extends Table {
   DateTimeColumn get endedAt => dateTime().nullable()();
   IntColumn get durationSeconds => integer().nullable()();
   TextColumn get exitStatus => text().nullable()();
+
+  // ---- schema v6 ----
+  /// Who played (null only for rows a failed migration left behind).
+  TextColumn get profileId => text().nullable().references(Profiles, #id, onDelete: KeyAction.setNull)();
+  TextColumn get uuid => text().nullable().clientDefault(newUuid)();
 }
 
 // ------------------------------------------------------------ controllers --

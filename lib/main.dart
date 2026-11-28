@@ -94,6 +94,21 @@ class _BootstrapState extends State<_Bootstrap> {
                   const Text('GAMEBOX could not start', style: TextStyle(fontSize: 22)),
                   const SizedBox(height: 8),
                   Text('$_error', style: const TextStyle(color: Colors.white60)),
+                  // A failed database upgrade is rolled back: say so.
+                  if ('$_error'.contains('Upgrade check failed'))
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: SizedBox(
+                        width: 560,
+                        child: Text(
+                          'Your library was not changed: the upgrade was undone, and a copy from before it is kept '
+                          '(gamebox.before-v6.sqlite). You can reinstall the previous GAMEBOX version to keep '
+                          'playing, and send the log to the developer.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   FilledButton(autofocus: true, onPressed: _start, child: const Text('Retry')),
                   TextButton(

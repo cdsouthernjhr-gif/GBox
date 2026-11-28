@@ -36,7 +36,16 @@ Future<void> restoreLibraryAction(BuildContext context) async {
   final files = await dir.exists()
       ? (await dir.list().where((e) => e is File && e.path.endsWith('.sqlite')).cast<File>().toList())
       : <File>[];
-  files.sort((a, b) => b.path.compareTo(a.path));
+  // Copies GAMEBOX made itself before a database upgrade (next to the database).
+  final dbDir = File(await AppDatabase.databaseFilePath()).parent;
+  if (await dbDir.exists()) {
+    files.addAll(await dbDir
+        .list()
+        .where((e) => e is File && RegExp(r'gamebox\.before-v\d+\.sqlite$').hasMatch(e.path))
+        .cast<File>()
+        .toList());
+  }
+  files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
   if (!context.mounted) return;
   if (files.isEmpty) {
     _snack(context, 'No library backups found in ${dir.path}');
@@ -58,7 +67,8 @@ Future<void> restoreLibraryAction(BuildContext context) async {
                 autofocus: i == 0,
                 padding: const EdgeInsets.all(10),
                 onSelect: () => Navigator.pop(c, f),
-                child: Text('${formatDateTime(f.lastModifiedSync())} · ${formatBytes(f.lengthSync())}'),
+                child: Text('${formatDateTime(f.lastModifiedSync())} · ${formatBytes(f.lengthSync())}'
+                    '${_upgradeLabel(f.path)}'),
               ),
             ),
         ]),
@@ -73,6 +83,12 @@ Future<void> restoreLibraryAction(BuildContext context) async {
   } on FormatException catch (e) {
     if (context.mounted) _snack(context, e.message);
   }
+}
+
+/// " · before the upgrade to database v6" for copies made before upgrades.
+String _upgradeLabel(String path) {
+  final m = RegExp(r'gamebox\.before-v(\d+)\.sqlite$').firstMatch(path);
+  return m == null ? '' : ' · before the upgrade to database v${m.group(1)}';
 }
 
 Future<void> chooseWallpaperAction(BuildContext context) async {

@@ -16,6 +16,7 @@ import '../game_library/library_screens.dart' show GeneratedCover, consoleColor;
 import '../setup/rom_search_screen.dart';
 import '../source_manager/find_online_screen.dart';
 import '../setup/setup_screen.dart';
+import 'home_dashboard.dart';
 
 /// One horizontal row of the game launcher.
 class GameRowData {
@@ -75,7 +76,10 @@ List<(String, int)> buildSystems({required List<GameWithStatus> all, required Ro
 /// moves within a row, up/down between rows. OK/A plays, Y favourites,
 /// Menu/X opens options, left on the first item opens the side menu.
 class GameHomeScreen extends StatefulWidget {
-  const GameHomeScreen({super.key, required this.onOpenMenu, required this.onOpenConsole});
+  const GameHomeScreen({super.key, required this.onOpenMenu, required this.onOpenConsole, this.nav});
+
+  /// Menu sections for the quick actions (null: no quick actions/status).
+  final HomeNavigation? nav;
 
   /// Shows the side menu (focus moves to it).
   final VoidCallback onOpenMenu;
@@ -190,6 +194,7 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
                     onOpenMenu: widget.onOpenMenu,
                   ),
                   for (var r = afterContinue; r < rows.length; r++) gameRow(r),
+                  if (widget.nav != null) ...[QuickActionsRow(nav: widget.nav!), StatusRow(nav: widget.nav!)],
                 ];
                 // Keep the panel in sync with the library (first game, or the
                 // focused game after e.g. a favourite toggle). Updated after
@@ -366,7 +371,7 @@ class _Hero extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 6,
                         children: [
-                          StatusChip('OK / A  Play', color: palette.focus, icon: Icons.play_arrow_rounded),
+                          StatusChip('OK / A  Play', color: palette.play, icon: Icons.play_arrow_rounded),
                           StatusChip(
                             g.isFavorite ? 'Y  Unfavourite' : 'Y  Favourite',
                             color: Colors.amber,

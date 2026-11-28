@@ -257,7 +257,7 @@ class _BodyState extends State<_Body> {
               Wrap(spacing: 10, runSpacing: 10, children: [
                 TvButton(
                   autofocus: true,
-                  primary: true,
+                  play: true,
                   label: 'Play',
                   icon: Icons.play_arrow_rounded,
                   onPressed: g.isMissing || _busy ? null : () => playGame(context, g),

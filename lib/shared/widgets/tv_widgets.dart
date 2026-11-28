@@ -200,12 +200,23 @@ class EmptyState extends StatelessWidget {
 
 /// Focusable pill button.
 class TvButton extends StatelessWidget {
-  const TvButton({super.key, required this.label, required this.onPressed, this.icon, this.autofocus = false, this.primary = false});
+  const TvButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.autofocus = false,
+    this.primary = false,
+    this.play = false,
+  });
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
   final bool autofocus;
   final bool primary;
+
+  /// A Play button: the theme's play colour (orange in Modern Retro).
+  final bool play;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +227,13 @@ class TvButton extends StatelessWidget {
       onSelect: onPressed,
       borderRadius: 30,
       scale: 1.06,
-      color: primary && enabled ? palette.accent : palette.surface,
+      color: !enabled
+          ? palette.surface
+          : play
+              ? palette.play
+              : primary
+                  ? palette.accent
+                  : palette.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       child: Opacity(
         opacity: enabled ? 1 : 0.45,

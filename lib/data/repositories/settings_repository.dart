@@ -7,10 +7,11 @@ import '../../core/constants/custom_console.dart';
 import '../../core/database/app_database.dart';
 import '../../integrations/emulator_adapters/custom_emulator.dart';
 
-enum AppThemeId { darkGaming, retroArcade, minimal, wallpaper }
+enum AppThemeId { modernRetro, darkGaming, retroArcade, minimal, wallpaper }
 
 extension AppThemeIdLabel on AppThemeId {
   String get label => switch (this) {
+        AppThemeId.modernRetro => 'Modern Retro',
         AppThemeId.darkGaming => 'Dark Gaming',
         AppThemeId.retroArcade => 'Retro Arcade',
         AppThemeId.minimal => 'Minimal',
@@ -25,7 +26,7 @@ enum GameSort { title, recentlyPlayed, recentlyAdded }
 /// Immutable snapshot of user settings, persisted in the `app_settings` table.
 class SettingsState {
   const SettingsState({
-    this.theme = AppThemeId.darkGaming,
+    this.theme = AppThemeId.modernRetro,
     this.wallpaperPreset = 0,
     this.animations = true,
     this.sounds = false,

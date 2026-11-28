@@ -10,6 +10,7 @@ import '../../domain/entities/performance_tier.dart';
 import '../../shared/widgets/tv_widgets.dart';
 import '../emulator_manager/launch_dialogs.dart';
 import '../game_home/game_home_screen.dart';
+import '../game_home/home_dashboard.dart' show HomeNavigation;
 import '../download_manager/downloads_screen.dart';
 import '../emulator_manager/emulators_screen.dart';
 import '../game_library/my_games_screen.dart';
@@ -130,6 +131,12 @@ class LauncherShellState extends State<LauncherShell> {
     _focusContent();
   }
 
+  /// Shows [section] with the focus in its content (from HOME's quick actions).
+  void _openSection(LauncherSection section) {
+    select(section);
+    _focusContent();
+  }
+
   /// Opens GAMES showing [consoleId]'s games (all games when null).
   void openGames([String? consoleId]) {
     setState(() {
@@ -172,7 +179,16 @@ class LauncherShellState extends State<LauncherShell> {
   }
 
   Widget _content() => switch (_section) {
-        LauncherSection.home => GameHomeScreen(onOpenMenu: openMenu, onOpenConsole: openGames),
+        LauncherSection.home => GameHomeScreen(
+            onOpenMenu: openMenu,
+            onOpenConsole: openGames,
+            nav: HomeNavigation(
+              addGames: () => _openSection(LauncherSection.addGames),
+              emulators: () => _openSection(LauncherSection.emulators),
+              settings: () => _openSection(LauncherSection.settings),
+              openMenu: openMenu,
+            ),
+          ),
         LauncherSection.games => MyGamesScreen(key: ValueKey(_gamesConsole), initialConsole: _gamesConsole),
         LauncherSection.addGames => const DownloadsScreen(),
         LauncherSection.emulators => const EmulatorsScreen(),

@@ -170,8 +170,8 @@ void main() {
   testWidgets('settings change theme and persist to the database', (tester) async {
     await boot(tester);
     await go(tester, LauncherSection.settings);
-    await tester.scrollUntilVisible(find.text('Dark Gaming'), 200, scrollable: find.byType(Scrollable).last);
-    expect(find.text('Dark Gaming'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Modern Retro'), 200, scrollable: find.byType(Scrollable).last);
+    expect(find.text('Modern Retro'), findsOneWidget, reason: 'the 1.0 default theme');
     await tester.runAsync(() => services.settings.set(SettingsKeys.theme, AppThemeId.retroArcade.name));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
     await tester.pump(const Duration(milliseconds: 300));
@@ -834,6 +834,56 @@ void main() {
     final choices = (await tester.runAsync(() => services.launcher.choicesFor('user_neogeo')))!;
     expect(choices.single.adapter.emulator.name, 'Neo Emu');
     expect(choices.single.installed, isTrue);
+    await shutdown(tester);
+  });
+
+  testWidgets('HOME quick actions and status tiles open what they describe', (tester) async {
+    await boot(
+      tester,
+      prepare: (root) => File('$root/GAMEBOX/Games/NES/Alpha.nes')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(nesRom()),
+    );
+    Future<void> visible(String text) async {
+      await tester.ensureVisible(find.text(text, skipOffstage: false));
+      await settle(tester);
+    }
+
+    expect(find.text('Quick actions', skipOffstage: false), findsOneWidget);
+    expect(find.text('Status', skipOffstage: false), findsOneWidget);
+
+    // Quick action → ADD GAMES section.
+    await visible('Find, import, download');
+    await tester.tap(find.text('Find, import, download'));
+    await settle(tester);
+    expect(find.text('Find ROMs on this device'), findsOneWidget, reason: 'ADD GAMES shown');
+    await go(tester, LauncherSection.home);
+    await press(tester, LogicalKeyboardKey.arrowRight); // back into the games
+    await settle(tester);
+
+    // Status: the controller count and its page.
+    final pads = find.byKey(const ValueKey('status-controllers'), skipOffstage: false);
+    await tester.ensureVisible(pads);
+    await settle(tester);
+    expect(find.descendant(of: pads, matching: find.text('1 controller')), findsOneWidget);
+    await tester.tap(pads);
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Controllers'), findsWidgets);
+    expect(find.text('Back'), findsOneWidget, reason: 'opened as its own page');
+    await tester.tap(find.text('Back'));
+    await settle(tester);
+
+    // Status: system → device report.
+    final system = find.byKey(const ValueKey('status-system'), skipOffstage: false);
+    await tester.ensureVisible(system);
+    await settle(tester);
+    expect(find.descendant(of: system, matching: find.textContaining('Android')), findsOneWidget);
+    await tester.tap(system);
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Device compatibility report'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await shutdown(tester);
   });
 }

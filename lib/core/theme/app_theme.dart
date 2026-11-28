@@ -17,8 +17,12 @@ class GameboxPalette extends ThemeExtension<GameboxPalette> {
     required this.warning,
     required this.danger,
     required this.muted,
+    required this.play,
     this.wallpaperImage,
   });
+
+  /// Play buttons (orange in Modern Retro, the accent elsewhere).
+  final Color play;
 
   /// Custom wallpaper (local file), drawn under a dark overlay.
   final String? wallpaperImage;
@@ -57,6 +61,7 @@ class GameboxPalette extends ThemeExtension<GameboxPalette> {
         warning: warning,
         danger: danger,
         muted: muted,
+        play: play,
       );
 
   @override
@@ -82,6 +87,16 @@ const accentChoices = <int?>[
 
 ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0, int? accentColor, String? wallpaperImage}) {
   final (seed0, bg, surface, card, focus, accent0) = switch (id) {
+    // GAMEBOX 1.0 default: dark navy, electric blue focus, purple accent;
+    // Play buttons are orange.
+    AppThemeId.modernRetro => (
+        const Color(0xFF7B2FF7),
+        const Color(0xFF070B1E),
+        const Color(0xFF0E1530),
+        const Color(0xFF151F45),
+        const Color(0xFF00B4FF),
+        const Color(0xFF7B2FF7),
+      ),
     AppThemeId.darkGaming => (
         const Color(0xFF7C4DFF),
         const Color(0xFF0B0E17),
@@ -123,6 +138,11 @@ ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0, int? accentColor, 
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: wallpaperPresets[wallpaperPreset.clamp(0, wallpaperPresets.length - 1)].$2,
+      ),
+    AppThemeId.modernRetro => const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF070B1E), Color(0xFF0B1233), Color(0xFF140B33)],
       ),
     AppThemeId.retroArcade => const LinearGradient(
         begin: Alignment.topCenter,
@@ -186,6 +206,7 @@ ThemeData buildTheme(AppThemeId id, {int wallpaperPreset = 0, int? accentColor, 
         warning: const Color(0xFFFFC400),
         danger: const Color(0xFFFF5252),
         muted: Colors.white60,
+        play: id == AppThemeId.modernRetro ? const Color(0xFFFF7A00) : accent,
         wallpaperImage: id == AppThemeId.wallpaper ? wallpaperImage : null,
       ),
     ],
